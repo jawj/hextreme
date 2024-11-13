@@ -1,8 +1,7 @@
 {
-  "name": "fasthex",
+  "name": "hexpress",
   "version": "0.1.0",
   "description": "Produce hex strings from Uint8Arrays at great speed",
-  "main": "index.js",
   "scripts": {
     "makeCJS": "cp index.d.mts index.d.ts && esbuild --platform=neutral --format=cjs < index.mjs > index.js",
     "testNode": "node test.mjs",
@@ -14,11 +13,16 @@
     "toString('hex')",
     "hex",
     "Uint8Array",
+    "TypedArray",
     "ArrayBuffer"
   ],
   "author": "George MacKerron",
   "license": "MIT",
   "devDependencies": {
     "esbuild": "^0.24.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jawj/hexpress"
   }
 }

@@ -1,4 +1,4 @@
-# fasthex
+# hexpress
 
 Fast hex string generation for `Uint8Array`, like [`.toHex()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array/toHex). Also works with ordinary arrays of numbers 0 -- 255.
 
@@ -23,12 +23,12 @@ For both the `TextDecoder` and string concatenation approaches, we do some manua
 A test run looks like this:
 
 ```
-~/Development/fasthex % npm run test    
+~/Development/hexpress % npm run test    
 
-> fasthex@0.1.0 test
+> hexpress@0.1.0 test
 > echo 'Node' && npm run testNode && echo 'Bun' && npm run testBun
 
-> fasthex@0.1.0 testNode
+> hexpress@0.1.0 testNode
 > node test.mjs
 
 Generating random test data ...
@@ -42,7 +42,7 @@ _toHexUsingTextDecoder: 50.49 ms
 _toHexInChunksUsingTextDecoder: 51.85 ms
 _toHexUsingStringConcat: 1923.83 ms
 
-> fasthex@0.1.0 testBun
+> hexpress@0.1.0 testBun
 > bun test.mjs
 
 Generating random test data ...
