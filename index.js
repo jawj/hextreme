@@ -23,7 +23,7 @@ __export(stdin_exports, {
   toHex: () => toHex
 });
 module.exports = __toCommonJS(stdin_exports);
-const hasTD = typeof TextDecoder === "function", chunkSize = 1048576;
+const hasTD = typeof TextDecoder === "function", chunkSize = 524288;
 let hp, td, cc;
 function _toHexUsingStringConcat(d) {
   if (!hp) {
@@ -47,7 +47,7 @@ function _toHexUsingStringConcat(d) {
   }
   return out;
 }
-function _toHexUsingTextDecoder(d) {
+function _toHexUsingTextDecoder(d, scratchArr) {
   if (!td) {
     td = new TextDecoder();
     cc = new Uint16Array(256);
@@ -55,29 +55,29 @@ function _toHexUsingTextDecoder(d) {
     if (littleEndian) for (let i2 = 0; i2 < 256; i2++) cc[i2] = c[i2 & 15] << 8 | c[i2 >>> 4 & 15];
     else for (let i2 = 0; i2 < 256; i2++) cc[i2] = c[i2 & 15] | c[i2 >>> 4 & 15] << 8;
   }
-  const len = d.length, last7 = len - 7, arr = new Uint16Array(len);
+  const len = d.length, last7 = len - 7, a = scratchArr || new Uint16Array(len);
   let i = 0;
   while (i < last7) {
-    arr[i] = cc[d[i++]];
-    arr[i] = cc[d[i++]];
-    arr[i] = cc[d[i++]];
-    arr[i] = cc[d[i++]];
-    arr[i] = cc[d[i++]];
-    arr[i] = cc[d[i++]];
-    arr[i] = cc[d[i++]];
-    arr[i] = cc[d[i++]];
+    a[i] = cc[d[i++]];
+    a[i] = cc[d[i++]];
+    a[i] = cc[d[i++]];
+    a[i] = cc[d[i++]];
+    a[i] = cc[d[i++]];
+    a[i] = cc[d[i++]];
+    a[i] = cc[d[i++]];
+    a[i] = cc[d[i++]];
   }
   while (i < len) {
-    arr[i] = cc[d[i++]];
+    a[i] = cc[d[i++]];
   }
-  const hex = td.decode(arr);
+  const hex = td.decode(a.subarray(0, len));
   return hex;
 }
 function _toHexInChunksUsingTextDecoder(d) {
-  let hex = "", chunks = Math.ceil(d.length / chunkSize);
+  let hex = "", len = d.length, chunks = Math.ceil(len / chunkSize), scratchArr = new Uint16Array(chunks > 1 ? chunkSize : len);
   for (let i = 0; i < chunks; i++) {
     const start = i * chunkSize, end = start + chunkSize;
-    hex += _toHexUsingTextDecoder(d.subarray(start, end));
+    hex += _toHexUsingTextDecoder(d.subarray(start, end), scratchArr);
   }
   return hex;
 }
