@@ -1,0 +1,24 @@
+{
+  "name": "fasthex",
+  "version": "0.1.0",
+  "description": "Produce hex strings from Uint8Arrays at great speed",
+  "main": "index.js",
+  "scripts": {
+    "makeCJS": "cp index.d.mts index.d.ts && esbuild --platform=neutral --format=cjs < index.mjs > index.js",
+    "testNode": "node test.mjs",
+    "testBun": "bun test.mjs",
+    "test": "npm run testNode && npm run testBun"
+  },
+  "keywords": [
+    "toHex",
+    "toString('hex')",
+    "hex",
+    "Uint8Array",
+    "ArrayBuffer"
+  ],
+  "author": "George MacKerron",
+  "license": "MIT",
+  "devDependencies": {
+    "esbuild": "^0.24.0"
+  }
+}
