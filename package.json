@@ -1,5 +1,5 @@
 {
-  "name": "hexpress",
+  "name": "hextreme",
   "version": "0.1.0",
   "description": "Produce hex strings from Uint8Arrays at great speed",
   "scripts": {
@@ -23,6 +23,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/jawj/hexpress"
+    "url": "https://github.com/jawj/hextreme"
   }
 }
