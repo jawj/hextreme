@@ -1,6 +1,6 @@
 {
   "name": "hextreme",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Produce hex strings from Uint8Arrays at great speed",
   "scripts": {
     "makeCJS": "cp index.d.mts index.d.ts && esbuild --platform=neutral --format=cjs < index.mjs > index.js",
