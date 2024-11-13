@@ -1,6 +1,6 @@
 {
   "name": "hextreme",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Produce hex strings from Uint8Arrays at great speed",
   "exports": {
     "require": "./index.js",
