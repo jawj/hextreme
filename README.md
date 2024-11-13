@@ -23,10 +23,11 @@ For both the `TextDecoder` and string concatenation approaches, we do some manua
 A test run looks like this:
 
 ```
-~/Development/hextreme % npm run test    
+% npm run test
 
 > hextreme@0.1.0 test
-> echo 'Node' && npm run testNode && echo 'Bun' && npm run testBun
+> npm run testNode && npm run testBun
+
 
 > hextreme@0.1.0 testNode
 > node test.mjs
@@ -37,10 +38,11 @@ Checking results ...
 All tests passed :)
 
 Benchmarking 48.6 MiB ...
-Buffer.toString: 24.15 ms
-_toHexUsingTextDecoder: 50.49 ms
-_toHexInChunksUsingTextDecoder: 51.85 ms
-_toHexUsingStringConcat: 1923.83 ms
+Buffer.toString: 24.18 ms
+toHex: 49.65 ms
+_toHexUsingTextDecoder: 50.71 ms
+_toHexInChunksUsingTextDecoder: 50.61 ms
+_toHexUsingStringConcat: 2035.04 ms
 
 > hextreme@0.1.0 testBun
 > bun test.mjs
@@ -51,8 +53,9 @@ Checking results ...
 All tests passed :)
 
 Benchmarking 48.6 MiB ...
-Buffer.toString: 5.27 ms
-_toHexUsingTextDecoder: 26.55 ms
-_toHexInChunksUsingTextDecoder: 24.04 ms
-_toHexUsingStringConcat: 388.28 ms
+Buffer.toString: 5.84 ms
+toHex: 3.08 ms
+_toHexUsingTextDecoder: 27.54 ms
+_toHexInChunksUsingTextDecoder: 24.02 ms
+_toHexUsingStringConcat: 369.94 ms
 ```
