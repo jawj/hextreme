@@ -1,1 +1,1 @@
-function toHex(data: Uint8Array | Uint8ClampedArray | number[]): string;
+export function toHex(data: Uint8Array | Uint8ClampedArray | number[]): string;
