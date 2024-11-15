@@ -1,5 +1,6 @@
 const
   hasTD = typeof TextDecoder === 'function',
+  littleEndian = new Uint8Array((new Uint16Array([0x0102]).buffer))[0] === 0x02,
   chunkSize = 524288;  // temporary buffer allocation size is 2x this value in bytes
 
 let hp, td, cc;
@@ -40,12 +41,9 @@ export function _toHexUsingTextDecoder(d, scratchArr) {
     td = new TextDecoder();
     cc = new Uint16Array(256);
 
-    const
-      c = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 97, 98, 99, 100, 101, 102],  // 0123456789abcdef
-      littleEndian = new Uint8Array((new Uint16Array([0x0102]).buffer))[0] === 0x02;
-
-    if (littleEndian) for (let i = 0; i < 256; i++) cc[i] = c[i & 0xF] << 8 | c[(i >>> 4) & 0xF];
-    else for (let i = 0; i < 256; i++) cc[i] = c[i & 0xF] | c[(i >>> 4) & 0xF] << 8;
+    const c = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 97, 98, 99, 100, 101, 102];  // 0123456789abcdef
+    if (littleEndian) for (let i = 0; i < 256; i++) cc[i] = c[i & 0xF] << 8 | c[i >>> 4];
+    else for (let i = 0; i < 256; i++) cc[i] = c[i & 0xF] | c[i >>> 4] << 8;
   }
 
   const
@@ -97,3 +95,77 @@ export function toHex(d) {
       hasTD === true ? _toHexInChunksUsingTextDecoder(d) :
         _toHexUsingStringConcat(d));
 }
+
+let te, hl, lo, hi;
+
+export function fromHex(s, scratchArr) {
+  if (!te) {
+    const
+      c = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 97, 98, 99, 100, 101, 102],  // 0123456789abcdef
+      C = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 65, 66, 67, 68, 69, 70];     // 0123456789ABCDEF
+      
+    lo = (48 << 8) | 48;    // 00
+    hi = (102 << 8) | 102;  // ff
+    hl = new Uint8Array(hi + 1);
+    te = new TextEncoder();
+
+    if (littleEndian) for (let i = 0; i < 256; i++) {
+      const 
+        clo = c[i & 0xF] << 8,
+        Clo = C[i & 0xF] << 8,
+        chi = c[i >>> 4],
+        Chi = C[i >>> 4];
+
+      hl[(clo | chi)] =
+        hl[(Clo | chi)] =
+        hl[(clo | Chi)] =
+        hl[(Clo | Chi)] = i;
+    }
+    else for (let i = 0; i < 256; i++) {
+      const 
+        clo = c[i & 0xF],
+        Clo = C[i & 0xF],
+        chi = c[i >>> 4] << 8,
+        Chi = C[i >>> 4] << 8;
+
+      hl[(clo | chi)] =
+        hl[(Clo | chi)] =
+        hl[(clo | Chi)] =
+        hl[(Clo | Chi)] = i;
+    }
+  }
+
+  const slen = s.length;
+  if (slen & 1) throw new Error('Odd number of characters in hex string');
+
+  const
+    bytelen = slen >> 1,
+    last7 = bytelen - 7,
+    hex16 = scratchArr || new Uint16Array(bytelen + 3),  // + 3 is enough space for one 4-byte UTF-8 char, enabling us to detect that
+    hex8 = new Uint8Array(hex16.buffer),
+    out = new Uint8Array(bytelen),
+    result = te.encodeInto(s, hex8);
+
+  if (result.written > slen) throw new Error(`Multi-byte char in hex input`);
+
+  let i = 0, ok = false, vin, vout;
+  l1: {
+    while (i < last7) {
+      vin = hex16[i]; vout = hl[vin]; if (!vout && vin !== lo) break l1; out[i++] = vout;
+      vin = hex16[i]; vout = hl[vin]; if (!vout && vin !== lo) break l1; out[i++] = vout;
+      vin = hex16[i]; vout = hl[vin]; if (!vout && vin !== lo) break l1; out[i++] = vout;
+      vin = hex16[i]; vout = hl[vin]; if (!vout && vin !== lo) break l1; out[i++] = vout;
+      vin = hex16[i]; vout = hl[vin]; if (!vout && vin !== lo) break l1; out[i++] = vout;
+      vin = hex16[i]; vout = hl[vin]; if (!vout && vin !== lo) break l1; out[i++] = vout;
+      vin = hex16[i]; vout = hl[vin]; if (!vout && vin !== lo) break l1; out[i++] = vout;
+      vin = hex16[i]; vout = hl[vin]; if (!vout && vin !== lo) break l1; out[i++] = vout;
+    }
+    while (i < bytelen) {
+      vin = hex16[i]; vout = hl[vin]; if (!vout && vin !== lo) break l1; out[i++] = vout;
+    }
+    ok = true;
+  }
+  if (!ok) throw new Error(`Invalid hex input at index ${i << 1}`);
+  return out;
+}
+

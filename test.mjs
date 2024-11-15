@@ -1,4 +1,4 @@
-import { toHex, _toHexUsingStringConcat, _toHexUsingTextDecoder, _toHexInChunksUsingTextDecoder } from './index.mjs';
+import { fromHex, toHex, _toHexUsingStringConcat, _toHexUsingTextDecoder, _toHexInChunksUsingTextDecoder } from './index.mjs';
 
 console.log('Generating random test data ...');
 
@@ -38,16 +38,56 @@ for (let i = 0; i < arrays.length; i++) {
   }
 }
 
-console.log('All tests passed :)\n');
+console.log('All tests passed\n');
+
+console.log('Converting back from hex and checking results ...');
+
+for (let i = 0; i < arrays.length; i++) {
+  const
+    data = arrays[i],
+    hex = rNodeBuffer[i],
+    dataAgain = fromHex(hex);
+
+  if (dataAgain.length !== data.length) throw new Error(`Length mismatch`);
+  for (let j = 0; j < data.length; j++) {
+    if (data[j] !== dataAgain[j]) throw new Error('Value mismatch');
+  }
+}
+
+console.log('fromHex with invalid hex ...');
+
+function expectError(hex) {
+  let err = null;
+  try { 
+    fromHex(hex) 
+  } catch (e) { 
+    err = e 
+  } finally { 
+    if (!err) throw new Error(`Should have caught error: ${hex}`); 
+    else console.log(`Expected: ${err}`);
+  }
+}
+
+fromHex('');
+fromHex('00');
+expectError('001');
+expectError('0123456789abcdef0g');
+expectError('11FFG0');
+expectError('x');
+expectError('ee😀00');
+expectError('123456==00');
+
+console.log('All tests passed\n');
 
 
 const
   benchmarkArray = arrays[arrays.length - 1],
-  benchmarkBuffer = Buffer.from(benchmarkArray);
+  benchmarkBuffer = Buffer.from(benchmarkArray),
+  benchmarkHex = benchmarkBuffer.toString('hex');
 
 console.log(`Benchmarking ${(benchmarkArray.length / 2 ** 20).toFixed(1)} MiB ...`);
 
-function benchmark(fn,) {
+function benchmark(fn, iterations) {
   const t0 = performance.now();
   for (let i = 0; i < iterations; i++) fn();
   const t1 = performance.now();
@@ -57,10 +97,13 @@ function benchmark(fn,) {
 let iterations;
 
 iterations = 20;
-console.log(`Buffer.toString: ${benchmark(() => benchmarkBuffer.toString('hex'))} ms`);
-console.log(`toHex: ${benchmark(() => toHex(benchmarkArray))} ms`);
-console.log(`_toHexUsingTextDecoder: ${benchmark(() => _toHexUsingTextDecoder(benchmarkArray))} ms`);
-console.log(`_toHexInChunksUsingTextDecoder: ${benchmark(() => _toHexInChunksUsingTextDecoder(benchmarkArray))} ms`);
+console.log(`Buffer.toString: ${benchmark(() => benchmarkBuffer.toString('hex'), iterations)} ms`);
+console.log(`toHex: ${benchmark(() => toHex(benchmarkArray), iterations)} ms`);
+console.log(`_toHexUsingTextDecoder: ${benchmark(() => _toHexUsingTextDecoder(benchmarkArray), iterations)} ms`);
+console.log(`_toHexInChunksUsingTextDecoder: ${benchmark(() => _toHexInChunksUsingTextDecoder(benchmarkArray), iterations)} ms`);
 
 iterations = 3;
-console.log(`_toHexUsingStringConcat: ${benchmark(() => _toHexUsingStringConcat(benchmarkArray))} ms`);
+console.log(`_toHexUsingStringConcat: ${benchmark(() => _toHexUsingStringConcat(benchmarkArray), iterations)} ms`);
+
+iterations = 20;
+console.log(`fromHex: ${benchmark(() => fromHex(benchmarkHex), iterations)} ms`);
