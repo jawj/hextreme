@@ -79,7 +79,6 @@ expectError('123456==00');
 
 console.log('All tests passed\n');
 
-
 const
   benchmarkArray = arrays[arrays.length - 1],
   benchmarkBuffer = Buffer.from(benchmarkArray),
@@ -106,4 +105,5 @@ iterations = 3;
 console.log(`_toHexUsingStringConcat: ${benchmark(() => _toHexUsingStringConcat(benchmarkArray), iterations)} ms`);
 
 iterations = 20;
+console.log(`Buffer.fromString: ${benchmark(() => Buffer.from(benchmarkHex, 'hex'), iterations)} ms`);
 console.log(`fromHex: ${benchmark(() => fromHex(benchmarkHex), iterations)} ms`);

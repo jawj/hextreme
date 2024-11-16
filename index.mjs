@@ -19,7 +19,7 @@ export function _toHexUsingStringConcat(d) {
     out = '',
     i = 0;
 
-  while (i < last7) {
+  while (i < last7) {  // a bit of loop unrolling helps performance in V8 specifically
     out += hp[d[i++]];
     out += hp[d[i++]];
     out += hp[d[i++]];
@@ -99,12 +99,12 @@ export function toHex(d) {
 let te, hl, v00, vff;
 
 export function fromHex(s, scratchArr) {
-  // note: a big switch/case block is an order of magnitude slower
+  // note: using a Map or a big switch/case block are both an order of magnitude slower than these TypedArray lookups
 
   if (!te) {  // one-time prep
     v00 = (48 << 8) | 48;
     vff = (102 << 8) | 102;  // vFF is smaller, so not relevant
-    hl = new Uint8Array(vff + 1);  // hex lookup
+    hl = new Uint8Array(vff + 1);  // hex lookup -- takes 26KB of memory (could halve that by doing vff - v00 + 1, but that's slower)
     te = new TextEncoder();
 
     for (let l = 0; l < 22; l++) for (let r = 0; r < 22; r++) {  // 484 unique possibilities, 00 – FF/ff/fF/Ff
@@ -119,7 +119,7 @@ export function fromHex(s, scratchArr) {
   }
 
   const slen = s.length;
-  if (slen & 1) throw new Error('Hex input must have an even number of characters');
+  if (slen & 1) throw new Error('Hex input is an odd number of characters');
 
   const
     bytelen = slen >> 1,
@@ -129,28 +129,28 @@ export function fromHex(s, scratchArr) {
     out = new Uint8Array(bytelen),
     result = te.encodeInto(s, h8);
 
-  if (result.written > slen) throw new Error('Hex input may not contain multi-byte characters');
+  if (result.written > slen) throw new Error('Hex input contains multi-byte characters');
 
   let i = 0, ok = false;
-  loops: {
+  e: {
     let vin, vout;
-    while (i < last7) {
-      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break loops; out[i++] = vout;
-      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break loops; out[i++] = vout;
-      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break loops; out[i++] = vout;
-      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break loops; out[i++] = vout;
-      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break loops; out[i++] = vout;
-      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break loops; out[i++] = vout;
-      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break loops; out[i++] = vout;
-      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break loops; out[i++] = vout;
+    while (i < last7) {  // a bit of loop unrolling helps performance in V8 specifically
+      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break e; out[i++] = vout;
+      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break e; out[i++] = vout;
+      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break e; out[i++] = vout;
+      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break e; out[i++] = vout;  // 4
+      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break e; out[i++] = vout;
+      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break e; out[i++] = vout;
+      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break e; out[i++] = vout;
+      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break e; out[i++] = vout;  // 8
     }
     while (i < bytelen) {
-      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break loops; out[i++] = vout;
+      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break e; out[i++] = vout;
     }
     ok = true;
   }
 
-  if (!ok) throw new Error(`Invalid hex input at index ${i << 1}`);
+  if (!ok) throw new Error(`Invalid pair in hex input at index ${i << 1}`);
   return out;
 }
 
