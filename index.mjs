@@ -96,75 +96,60 @@ export function toHex(d) {
         _toHexUsingStringConcat(d));
 }
 
-let te, hl, lo, hi;
+let te, hl, v00, vff;
 
 export function fromHex(s, scratchArr) {
-  if (!te) {
-    const
-      c = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 97, 98, 99, 100, 101, 102],  // 0123456789abcdef
-      C = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 65, 66, 67, 68, 69, 70];     // 0123456789ABCDEF
-      
-    lo = (48 << 8) | 48;    // 00
-    hi = (102 << 8) | 102;  // ff
-    hl = new Uint8Array(hi + 1);
+  // note: a big switch/case block is an order of magnitude slower
+
+  if (!te) {  // one-time prep
+    v00 = (48 << 8) | 48;
+    vff = (102 << 8) | 102;  // vFF is smaller, so not relevant
+    hl = new Uint8Array(vff + 1);  // hex lookup
     te = new TextEncoder();
 
-    if (littleEndian) for (let i = 0; i < 256; i++) {
-      const 
-        clo = c[i & 0xF] << 8,
-        Clo = C[i & 0xF] << 8,
-        chi = c[i >>> 4],
-        Chi = C[i >>> 4];
+    for (let l = 0; l < 22; l++) for (let r = 0; r < 22; r++) {  // 484 unique possibilities, 00 – FF/ff/fF/Ff
+      const
+        cl = l + (l < 10 ? 48 : l < 16 ? 55 : 81),  // left-hand char codes, 0 - F/f
+        cr = r + (r < 10 ? 48 : r < 16 ? 55 : 81),  // right-hand char code, 0 - F/f
+        vin = littleEndian ? (cr << 8) | cl : cr | (cl << 8),
+        vout = ((l < 16 ? l : l - 6) << 4) | (r < 16 ? r : r - 6);
 
-      hl[(clo | chi)] =
-        hl[(Clo | chi)] =
-        hl[(clo | Chi)] =
-        hl[(Clo | Chi)] = i;
-    }
-    else for (let i = 0; i < 256; i++) {
-      const 
-        clo = c[i & 0xF],
-        Clo = C[i & 0xF],
-        chi = c[i >>> 4] << 8,
-        Chi = C[i >>> 4] << 8;
-
-      hl[(clo | chi)] =
-        hl[(Clo | chi)] =
-        hl[(clo | Chi)] =
-        hl[(Clo | Chi)] = i;
+      hl[vin] = vout;
     }
   }
 
   const slen = s.length;
-  if (slen & 1) throw new Error('Odd number of characters in hex string');
+  if (slen & 1) throw new Error('Hex input must have an even number of characters');
 
   const
     bytelen = slen >> 1,
     last7 = bytelen - 7,
-    hex16 = scratchArr || new Uint16Array(bytelen + 3),  // + 3 is enough space for one 4-byte UTF-8 char, enabling us to detect that
-    hex8 = new Uint8Array(hex16.buffer),
+    h16 = scratchArr || new Uint16Array(bytelen + 2),  // + 2 gives 4 bytes: enough space for one 4-byte UTF-8 char, enabling us to detect multi-byte chars
+    h8 = new Uint8Array(h16.buffer),
     out = new Uint8Array(bytelen),
-    result = te.encodeInto(s, hex8);
+    result = te.encodeInto(s, h8);
 
-  if (result.written > slen) throw new Error(`Multi-byte char in hex input`);
+  if (result.written > slen) throw new Error('Hex input may not contain multi-byte characters');
 
-  let i = 0, ok = false, vin, vout;
-  l1: {
+  let i = 0, ok = false;
+  loops: {
+    let vin, vout;
     while (i < last7) {
-      vin = hex16[i]; vout = hl[vin]; if (!vout && vin !== lo) break l1; out[i++] = vout;
-      vin = hex16[i]; vout = hl[vin]; if (!vout && vin !== lo) break l1; out[i++] = vout;
-      vin = hex16[i]; vout = hl[vin]; if (!vout && vin !== lo) break l1; out[i++] = vout;
-      vin = hex16[i]; vout = hl[vin]; if (!vout && vin !== lo) break l1; out[i++] = vout;
-      vin = hex16[i]; vout = hl[vin]; if (!vout && vin !== lo) break l1; out[i++] = vout;
-      vin = hex16[i]; vout = hl[vin]; if (!vout && vin !== lo) break l1; out[i++] = vout;
-      vin = hex16[i]; vout = hl[vin]; if (!vout && vin !== lo) break l1; out[i++] = vout;
-      vin = hex16[i]; vout = hl[vin]; if (!vout && vin !== lo) break l1; out[i++] = vout;
+      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break loops; out[i++] = vout;
+      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break loops; out[i++] = vout;
+      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break loops; out[i++] = vout;
+      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break loops; out[i++] = vout;
+      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break loops; out[i++] = vout;
+      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break loops; out[i++] = vout;
+      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break loops; out[i++] = vout;
+      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break loops; out[i++] = vout;
     }
     while (i < bytelen) {
-      vin = hex16[i]; vout = hl[vin]; if (!vout && vin !== lo) break l1; out[i++] = vout;
+      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break loops; out[i++] = vout;
     }
     ok = true;
   }
+
   if (!ok) throw new Error(`Invalid hex input at index ${i << 1}`);
   return out;
 }
