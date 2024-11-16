@@ -50,7 +50,7 @@ for (let i = 0; i < arrays.length; i++) {
 
   if (dataAgain.length !== data.length) throw new Error(`Length mismatch`);
   for (let j = 0; j < data.length; j++) {
-    if (data[j] !== dataAgain[j]) throw new Error('Value mismatch');
+    if (data[j] !== dataAgain[j]) throw new Error(`Value mismatch: ${data} != ${dataAgain}`);
   }
 }
 

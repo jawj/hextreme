@@ -127,25 +127,28 @@ export function fromHex(s, scratchArr) {
     h16 = scratchArr || new Uint16Array(bytelen + 2),  // + 2 gives 4 bytes: enough space for one 4-byte UTF-8 char, enabling us to detect multi-byte chars
     h8 = new Uint8Array(h16.buffer),
     out = new Uint8Array(bytelen),
+    o32 = new Uint32Array(out.buffer, 0, bytelen >> 2),
     result = te.encodeInto(s, h8);
+
 
   if (result.written > slen) throw new Error('Hex input contains multi-byte characters');
 
-  let i = 0, ok = false;
+  let i = 0, j = 0, ok = false;
   e: {
-    let vin, vout;
+    let vin1, vin2, vin3, vin4, vout1, vout2, vout3, vout4;
     while (i < last7) {  // a bit of loop unrolling helps performance in V8 specifically
-      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break e; out[i++] = vout;
-      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break e; out[i++] = vout;
-      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break e; out[i++] = vout;
-      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break e; out[i++] = vout;  // 4
-      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break e; out[i++] = vout;
-      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break e; out[i++] = vout;
-      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break e; out[i++] = vout;
-      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break e; out[i++] = vout;  // 8
+      vin1 = h16[i++]; vin2 = h16[i++]; vin3 = h16[i++]; vin4 = h16[i++]; 
+      vout1 = hl[vin1]; vout2 = hl[vin2]; vout3 = hl[vin3]; vout4 = hl[vin4];
+      if ((!vout1 && vin1 !== v00) || (!vout2 && vin2 !== v00) || (!vout3 && vin3 !== v00) || (!vout4 && vin4 !== v00)) break e;
+      o32[j++] = vout1 | vout2 << 8 | vout3 << 16 | vout4 << 24;
+      
+      vin1 = h16[i++]; vin2 = h16[i++]; vin3 = h16[i++]; vin4 = h16[i++]; 
+      vout1 = hl[vin1]; vout2 = hl[vin2]; vout3 = hl[vin3]; vout4 = hl[vin4];
+      if ((!vout1 && vin1 !== v00) || (!vout2 && vin2 !== v00) || (!vout3 && vin3 !== v00) || (!vout4 && vin4 !== v00)) break e;
+      o32[j++] = vout1 | vout2 << 8 | vout3 << 16 | vout4 << 24;
     }
     while (i < bytelen) {
-      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break e; out[i++] = vout;
+      vin1 = h16[i]; vout1 = hl[vin1]; if (!vout1 && vin1 !== v00) break e; out[i++] = vout1;
     }
     ok = true;
   }
