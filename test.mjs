@@ -48,6 +48,7 @@ for (let i = 0; i < arrays.length; i++) {
 
 console.log('All tests passed\n');
 
+
 console.log('Converting back from hex and checking results ...');
 
 for (let i = 0; i < arrays.length; i++) {
@@ -61,6 +62,8 @@ for (let i = 0; i < arrays.length; i++) {
     if (data[j] !== dataAgain[j]) throw new Error(`Value mismatch: ${data} != ${dataAgain}`);
   }
 }
+console.log('All tests passed\n');
+
 
 console.log('fromHex with invalid hex ...');
 
@@ -84,6 +87,7 @@ expectError('11FFG0');
 expectError('x');
 expectError('ee😀00');
 expectError('123456==00');
+
 
 console.log('All tests passed\n');
 

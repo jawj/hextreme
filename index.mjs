@@ -1,7 +1,7 @@
 const
   hasTD = typeof TextDecoder === 'function',
   littleEndian = new Uint8Array((new Uint16Array([0x0102]).buffer))[0] === 0x02,
-  chunkSize = 524288;  // temporary buffer allocation size is 2x this value in bytes
+  chunkSize = 524288;  // temporary buffer allocation size is never more than 2x this value, in bytes
 
 let hp, td, cc;
 
@@ -98,7 +98,7 @@ export function toHex(d) {
 
 let te, hl, v00, vff;
 
-export function fromHex(s, scratchArr) {
+export function _fromHexUsingTextEncoder(s, outArr, scratchArr) {
   // note: using a Map or a big switch/case block are both an order of magnitude slower than these TypedArray lookups
 
   if (!te) {  // one-time prep
@@ -124,17 +124,21 @@ export function fromHex(s, scratchArr) {
   const
     bytelen = slen >> 1,
     last7 = bytelen - 7,
-    h16 = scratchArr || new Uint16Array(bytelen + 2),  // + 2 gives 4 bytes: enough space for one 4-byte UTF-8 char, enabling us to detect multi-byte chars
-    h8 = new Uint8Array(h16.buffer),
-    out = new Uint8Array(bytelen),
-    result = te.encodeInto(s, h8);
+    h16len = bytelen + 2,
+    h16 = scratchArr || new Uint16Array(h16len),  // + 2 gives 4 bytes: enough space for one 4-byte UTF-8 char, enabling us to detect multi-byte chars
+    h8 = new Uint8Array(h16.buffer),  // view onto same memory
+    out = outArr || new Uint8Array(bytelen);
 
+  if (h16.length < h16len) throw new Error(`Wrong-sized scratch array supplied (was ${h16.length}, expected at least ${h16len})`);
+  if (out.length != bytelen) throw new Error(`Wrong-sized output array supplied (was ${out.length}, expected ${bytelen})`);
+
+  const result = te.encodeInto(s, h8);
   if (result.written > slen) throw new Error('Hex input contains multi-byte characters');
 
   let i = 0, ok = false;
   e: {
     let vin, vout;
-    while (i < last7) {  // a bit of loop unrolling helps performance in V8 specifically
+    while (i < last7) {  // a bit of loop unrolling helps performance in V8
       vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break e; out[i++] = vout;
       vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break e; out[i++] = vout;
       vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break e; out[i++] = vout;
@@ -154,3 +158,34 @@ export function fromHex(s, scratchArr) {
   return out;
 }
 
+export function _fromHexInChunksUsingTextEncoder(s) {
+  const slen = s.length;
+  // needs checking here because it will be rounded down to a multiple of two 
+  if (slen & 1) throw new Error('Hex input is an odd number of characters');
+
+  const
+    bytelen = slen >> 1,
+    chunks = Math.ceil(bytelen / chunkSize),
+    scratchArr = new Uint16Array((chunks > 1 ? chunkSize : bytelen) + 2),
+    outArr = new Uint8Array(bytelen);
+
+  for (let i = 0; i < chunks; i++) {
+    const
+      chunkStartByte = i * chunkSize,
+      chunkEndByte = chunkStartByte + chunkSize;
+
+    _fromHexUsingTextEncoder(
+      s.slice(chunkStartByte << 1, chunkEndByte << 1),
+      outArr.subarray(chunkStartByte, chunkEndByte),
+      scratchArr,
+    );
+  }
+
+  return outArr;
+}
+
+export function fromHex(s) {
+  return (
+    typeof Uint8Array.fromHex === 'function' ? Uint8Array.fromHex(s) :
+      _fromHexInChunksUsingTextEncoder(s));
+}
