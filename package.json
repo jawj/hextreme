@@ -10,7 +10,7 @@
     "makeCJS": "cp index.d.mts index.d.ts && esbuild --platform=neutral --format=cjs < index.mjs > index.js",
     "testNode": "node test.mjs",
     "testBun": "bun test.mjs",
-    "test": "npm run testNode && npm run testBun"
+    "test": "echo '== Node ==' && npm run testNode && echo '== Bun ==' && npm run testBun"
   },
   "keywords": [
     "toHex",
@@ -23,6 +23,7 @@
   "author": "George MacKerron",
   "license": "MIT",
   "devDependencies": {
+    "@smithy/util-hex-encoding": "^3.0.0",
     "esbuild": "^0.24.0"
   },
   "repository": {

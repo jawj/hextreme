@@ -1,8 +1,16 @@
-import { fromHex, toHex, _toHexUsingStringConcat, _toHexUsingTextDecoder, _toHexInChunksUsingTextDecoder } from './index.mjs';
+import {
+  fromHex,
+  toHex,
+  _toHexUsingStringConcat,
+  _toHexUsingTextDecoder,
+  _toHexInChunksUsingTextDecoder
+} from './index.mjs';
+
+import smithy from '@smithy/util-hex-encoding';
 
 console.log('Generating random test data ...');
 
-const lengths = [0, 1, 6, 7, 8, 9, 101, 1010, 10101, 101010, 1010101, 51010101];
+const lengths = [0, 1, 6, 7, 8, 9, 101, 1010, 10101, 101010, 1010104, 51010101];
 const arrays = lengths.map(length => {
   const arr = new Uint8Array(length);
   for (let i = 0; i < length; i++) {
@@ -58,12 +66,12 @@ console.log('fromHex with invalid hex ...');
 
 function expectError(hex) {
   let err = null;
-  try { 
-    fromHex(hex) 
-  } catch (e) { 
-    err = e 
-  } finally { 
-    if (!err) throw new Error(`Should have caught error: ${hex}`); 
+  try {
+    fromHex(hex)
+  } catch (e) {
+    err = e
+  } finally {
+    if (!err) throw new Error(`Should have caught error: ${hex}`);
     else console.log(`Expected: ${err}`);
   }
 }
@@ -84,7 +92,8 @@ const
   benchmarkBuffer = Buffer.from(benchmarkArray),
   benchmarkHex = benchmarkBuffer.toString('hex');
 
-console.log(`Benchmarking ${(benchmarkArray.length / 2 ** 20).toFixed(1)} MiB ...`);
+console.log(`Benchmarking with ${(benchmarkArray.length / 2 ** 20).toFixed(1)} MiB of random data ...`);
+console.log()
 
 function benchmark(fn, iterations) {
   const t0 = performance.now();
@@ -93,17 +102,21 @@ function benchmark(fn, iterations) {
   return ((t1 - t0) / iterations).toFixed(2);
 }
 
-let iterations;
+let iterations = 5;
 
-iterations = 20;
-console.log(`Buffer.toString: ${benchmark(() => benchmarkBuffer.toString('hex'), iterations)} ms`);
+console.log('* Encode\n')
 console.log(`toHex: ${benchmark(() => toHex(benchmarkArray), iterations)} ms`);
 console.log(`_toHexUsingTextDecoder: ${benchmark(() => _toHexUsingTextDecoder(benchmarkArray), iterations)} ms`);
 console.log(`_toHexInChunksUsingTextDecoder: ${benchmark(() => _toHexInChunksUsingTextDecoder(benchmarkArray), iterations)} ms`);
-
-iterations = 3;
 console.log(`_toHexUsingStringConcat: ${benchmark(() => _toHexUsingStringConcat(benchmarkArray), iterations)} ms`);
+console.log('+ compare other implementations')
+console.log(`Native Buffer.toString: ${benchmark(() => benchmarkBuffer.toString('hex'), iterations)} ms`);
+console.log(`@smithy/util-hex-encoding toHex: ${benchmark(() => smithy.toHex(benchmarkArray), iterations)} ms`);
+console.log();
 
-iterations = 20;
-console.log(`Buffer.fromString: ${benchmark(() => Buffer.from(benchmarkHex, 'hex'), iterations)} ms`);
+console.log('* Decode\n')
 console.log(`fromHex: ${benchmark(() => fromHex(benchmarkHex), iterations)} ms`);
+console.log('+ compare other implementations')
+console.log(`Native Buffer.fromString: ${benchmark(() => Buffer.from(benchmarkHex, 'hex'), iterations)} ms`);
+console.log(`@smithy/util-hex-encoding fromHex: ${benchmark(() => smithy.fromHex(benchmarkHex), iterations)} ms`);
+console.log();
