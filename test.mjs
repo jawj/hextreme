@@ -7,6 +7,8 @@ import {
 } from './index.mjs';
 
 import smithy from '@smithy/util-hex-encoding';
+import bufferShimDefault from 'buffer/index.js';  // just 'buffer' imports node native implementation
+const BufferShim = bufferShimDefault.Buffer;
 
 console.log('Generating random test data ...');
 
@@ -94,6 +96,7 @@ console.log('All tests passed\n');
 const
   benchmarkArray = arrays[arrays.length - 1],
   benchmarkBuffer = Buffer.from(benchmarkArray),
+  benchmarkBufferShim = BufferShim.from(benchmarkArray),
   benchmarkHex = benchmarkBuffer.toString('hex');
 
 console.log(`Benchmarking with ${(benchmarkArray.length / 2 ** 20).toFixed(1)} MiB of random data ...`);
@@ -115,6 +118,7 @@ console.log(`_toHexInChunksUsingTextDecoder: ${benchmark(() => _toHexInChunksUsi
 console.log(`_toHexUsingStringConcat: ${benchmark(() => _toHexUsingStringConcat(benchmarkArray), iterations)} ms`);
 console.log('+ compare other implementations')
 console.log(`Native Buffer.toString: ${benchmark(() => benchmarkBuffer.toString('hex'), iterations)} ms`);
+console.log(`Shimmed Buffer.toString: ${benchmark(() => benchmarkBufferShim.toString('hex'), iterations)} ms`);
 console.log(`@smithy/util-hex-encoding toHex: ${benchmark(() => smithy.toHex(benchmarkArray), iterations)} ms`);
 console.log();
 
@@ -122,5 +126,6 @@ console.log('* Decode\n')
 console.log(`fromHex: ${benchmark(() => fromHex(benchmarkHex), iterations)} ms`);
 console.log('+ compare other implementations')
 console.log(`Native Buffer.fromString: ${benchmark(() => Buffer.from(benchmarkHex, 'hex'), iterations)} ms`);
+console.log(`Shimmed Buffer.fromString: ${benchmark(() => BufferShim.from(benchmarkHex, 'hex'), iterations)} ms`);
 console.log(`@smithy/util-hex-encoding fromHex: ${benchmark(() => smithy.fromHex(benchmarkHex), iterations)} ms`);
 console.log();

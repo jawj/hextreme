@@ -24,6 +24,7 @@
   "license": "MIT",
   "devDependencies": {
     "@smithy/util-hex-encoding": "^3.0.0",
+    "buffer": "^6.0.3",
     "esbuild": "^0.24.0"
   },
   "repository": {
