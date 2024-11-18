@@ -3,7 +3,9 @@ const
   littleEndian = new Uint8Array((new Uint16Array([0x0102]).buffer))[0] === 0x02,
   chunkSize = 524288;  // temporary buffer allocation size is never more than 2x this value, in bytes
 
-let hp, td, cc;
+// hex
+
+let hp, tdh, cc;
 
 export function _toHexUsingStringConcat(d) {
   if (!hp) {
@@ -37,8 +39,8 @@ export function _toHexUsingStringConcat(d) {
 }
 
 export function _toHexUsingTextDecoder(d, scratchArr) {
-  if (!td) {
-    td = new TextDecoder();
+  if (!tdh) {
+    tdh = new TextDecoder();
     cc = new Uint16Array(256);
 
     const c = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 97, 98, 99, 100, 101, 102];  // 0123456789abcdef
@@ -67,7 +69,7 @@ export function _toHexUsingTextDecoder(d, scratchArr) {
     a[i] = cc[d[i++]];
   }
 
-  const hex = td.decode(a.subarray(0, len));
+  const hex = tdh.decode(a.subarray(0, len));
   return hex;
 }
 
@@ -160,7 +162,7 @@ export function _fromHexUsingTextEncoder(s, outArr, scratchArr) {
 
 export function _fromHexInChunksUsingTextEncoder(s) {
   const slen = s.length;
-  // needs checking here because it will be rounded down to a multiple of two 
+  // needs checking here because it will be rounded down to a multiple of two below
   if (slen & 1) throw new Error('Hex input is an odd number of characters');
 
   const
@@ -188,4 +190,76 @@ export function fromHex(s) {
   return (
     typeof Uint8Array.fromHex === 'function' ? Uint8Array.fromHex(s) :
       _fromHexInChunksUsingTextEncoder(s));
+}
+
+// base64
+
+const
+  b64StdChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=',
+  b64UrlChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_=',
+  padCh = 64;
+
+let tdb, stdCh, urlCh;
+
+export function toBase64(d, pad, urlsafe) {
+  if (!tdb) {  // one-time prep
+    tdb = new TextDecoder();
+    stdCh = new Uint8Array(65);
+    for (let i = 0; i < 65; i++) {
+      stdCh[i] = b64StdChars.charCodeAt(i);
+      urlCh[i] = b64UrlChars.charCodeAt(i);
+    }
+  }
+
+  const
+    ch = urlsafe ? urlCh : stdCh,
+    inlen = d.length,
+    last2 = inlen - 2,
+    outints = Math.ceil(inlen / 3),
+    out = new Uint32Array(outints);
+
+  let i = 0, j = 0;
+
+  if (littleEndian) while (i < last2) {
+    const c1 = d[i++], c2 = d[i++], c3 = d[i++];
+    out[j++] =
+      ch[c1 >> 2] |
+      ch[((c1 & 3) << 4) | (c2 >> 4)] << 8 |
+      ch[((c2 & 15) << 2) | (c3 >> 6)] << 16 |
+      ch[c3 & 63] << 24;
+  }
+
+  else while (i < last2) {
+    const c1 = d[i++], c2 = d[i++], c3 = d[i++];
+    out[j++] =
+      ch[c1 >> 2] << 24 |
+      ch[((c1 & 3) << 4) | (c2 >> 4)] << 16 |
+      ch[((c2 & 15) << 2) | (c3 >> 6)] << 8 |
+      ch[c3 & 63];
+  }
+
+  // if input length was a multiple of 3, we're done
+  if (i === inlen) return tdb.decode(out);
+
+  // instead, deal with trailing 1 or 2 bytes
+  const c1 = d[i++], c2 = d[i++];  // c1 is always defined, but c2 could be undefined
+
+  if (littleEndian) out[j++] =
+    ch[c1 >> 2] |
+    ch[((c1 & 3) << 4) | ((c2 || 0) >> 4)] << 8 |
+    ch[c2 === undefined ? padCh : ((c2 & 15) << 2)] << 16 |
+    ch[padCh] << 24;
+
+  else out[j++] =
+    ch[c1 >> 2] << 24 |
+    ch[((c1 & 3) << 4) | ((c2 || 0) >> 4)] << 16 |
+    ch[c2 === undefined ? padCh : ((c2 & 15) << 2)] << 8 |
+    ch[padCh];
+
+  // if we're padding, we're done
+  if (pad) return tdh.decode(out);
+
+  // instead, truncate output by interpreting array as Uint8Array
+  let out8 = new Uint8Array(out.buffer, 0, (outints << 2) - (c2 === undefined ? 2 : 1));
+  return tdh.decode(out8);
 }

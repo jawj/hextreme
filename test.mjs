@@ -7,7 +7,7 @@ import {
 } from './index.mjs';
 
 import smithy from '@smithy/util-hex-encoding';
-import bufferShimDefault from 'buffer/index.js';  // just 'buffer' imports node native implementation
+import bufferShimDefault from 'buffer/index.js';  // just 'buffer' imports Node native implementation
 const BufferShim = bufferShimDefault.Buffer;
 
 console.log('Generating random test data ...');
