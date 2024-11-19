@@ -16,9 +16,7 @@ console.log('Generating random test data ...\n');
 const lengths = [0, 1, 6, 7, 8, 9, 101, 1010, 10101, 101010, 1010104, 10101010];
 const arrays = lengths.map(length => {
   const arr = new Uint8Array(length);
-  for (let i = 0; i < length; i++) {
-    arr[i] = Math.random() * 256 >> 0;
-  }
+  for (let i = 0; i < length; i++) arr[i] = Math.random() * 256 >> 0;
   return arr;
 });
 
@@ -26,17 +24,34 @@ console.log('Converting to base64 ...');
 
 const
   rNodeBufferB64Std = arrays.map(arr => Buffer.from(arr).toString('base64')),
-  rNodeBufferB64Url = arrays.map(arr => Buffer.from(arr).toString('base64url')),
-  rToBase64Std = arrays.map(arr => toBase64(arr, true, false)),
-  rToBase64Url = arrays.map(arr => toBase64(arr, false, true));
+  rToBase64Std = arrays.map(arr => toBase64(arr, true, false));
 
 console.log('Checking results ...');
 
 for (let i = 0; i < arrays.length; i++) {
   if (rNodeBufferB64Std[i] !== rToBase64Std[i]) {
-    throw new Error(`Mismatch for array length ${lengths[i]}:
+    throw new Error(`base64 mismatch for array length ${lengths[i]}:
   toString('base64'): ${rNodeBufferB64Std[i]}
   toBase64: ${rToBase64Std[i]}`);
+  }
+}
+
+console.log('All tests passed\n');
+
+
+console.log('Converting to base64url ...');
+
+const
+  rNodeBufferB64Url = arrays.map(arr => Buffer.from(arr).toString('base64url')),
+  rToBase64Url = arrays.map(arr => toBase64(arr, false, true));
+
+console.log('Checking results ...');
+
+for (let i = 0; i < arrays.length; i++) {
+  if (rNodeBufferB64Url[i] !== rToBase64Url[i]) {
+    throw new Error(`base64url mismatch for array length ${lengths[i]}:
+  toString('base64url'): ${rNodeBufferB64Url[i]}
+  toBase64: ${rToBase64Url[i]}`);
   }
 }
 
@@ -61,7 +76,7 @@ for (let i = 0; i < arrays.length; i++) {
     rNodeBuffer[i] !== rTextDecoder[i] ||
     rNodeBuffer[i] !== rTextDecoderInChunks[i]
   ) {
-    throw new Error(`Mismatch for array length ${lengths[i]}:
+    throw new Error(`Hex mismatch for array length ${lengths[i]}:
   toString('hex'): ${rNodeBuffer[i]}
   toHex: ${rToHex[i]}
   _toHexUsingStringConcat: ${rStringConcat[i]}
