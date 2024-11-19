@@ -13,12 +13,18 @@ const BufferShim = bufferShimDefault.Buffer;
 
 console.log('Generating random test data ...\n');
 
-const lengths = [0, 1, 6, 7, 8, 9, 101, 1010, 10101, 101010, 1010104, 10101010];
-const arrays = lengths.map(length => {
-  const arr = new Uint8Array(length);
-  for (let i = 0; i < length; i++) arr[i] = Math.random() * 256 >> 0;
-  return arr;
-});
+const
+  lengths = [0, 1, 6, 7, 8, 9, 101, 1010, 10101, 101010, 1010104, 10101010],
+  arrays = lengths.map(length => {
+    const arr = new Uint8Array(length);
+    for (let i = 0; i < length; i++) arr[i] = Math.random() * 256 >> 0;
+    return arr;
+  }),
+  benchmarkArray = arrays[arrays.length - 1],
+  benchmarkBuffer = Buffer.from(benchmarkArray),
+  benchmarkBufferShim = BufferShim.from(benchmarkArray),
+  benchmarkHex = benchmarkBuffer.toString('hex');
+
 
 console.log('Converting to base64 ...');
 
@@ -114,7 +120,7 @@ function expectError(hex) {
     err = e
   } finally {
     if (!err) throw new Error(`Should have caught error: ${hex}`);
-    else console.log(`Expected: ${err}`);
+    else console.log(`As expected -- ${err}`);
   }
 }
 
@@ -122,19 +128,46 @@ fromHex('');
 fromHex('00');
 expectError('001');
 expectError('0123456789abcdef0g');
+expectError('0123456789xxabcdef');
 expectError('11FFG0');
 expectError('x');
-expectError('ee😀00');
+expectError('😀00');
+expectError('00ff9£');
+expectError('£00ff9£');
+expectError('00ff😀');
 expectError('123456==00');
-
+expectError(benchmarkHex + ' 123456789');
 
 console.log('All tests passed\n');
 
-const
-  benchmarkArray = arrays[arrays.length - 1],
-  benchmarkBuffer = Buffer.from(benchmarkArray),
-  benchmarkBufferShim = BufferShim.from(benchmarkArray),
-  benchmarkHex = benchmarkBuffer.toString('hex');
+
+console.log('fromHex with invalid hex (lax mode) ...');
+
+function expectTrunc(hex) {
+  const
+    localLax = fromHex(hex, true),
+    nodeLax = Buffer.from(hex, 'hex');
+
+  if (localLax.length !== nodeLax.length) throw new Error(`Lax hex parsing results in different length to Node: ${toHex(localLax)} instead of ${toHex(nodeLax)}`);
+  for (let i = 0; i < localLax.length; i++) if (localLax[i] != nodeLax[i]) throw new Error(`Lax hex parsing results in different result to Node: ${toHex(localLax)} instead of ${toHex(nodeLax)}`);
+}
+
+fromHex('', true);
+fromHex('00', true);
+expectTrunc('001');
+expectTrunc('0123456789abcdef0g');
+expectTrunc('0123456789xxabcdef');
+expectTrunc('11FFG0');
+expectTrunc('x');
+expectTrunc('😀00');
+expectTrunc('00ff9£');
+expectTrunc('£00ff9£');
+expectTrunc('00ff😀');
+expectTrunc('123456==00');
+expectTrunc(benchmarkHex + ' 123456789');
+
+console.log('All tests passed\n');
+
 
 console.log(`Benchmarking with ${(benchmarkArray.length / 2 ** 20).toFixed(1)} MiB of random data ...`);
 console.log()

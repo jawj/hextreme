@@ -100,7 +100,7 @@ export function toHex(d) {
 
 let te, hl, v00, vff;
 
-export function _fromHexUsingTextEncoder(s, outArr, scratchArr) {
+export function _fromHexUsingTextEncoder(s, lax, outArr, scratchArr, indexOffset) {
   // note: using a Map or a big switch/case block are both an order of magnitude slower than these TypedArray lookups
 
   if (!te) {  // one-time prep
@@ -121,21 +121,22 @@ export function _fromHexUsingTextEncoder(s, outArr, scratchArr) {
   }
 
   const slen = s.length;
-  if (slen & 1) throw new Error('Hex input is an odd number of characters');
+  if (!lax && slen & 1) throw new Error('Hex input is an odd number of characters');
 
   const
     bytelen = slen >> 1,
     last7 = bytelen - 7,
-    h16len = bytelen + 2,
-    h16 = scratchArr || new Uint16Array(h16len),  // + 2 gives 4 bytes: enough space for one 4-byte UTF-8 char, enabling us to detect multi-byte chars
+    h16len = bytelen + 2,  // `+ 2` allows an extra 4 bytes: enough space for a 4-byte UTF-8 char to be encoded even at the end, so we can detect any multi-byte char
+    h16 = scratchArr || new Uint16Array(h16len),
     h8 = new Uint8Array(h16.buffer),  // view onto same memory
     out = outArr || new Uint8Array(bytelen);
 
   if (h16.length < h16len) throw new Error(`Wrong-sized scratch array supplied (was ${h16.length}, expected at least ${h16len})`);
   if (out.length != bytelen) throw new Error(`Wrong-sized output array supplied (was ${out.length}, expected ${bytelen})`);
 
-  const result = te.encodeInto(s, h8);
-  if (result.written > slen) throw new Error('Hex input contains multi-byte characters');
+  te.encodeInto(s, h8);
+  // we don't need to explicitly check for multibyte characters (via `result.written > slen`)
+  // because any multi-byte character includes bytes that are outside the valid range
 
   let i = 0, ok = false;
   e: {
@@ -156,14 +157,14 @@ export function _fromHexUsingTextEncoder(s, outArr, scratchArr) {
     ok = true;
   }
 
-  if (!ok) throw new Error(`Invalid pair in hex input at index ${i << 1}`);
-  return out;
+  if (!ok && !lax) throw new Error(`Invalid pair in hex input at index ${(indexOffset || 0) + i << 1}`);
+  return i < bytelen ? out.subarray(0, i) : out;
 }
 
-export function _fromHexInChunksUsingTextEncoder(s) {
+export function _fromHexInChunksUsingTextEncoder(s, lax) {
   const slen = s.length;
   // needs checking here because it will be rounded down to a multiple of two below
-  if (slen & 1) throw new Error('Hex input is an odd number of characters');
+  if (!lax && slen & 1) throw new Error('Hex input is an odd number of characters');
 
   const
     bytelen = slen >> 1,
@@ -174,22 +175,27 @@ export function _fromHexInChunksUsingTextEncoder(s) {
   for (let i = 0; i < chunks; i++) {
     const
       chunkStartByte = i * chunkSize,
-      chunkEndByte = chunkStartByte + chunkSize;
+      chunkEndByte = chunkStartByte + chunkSize,
+      result = _fromHexUsingTextEncoder(
+        s.slice(chunkStartByte << 1, chunkEndByte << 1),
+        lax,
+        outArr.subarray(chunkStartByte, chunkEndByte),
+        scratchArr,
+        chunkStartByte,
+      );
 
-    _fromHexUsingTextEncoder(
-      s.slice(chunkStartByte << 1, chunkEndByte << 1),
-      outArr.subarray(chunkStartByte, chunkEndByte),
-      scratchArr,
-    );
+      if (lax && result.length < chunkEndByte - chunkStartByte) {
+        return outArr.subarray(0, chunkStartByte + result.length);
+      }
   }
 
   return outArr;
 }
 
-export function fromHex(s) {
+export function fromHex(s, lax) {
   return (
-    typeof Uint8Array.fromHex === 'function' ? Uint8Array.fromHex(s) :
-      _fromHexInChunksUsingTextEncoder(s));
+    !lax && typeof Uint8Array.fromHex === 'function' ? Uint8Array.fromHex(s) :
+      _fromHexInChunksUsingTextEncoder(s, lax));
 }
 
 // base64
@@ -266,10 +272,10 @@ export function toBase64(d, pad, urlsafe) {
   if (i === inlen) return tdb.decode(out);
 
   // instead, deal with trailing 1 or 2 bytes
-  const 
+  const
     b1 = d[i++],  // b1 is always defined
     b2 = d[i++];  // b2 could be undefined
-    
+
   out[j++] =
     ch1[b1] |
     ch2[(b1 & 3) << 4 | (b2 || 0) >> 4] |
