@@ -174,10 +174,10 @@ console.log('✅ All tests passed\n');
 
 let iterations = 8;
 
-console.log(`Benchmarking with ${(benchmarkArray.length / 2 ** 20).toFixed(1)} MiB of random data, ${iterations} iterations ...`);
+console.log(`Benchmarking ${(benchmarkArray.length / 2 ** 20).toFixed(1)} MiB random data, mean of ${iterations} iterations ...`);
 console.log()
 
-function benchmark(fn, iterations, cmp) {
+function benchmark(fn, iterations) {
   const t0 = performance.now();
   for (let i = 0; i < iterations; i++) fn();
   const t1 = performance.now();

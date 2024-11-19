@@ -1,6 +1,6 @@
 # hextreme
 
-Fast hex string generation for `Uint8Array`, like [`.toHex()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array/toHex). Also works with ordinary arrays of numbers 0 -- 255.
+Fast hex string generation for `Uint8Array`, like [`.toHex()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array/toHex).
 
 As at November 2024 on an M3 Pro MacBook Pro, this implementation is about 2x **faster** than the native `.toHex()` in Firefox 133b7, and about 2.5x slower than the one in Safari Tech Preview 207. 
 
