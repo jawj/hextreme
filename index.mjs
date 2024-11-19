@@ -195,24 +195,53 @@ export function fromHex(s) {
 // base64
 
 const
-  b64StdChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=',
-  b64UrlChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_=',
-  padCh = 64;
+  b64StdChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',
+  b64UrlChars = '^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-_',  // only the last two are used
+  padChar = '='.charCodeAt(0),
+  padChar3 = padChar << (littleEndian ? 16 : 8),
+  padChar4 = padChar << (littleEndian ? 24 : 0);
 
-let tdb, stdCh, urlCh;
+let tdb, stdCh1, stdCh2, stdCh3, stdCh4, urlCh1, urlCh2, urlCh3, urlCh4;
 
 export function toBase64(d, pad, urlsafe) {
   if (!tdb) {  // one-time prep
     tdb = new TextDecoder();
-    stdCh = new Uint8Array(65);
-    for (let i = 0; i < 65; i++) {
-      stdCh[i] = b64StdChars.charCodeAt(i);
-      urlCh[i] = b64UrlChars.charCodeAt(i);
+
+    stdCh1 = new Uint32Array(256);
+    stdCh2 = new Uint32Array(64);
+    stdCh3 = new Uint32Array(64);
+    stdCh4 = new Uint32Array(256);
+
+    for (let i = 0; i < 64; i++) {
+      const
+        stdChar = b64StdChars.charCodeAt(i),
+        i4 = i << 2;
+
+      stdCh1[i4] = stdCh1[i4 | 1] = stdCh1[i4 | 2] = stdCh1[i4 | 3] = stdChar << (littleEndian ? 0 : 24);
+      stdCh2[i] = stdChar << (littleEndian ? 8 : 16);
+      stdCh3[i] = stdChar << (littleEndian ? 16 : 8);
+      stdCh4[i] = stdCh4[i | 64] = stdCh4[i | 128] = stdCh4[i | 192] = stdChar << (littleEndian ? 24 : 0);
+    }
+
+    urlCh1 = stdCh1.slice();
+    urlCh2 = stdCh2.slice();
+    urlCh3 = stdCh3.slice();
+    urlCh4 = stdCh4.slice();
+
+    for (let i = 62; i < 64; i++) {
+      const
+        urlChar = b64UrlChars.charCodeAt(i),
+        i4 = i << 2;
+
+      urlCh1[i4] = urlCh1[i4 | 1] = urlCh1[i4 | 2] = urlCh1[i4 | 3] = urlChar << (littleEndian ? 0 : 24);
+      urlCh2[i] = urlChar << (littleEndian ? 8 : 16);
+      urlCh3[i] = urlChar << (littleEndian ? 16 : 8);
+      urlCh4[i] = urlCh4[i | 64] = urlCh4[i | 128] = urlCh4[i | 192] = urlChar << (littleEndian ? 24 : 0);
     }
   }
 
   const
-    ch = urlsafe ? urlCh : stdCh,
+    [ch1, ch2, ch3, ch4] = urlsafe ? [urlCh1, urlCh2, urlCh3, urlCh4] : [stdCh1, stdCh2, stdCh3, stdCh4],
     inlen = d.length,
     last2 = inlen - 2,
     outints = Math.ceil(inlen / 3),
@@ -220,46 +249,37 @@ export function toBase64(d, pad, urlsafe) {
 
   let i = 0, j = 0;
 
-  if (littleEndian) while (i < last2) {
-    const c1 = d[i++], c2 = d[i++], c3 = d[i++];
-    out[j++] =
-      ch[c1 >> 2] |
-      ch[((c1 & 3) << 4) | (c2 >> 4)] << 8 |
-      ch[((c2 & 15) << 2) | (c3 >> 6)] << 16 |
-      ch[c3 & 63] << 24;
-  }
+  while (i < last2) {
+    const
+      b1 = d[i++],
+      b2 = d[i++],
+      b3 = d[i++];
 
-  else while (i < last2) {
-    const c1 = d[i++], c2 = d[i++], c3 = d[i++];
     out[j++] =
-      ch[c1 >> 2] << 24 |
-      ch[((c1 & 3) << 4) | (c2 >> 4)] << 16 |
-      ch[((c2 & 15) << 2) | (c3 >> 6)] << 8 |
-      ch[c3 & 63];
+      ch1[b1] |
+      ch2[(b1 & 3) << 4 | b2 >> 4] |
+      ch3[(b2 & 15) << 2 | b3 >> 6] |
+      ch4[b3];
   }
 
   // if input length was a multiple of 3, we're done
   if (i === inlen) return tdb.decode(out);
 
   // instead, deal with trailing 1 or 2 bytes
-  const c1 = d[i++], c2 = d[i++];  // c1 is always defined, but c2 could be undefined
-
-  if (littleEndian) out[j++] =
-    ch[c1 >> 2] |
-    ch[((c1 & 3) << 4) | ((c2 || 0) >> 4)] << 8 |
-    ch[c2 === undefined ? padCh : ((c2 & 15) << 2)] << 16 |
-    ch[padCh] << 24;
-
-  else out[j++] =
-    ch[c1 >> 2] << 24 |
-    ch[((c1 & 3) << 4) | ((c2 || 0) >> 4)] << 16 |
-    ch[c2 === undefined ? padCh : ((c2 & 15) << 2)] << 8 |
-    ch[padCh];
+  const 
+    b1 = d[i++],  // b1 is always defined
+    b2 = d[i++];  // b2 could be undefined
+    
+  out[j++] =
+    ch1[b1] |
+    ch2[(b1 & 3) << 4 | (b2 || 0) >> 4] |
+    (b2 === undefined ? padChar3 : ch3[(b2 & 15) << 2]) |
+    padChar4;
 
   // if we're padding, we're done
-  if (pad) return tdh.decode(out);
+  if (pad) return tdb.decode(out);
 
   // instead, truncate output by interpreting array as Uint8Array
-  let out8 = new Uint8Array(out.buffer, 0, (outints << 2) - (c2 === undefined ? 2 : 1));
-  return tdh.decode(out8);
+  let out8 = new Uint8Array(out.buffer, 0, (outints << 2) - (b2 === undefined ? 2 : 1));
+  return tdb.decode(out8);
 }
