@@ -223,6 +223,7 @@ export function toBase64(d, pad, urlsafe) {
         stdChar = b64StdChars.charCodeAt(i),
         i4 = i << 2;
 
+      // for the first and fourth characters we index the whole byte, saving a shift operation
       stdCh1[i4] = stdCh1[i4 | 1] = stdCh1[i4 | 2] = stdCh1[i4 | 3] = stdChar << (littleEndian ? 0 : 24);
       stdCh2[i] = stdChar << (littleEndian ? 8 : 16);
       stdCh3[i] = stdChar << (littleEndian ? 16 : 8);
@@ -271,7 +272,7 @@ export function toBase64(d, pad, urlsafe) {
   // if input length was a multiple of 3, we're done
   if (i === inlen) return tdb.decode(out);
 
-  // instead, deal with trailing 1 or 2 bytes
+  // it wasn't, so deal with trailing 1 or 2 bytes
   const
     b1 = d[i++],  // b1 is always defined
     b2 = d[i++];  // b2 could be undefined
@@ -285,7 +286,7 @@ export function toBase64(d, pad, urlsafe) {
   // if we're padding, we're done
   if (pad) return tdb.decode(out);
 
-  // instead, truncate output by interpreting array as Uint8Array
+  // we aren't, so truncate output by interpreting array as Uint8Array
   let out8 = new Uint8Array(out.buffer, 0, (outints << 2) - (b2 === undefined ? 2 : 1));
   return tdb.decode(out8);
 }
