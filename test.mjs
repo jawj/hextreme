@@ -14,7 +14,7 @@ const BufferShim = bufferShimDefault.Buffer;
 console.log('Generating random test data ...');
 
 const
-  lengths = [0, 1, 6, 7, 8, 9, 101, 1010, 10101, 101010, 1010104, 31457281],
+  lengths = [0, 1, 6, 7, 8, 9, 101, 1010, 10101, 101010, 1010104, 33554433],
   arrays = lengths.map(length => {
     const arr = new Uint8Array(length);
     for (let i = 0; i < length; i++) arr[i] = Math.random() * 256 >> 0;
@@ -172,7 +172,9 @@ console.log('Tests passed\n');
 console.log('✅ All tests passed\n');
 
 
-console.log(`Benchmarking with ${(benchmarkArray.length / 2 ** 20).toFixed(1)} MiB of random data ...`);
+let iterations = 8;
+
+console.log(`Benchmarking with ${(benchmarkArray.length / 2 ** 20).toFixed(1)} MiB of random data, ${iterations} iterations ...`);
 console.log()
 
 function benchmark(fn, iterations, cmp) {
@@ -184,8 +186,6 @@ function benchmark(fn, iterations, cmp) {
   let out = `${' '.repeat(7 - s.length)}${s} ms`;
   return out;
 }
-
-let iterations = 8;
 
 console.log('* Encode base64\n')
 console.log(`toBase64                               ${benchmark(() => toBase64(benchmarkArray, true, false), iterations)}`);
