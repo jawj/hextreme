@@ -11,7 +11,7 @@ import smithy from '@smithy/util-hex-encoding';
 import bufferShimDefault from 'buffer/index.js';  // just 'buffer' imports Node native implementation
 const BufferShim = bufferShimDefault.Buffer;
 
-console.log('Generating random test data ...\n');
+console.log('Generating random test data ...');
 
 const
   lengths = [0, 1, 6, 7, 8, 9, 101, 1010, 10101, 101010, 1010104, 10101010],
@@ -24,6 +24,8 @@ const
   benchmarkBuffer = Buffer.from(benchmarkArray),
   benchmarkBufferShim = BufferShim.from(benchmarkArray),
   benchmarkHex = benchmarkBuffer.toString('hex');
+
+console.log('Generated\n');
 
 
 console.log('Converting to base64 ...');
@@ -42,7 +44,7 @@ for (let i = 0; i < arrays.length; i++) {
   }
 }
 
-console.log('All tests passed\n');
+console.log('Tests passed\n');
 
 
 console.log('Converting to base64url ...');
@@ -61,10 +63,10 @@ for (let i = 0; i < arrays.length; i++) {
   }
 }
 
-console.log('All tests passed\n');
+console.log('Tests passed\n');
 
 
-console.log('Converting to hex ...');
+console.log('Encoding as hex ...');
 
 const
   rNodeBuffer = arrays.map(arr => Buffer.from(arr).toString('hex')),
@@ -91,10 +93,10 @@ for (let i = 0; i < arrays.length; i++) {
   }
 }
 
-console.log('All tests passed\n');
+console.log('Tests passed\n');
 
 
-console.log('Converting back from hex and checking results ...');
+console.log('Decoding back from hex and checking results ...');
 
 for (let i = 0; i < arrays.length; i++) {
   const
@@ -107,10 +109,10 @@ for (let i = 0; i < arrays.length; i++) {
     if (data[j] !== dataAgain[j]) throw new Error(`Value mismatch: ${data} != ${dataAgain}`);
   }
 }
-console.log('All tests passed\n');
+console.log('Tests passed\n');
 
 
-console.log('fromHex with invalid hex ...');
+console.log('Decoding hex with invalid characters ...');
 
 function expectError(hex) {
   let err = null;
@@ -138,10 +140,10 @@ expectError('00ff😀');
 expectError('123456==00');
 expectError(benchmarkHex + ' 123456789');
 
-console.log('All tests passed\n');
+console.log('Tests passed\n');
 
 
-console.log('fromHex with invalid hex (lax mode) ...');
+console.log('Decoding hex with invalid characters (lax mode) ...');
 
 function expectTrunc(hex) {
   const
@@ -166,52 +168,52 @@ expectTrunc('00ff😀');
 expectTrunc('123456==00');
 expectTrunc(benchmarkHex + ' 123456789');
 
-console.log('All tests passed\n');
+console.log('Tests passed\n');
+console.log('✅ All tests passed\n');
 
 
 console.log(`Benchmarking with ${(benchmarkArray.length / 2 ** 20).toFixed(1)} MiB of random data ...`);
 console.log()
 
-function benchmark(fn, iterations) {
+function benchmark(fn, iterations, cmp) {
   const t0 = performance.now();
   for (let i = 0; i < iterations; i++) fn();
   const t1 = performance.now();
-  return ((t1 - t0) / iterations).toFixed(2);
+  const t = (t1 - t0) / iterations;
+  const s = t.toFixed(2);
+  let out = `${' '.repeat(7 - s.length)}${s} ms`;
+  return out;
 }
 
 let iterations = 10;
 
 console.log('* Encode base64\n')
-console.log(`toBase64: ${benchmark(() => toBase64(benchmarkArray, true, false), iterations)} ms`);
-console.log('  + compare other implementations')
-console.log(`Native Buffer.toString: ${benchmark(() => benchmarkBuffer.toString('base64'), iterations)} ms`);
-console.log(`Shimmed Buffer.toString: ${benchmark(() => benchmarkBufferShim.toString('base64'), iterations)} ms`);
+console.log(`toBase64                               ${benchmark(() => toBase64(benchmarkArray, true, false), iterations)}`);
+console.log(`cf. native Buffer.toString             ${benchmark(() => benchmarkBuffer.toString('base64'), iterations)}`);
+console.log(`cf. feross/buffer.toString             ${benchmark(() => benchmarkBufferShim.toString('base64'), iterations)}`);
 console.log();
 
 console.log('* Encode base64url\n')
-console.log(`toBase64: ${benchmark(() => toBase64(benchmarkArray, false, true), iterations)} ms`);
-console.log('  + compare other implementations')
-console.log(`Native Buffer.toString: ${benchmark(() => benchmarkBuffer.toString('base64url'), iterations)} ms`);
-//console.log(`Shimmed Buffer.toString: ${benchmark(() => benchmarkBufferShim.toString('base64url'), iterations)} ms`);
-console.log(`Shimmed Buffer.toString: (not yet supported)`);
+console.log(`toBase64                               ${benchmark(() => toBase64(benchmarkArray, false, true), iterations)}`);
+console.log(`cf. native Buffer toString             ${benchmark(() => benchmarkBuffer.toString('base64url'), iterations)}`);
+//console.log(`cf. feross/buffer toString: ${benchmark(() => benchmarkBufferShim.toString('base64url'), iterations)} ms`);
+console.log(`cf. feross/buffer toString    (not yet supported)`);
 console.log();
 
 console.log('* Encode hex\n')
-console.log(`toHex: ${benchmark(() => toHex(benchmarkArray), iterations)} ms`);
-console.log(`_toHexUsingTextDecoder: ${benchmark(() => _toHexUsingTextDecoder(benchmarkArray), iterations)} ms`);
-console.log(`_toHexInChunksUsingTextDecoder: ${benchmark(() => _toHexInChunksUsingTextDecoder(benchmarkArray), iterations)} ms`);
-console.log(`_toHexUsingStringConcat: ${benchmark(() => _toHexUsingStringConcat(benchmarkArray), iterations)} ms`);
-console.log('  + compare other implementations')
-console.log(`Native Buffer.toString: ${benchmark(() => benchmarkBuffer.toString('hex'), iterations)} ms`);
-console.log(`Shimmed Buffer.toString: ${benchmark(() => benchmarkBufferShim.toString('hex'), iterations)} ms`);
-console.log(`@smithy/util-hex-encoding toHex: ${benchmark(() => smithy.toHex(benchmarkArray), iterations)} ms`);
+console.log(`toHex                                  ${benchmark(() => toHex(benchmarkArray), iterations)}`);
+console.log(`_toHexUsingTextDecoder                 ${benchmark(() => _toHexUsingTextDecoder(benchmarkArray), iterations)}`);
+console.log(`_toHexInChunksUsingTextDecoder         ${benchmark(() => _toHexInChunksUsingTextDecoder(benchmarkArray), iterations)}`);
+console.log(`_toHexUsingStringConcat                ${benchmark(() => _toHexUsingStringConcat(benchmarkArray), iterations)}`);
+console.log(`cf. native Buffer toString             ${benchmark(() => benchmarkBuffer.toString('hex'), iterations)}`);
+console.log(`cf. feross/buffer toString             ${benchmark(() => benchmarkBufferShim.toString('hex'), iterations)}`);
+console.log(`cf. @smithy/util-hex-encoding toHex    ${benchmark(() => smithy.toHex(benchmarkArray), iterations)}`);
 console.log();
 
 console.log('* Decode hex\n')
-console.log(`fromHex: ${benchmark(() => fromHex(benchmarkHex), iterations)} ms`);
-console.log('  + compare other implementations')
-console.log(`Native Buffer.fromString: ${benchmark(() => Buffer.from(benchmarkHex, 'hex'), iterations)} ms`);
-console.log(`Shimmed Buffer.fromString: ${benchmark(() => BufferShim.from(benchmarkHex, 'hex'), iterations)} ms`);
-console.log(`@smithy/util-hex-encoding fromHex: ${benchmark(() => smithy.fromHex(benchmarkHex), iterations)} ms`);
+console.log(`fromHex                                ${benchmark(() => fromHex(benchmarkHex), iterations)}`);
+console.log(`cf. native Buffer fromString           ${benchmark(() => Buffer.from(benchmarkHex, 'hex'), iterations)}`);
+console.log(`cf. feross/buffer fromString           ${benchmark(() => BufferShim.from(benchmarkHex, 'hex'), iterations)}`);
+console.log(`cf. @smithy/util-hex-encoding fromHex  ${benchmark(() => smithy.fromHex(benchmarkHex), iterations)}`);
 console.log();
 
