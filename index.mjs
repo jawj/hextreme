@@ -216,24 +216,22 @@ function binstr(n, len) {
 }
 
 export function toBase64(d, pad, urlsafe) {
-
-
-  //if (!tdb) {  // one-time prep
-  tdb = new TextDecoder();
-  ch = new Uint8Array(64);
-  chpairs = new Uint16Array(4096);  // 2^12
-  for (let i = 0; i < 64; i++) {
-    const chari = b64StdChars.charCodeAt(i);
-    ch[i] = chari;
-    for (let j = 0; j < 64; j++) chpairs[i << 6 | j] = chari | b64StdChars.charCodeAt(j) << 8;
+  if (!tdb) {  // one-time prep
+    tdb = new TextDecoder();
+    ch = new Uint8Array(64);
+    chpairs = new Uint16Array(4096);  // 2^12
+    for (let i = 0; i < 64; i++) {
+      const chari = b64StdChars.charCodeAt(i);
+      ch[i] = chari;
+      for (let j = 0; j < 64; j++) chpairs[i << 6 | j] = chari | b64StdChars.charCodeAt(j) << 8;
+    }
   }
-  // }
 
   const inlen = d.length;
   if (inlen === 0) return '';
 
   const
-    last3 = inlen - 3,
+    last2 = inlen - 2,
     out16s = Math.ceil(inlen / 3) << 1,
     out = new Uint16Array(out16s),
     dv = new DataView(d.buffer);
@@ -242,7 +240,7 @@ export function toBase64(d, pad, urlsafe) {
 
   b1 = d[i++];  // always defined
   b2 = d[i++];
-  b3 = d[i];  // omit ++!
+  b3 = d[i++];  // omit ++!
 
   out[j++] =
     ch[b1 >> 2] |
@@ -254,23 +252,20 @@ export function toBase64(d, pad, urlsafe) {
 
   if (inlen < 4) return tdb.decode(pad ? out : new Uint8Array(out.buffer, 0, inlen + 1));
 
-  for (; i < last3; i += 3) {
-    const
-      // b1 = d[i],
-      // b2 = d[i + 1],
-      // b3 = d[i + 2],
-      // p1 = b1 << 4 | (b2 & 240) >> 4,
-      // p2 = (b2 & 15) << 8 | b3,
-      u32 = dv.getUint32(i),
-      p1 = (u32 & 16773120) >>> 12,
-      p2 = (u32 & 4095);
+  while (i < last2) {
+    b1 = d[i++];
+    b2 = d[i++];
+    b3 = d[i++];
+    out[j++] = chpairs[b1 << 4 | (b2 & 240) >> 4];
+    out[j++] = chpairs[(b2 & 15) << 8 | b3];
 
-    out[j++] = chpairs[p1];
-    out[j++] = chpairs[p2];
+    // const u32 = dv.getUint32(i);
+    // out[j++] = chpairs[(u32 & 16773120) >>> 12];
+    // out[j++] = chpairs[u32 & 4095];
   }
 
   // increment i since counter is always 1 behind due to the leading byte we skip
-  i++;
+  // i++;
 
   // input length was divisible by 3: no padding, we're done
   if (i === inlen) return tdb.decode(out);
