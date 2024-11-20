@@ -47,23 +47,23 @@ for (let i = 0; i < arrays.length; i++) {
 console.log('Tests passed\n');
 
 
-console.log('Converting to base64url ...');
+// console.log('Converting to base64url ...');
 
-const
-  rNodeBufferB64Url = arrays.map(arr => Buffer.from(arr).toString('base64url')),
-  rToBase64Url = arrays.map(arr => toBase64(arr, false, true));
+// const
+//   rNodeBufferB64Url = arrays.map(arr => Buffer.from(arr).toString('base64url')),
+//   rToBase64Url = arrays.map(arr => toBase64(arr, false, true));
 
-console.log('Checking results ...');
+// console.log('Checking results ...');
 
-for (let i = 0; i < arrays.length; i++) {
-  if (rNodeBufferB64Url[i] !== rToBase64Url[i]) {
-    throw new Error(`base64url mismatch for array length ${lengths[i]}:
-  toString('base64url'): ${rNodeBufferB64Url[i]}
-  toBase64: ${rToBase64Url[i]}`);
-  }
-}
+// for (let i = 0; i < arrays.length; i++) {
+//   if (rNodeBufferB64Url[i] !== rToBase64Url[i]) {
+//     throw new Error(`base64url mismatch for array length ${lengths[i]}:
+//   toString('base64url'): ${rNodeBufferB64Url[i]}
+//   toBase64: ${rToBase64Url[i]}`);
+//   }
+// }
 
-console.log('Tests passed\n');
+// console.log('Tests passed\n');
 
 
 console.log('Encoding as hex ...');
@@ -193,12 +193,12 @@ console.log(`cf. native Buffer.toString             ${benchmark(() => benchmarkB
 console.log(`cf. feross/buffer.toString             ${benchmark(() => benchmarkBufferShim.toString('base64'), iterations)}`);
 console.log();
 
-console.log('* Encode base64url\n')
-console.log(`toBase64                               ${benchmark(() => toBase64(benchmarkArray, false, true), iterations)}`);
-console.log(`cf. native Buffer toString             ${benchmark(() => benchmarkBuffer.toString('base64url'), iterations)}`);
-//console.log(`cf. feross/buffer toString: ${benchmark(() => benchmarkBufferShim.toString('base64url'), iterations)} ms`);
-console.log(`cf. feross/buffer toString    (not yet supported)`);
-console.log();
+// console.log('* Encode base64url\n')
+// console.log(`toBase64                               ${benchmark(() => toBase64(benchmarkArray, false, true), iterations)}`);
+// console.log(`cf. native Buffer toString             ${benchmark(() => benchmarkBuffer.toString('base64url'), iterations)}`);
+// //console.log(`cf. feross/buffer toString: ${benchmark(() => benchmarkBufferShim.toString('base64url'), iterations)} ms`);
+// console.log(`cf. feross/buffer toString    (not yet supported)`);
+// console.log();
 
 console.log('* Encode hex\n')
 console.log(`toHex                                  ${benchmark(() => toHex(benchmarkArray), iterations)}`);

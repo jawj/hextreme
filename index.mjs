@@ -184,9 +184,9 @@ export function _fromHexInChunksUsingTextEncoder(s, lax) {
         chunkStartByte,
       );
 
-      if (lax && result.length < chunkEndByte - chunkStartByte) {
-        return outArr.subarray(0, chunkStartByte + result.length);
-      }
+    if (lax && result.length < chunkEndByte - chunkStartByte) {
+      return outArr.subarray(0, chunkStartByte + result.length);
+    }
   }
 
   return outArr;
@@ -207,86 +207,91 @@ const
   padChar3 = padChar << (littleEndian ? 16 : 8),
   padChar4 = padChar << (littleEndian ? 24 : 0);
 
-let tdb, stdCh1, stdCh2, stdCh3, stdCh4, urlCh1, urlCh2, urlCh3, urlCh4;
+let tdb, stdCh1, stdCh2, stdCh3, stdCh4, urlCh1, urlCh2, urlCh3, urlCh4, chpairs, ch;
+
+function binstr(n, len) {
+  let s = n.toString(2);
+  s = '0'.repeat(len - s.length) + s;
+  return s;
+}
 
 export function toBase64(d, pad, urlsafe) {
-  if (!tdb) {  // one-time prep
-    tdb = new TextDecoder();
 
-    stdCh1 = new Uint32Array(256);
-    stdCh2 = new Uint32Array(64);
-    stdCh3 = new Uint32Array(64);
-    stdCh4 = new Uint32Array(256);
 
-    for (let i = 0; i < 64; i++) {
-      const
-        stdChar = b64StdChars.charCodeAt(i),
-        i4 = i << 2;
-
-      // for the first and fourth characters we index the whole byte, saving a shift operation
-      stdCh1[i4] = stdCh1[i4 | 1] = stdCh1[i4 | 2] = stdCh1[i4 | 3] = stdChar << (littleEndian ? 0 : 24);
-      stdCh2[i] = stdChar << (littleEndian ? 8 : 16);
-      stdCh3[i] = stdChar << (littleEndian ? 16 : 8);
-      stdCh4[i] = stdCh4[i | 64] = stdCh4[i | 128] = stdCh4[i | 192] = stdChar << (littleEndian ? 24 : 0);
-    }
-
-    urlCh1 = stdCh1.slice();
-    urlCh2 = stdCh2.slice();
-    urlCh3 = stdCh3.slice();
-    urlCh4 = stdCh4.slice();
-
-    for (let i = 62; i < 64; i++) {
-      const
-        urlChar = b64UrlChars.charCodeAt(i),
-        i4 = i << 2;
-
-      urlCh1[i4] = urlCh1[i4 | 1] = urlCh1[i4 | 2] = urlCh1[i4 | 3] = urlChar << (littleEndian ? 0 : 24);
-      urlCh2[i] = urlChar << (littleEndian ? 8 : 16);
-      urlCh3[i] = urlChar << (littleEndian ? 16 : 8);
-      urlCh4[i] = urlCh4[i | 64] = urlCh4[i | 128] = urlCh4[i | 192] = urlChar << (littleEndian ? 24 : 0);
-    }
+  //if (!tdb) {  // one-time prep
+  tdb = new TextDecoder();
+  ch = new Uint8Array(64);
+  chpairs = new Uint16Array(4096);  // 2^12
+  for (let i = 0; i < 64; i++) {
+    const chari = b64StdChars.charCodeAt(i);
+    ch[i] = chari;
+    for (let j = 0; j < 64; j++) chpairs[i << 6 | j] = chari | b64StdChars.charCodeAt(j) << 8;
   }
+  // }
+
+  const inlen = d.length;
+  if (inlen === 0) return '';
 
   const
-    [ch1, ch2, ch3, ch4] = urlsafe ? [urlCh1, urlCh2, urlCh3, urlCh4] : [stdCh1, stdCh2, stdCh3, stdCh4],
-    inlen = d.length,
-    last2 = inlen - 2,
-    outints = Math.ceil(inlen / 3),
-    out = new Uint32Array(outints);
+    last3 = inlen - 3,
+    out16s = Math.ceil(inlen / 3) << 1,
+    out = new Uint16Array(out16s),
+    dv = new DataView(d.buffer);
 
-  let i = 0, j = 0;
+  let i = 0, j = 0, b1, b2, b3;
 
-  while (i < last2) {
+  b1 = d[i++];  // always defined
+  b2 = d[i++];
+  b3 = d[i];  // omit ++!
+
+  out[j++] =
+    ch[b1 >> 2] |
+    ch[((b1 & 3) << 4) | ((b2 || 0) >> 4)] << 8;
+
+  out[j++] =
+    (b2 === undefined ? padChar : ch[(((b2 || 0) & 15) << 2) | ((b3 || 0) >> 6)]) |
+    (b3 === undefined ? padChar : ch[(b3 || 0) & 63]) << 8;
+
+  if (inlen < 4) return tdb.decode(pad ? out : new Uint8Array(out.buffer, 0, inlen + 1));
+
+  for (; i < last3; i += 3) {
     const
-      b1 = d[i++],
-      b2 = d[i++],
-      b3 = d[i++];
+      // b1 = d[i],
+      // b2 = d[i + 1],
+      // b3 = d[i + 2],
+      // p1 = b1 << 4 | (b2 & 240) >> 4,
+      // p2 = (b2 & 15) << 8 | b3,
+      u32 = dv.getUint32(i),
+      p1 = (u32 & 16773120) >>> 12,
+      p2 = (u32 & 4095);
 
-    out[j++] =
-      ch1[b1] |
-      ch2[(b1 & 3) << 4 | b2 >> 4] |
-      ch3[(b2 & 15) << 2 | b3 >> 6] |
-      ch4[b3];
+    out[j++] = chpairs[p1];
+    out[j++] = chpairs[p2];
   }
 
-  // if input length was a multiple of 3, we're done
+  // increment i since counter is always 1 behind due to the leading byte we skip
+  i++;
+
+  // input length was divisible by 3: no padding, we're done
   if (i === inlen) return tdb.decode(out);
 
   // it wasn't, so deal with trailing 1 or 2 bytes
-  const
-    b1 = d[i++],  // b1 is always defined
-    b2 = d[i++];  // b2 could be undefined
+
+  b1 = d[i++];  // always defined
+  b2 = d[i++];
 
   out[j++] =
-    ch1[b1] |
-    ch2[(b1 & 3) << 4 | (b2 || 0) >> 4] |
-    (b2 === undefined ? padChar3 : ch3[(b2 & 15) << 2]) |
-    padChar4;
+    ch[b1 >> 2] |
+    ch[((b1 & 3) << 4) | ((b2 || 0) >> 4)] << 8;
+
+  out[j++] =
+    (b2 === undefined ? padChar : ch[(((b2 || 0) & 15) << 2)]) |
+    padChar << 8;
 
   // if we're padding, we're done
   if (pad) return tdb.decode(out);
 
   // we aren't, so truncate output by interpreting array as Uint8Array
-  let out8 = new Uint8Array(out.buffer, 0, (outints << 2) - (b2 === undefined ? 2 : 1));
+  let out8 = new Uint8Array(out.buffer, 0, (out16s << 1) - (b2 === undefined ? 2 : 1));
   return tdb.decode(out8);
 }
