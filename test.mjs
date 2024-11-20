@@ -14,7 +14,7 @@ const BufferShim = bufferShimDefault.Buffer;
 console.log('Generating random test data ...');
 
 const
-  lengths = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 101, 1010, 10101, 101010, 1010104, 33554433],
+  lengths = [...new Array(102).fill(0).map((_, i) => i), 1010, 10101, 101010, 1010104, 33554433],
   arrays = lengths.map(length => {
     const arr = new Uint8Array(length);
     for (let i = 0; i < length; i++) arr[i] = Math.random() * 256 >> 0;

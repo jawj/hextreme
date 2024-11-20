@@ -224,40 +224,73 @@ export function toBase64(d, pad, urlsafe) {
   const
     inlen = d.length,
     last2 = inlen - 2,
+    inints = inlen >>> 2,  // divide by 4, round down
+    intlast3 = inints - 3,
+    d32 = new Uint32Array(d.buffer, 0, inints),
     outints = Math.ceil(inlen / 3),
     out = new Uint32Array(outints);
 
-  let i = 0, j = 0;
+  let i = 0, j = 0, u1, u2, u3, b1, b2, b3;
 
-  while (i < last2) {
-    const
-      b1 = d[i++],
-      b2 = d[i++],
-      b3 = d[i++];
+  while (i < intlast3) {  // while we can, read 3x uint32 (12 bytes) + write 4x uint32 (16 bytes)
+    u1 = d32[i++];
+    u2 = d32[i++];
+    u3 = d32[i++];
 
+    b1 = u1 & 255;
+    b2 = (u1 >>> 8) & 255;
+    b3 = (u1 >>> 16) & 255;
+    out[j++] =
+      chpairs[b1 << 4 | b2 >>> 4] |
+      chpairs[(b2 & 15) << 8 | b3] << 16;
+
+    b1 = u1 >>> 24;
+    b2 = u2 & 255;
+    b3 = (u2 >>> 8) & 255;
+    out[j++] =
+      chpairs[b1 << 4 | b2 >>> 4] |
+      chpairs[(b2 & 15) << 8 | b3] << 16;
+
+    b1 = (u2 >>> 16) & 255;
+    b2 = u2 >>> 24;
+    b3 = u3 & 255;
+    out[j++] =
+      chpairs[b1 << 4 | b2 >>> 4] |
+      chpairs[(b2 & 15) << 8 | b3] << 16;
+
+    b1 = (u3 >>> 8) & 255;
+    b2 = (u3 >>> 16) & 255;
+    b3 = u3 >>> 24;
     out[j++] =
       chpairs[b1 << 4 | b2 >>> 4] |
       chpairs[(b2 & 15) << 8 | b3] << 16;
   }
 
-  // input length was divisible by 3: no padding, we're done
-  if (i === inlen) return tdb.decode(out);
+  i = i << 2;  // * 4 -- translates from a uint32 index to a uint8 index
 
-  // it wasn't, so deal with trailing 1 or 2 bytes
-
-  const
-    b1 = d[i++],
+  while (i < last2) {  // mop up any remaining sequences of 3 input bytes
+    b1 = d[i++];
     b2 = d[i++];
+    b3 = d[i++];
+    out[j++] =
+      chpairs[b1 << 4 | b2 >>> 4] |
+      chpairs[(b2 & 15) << 8 | b3] << 16;
+  }
 
+  if (i === inlen) return tdb.decode(out);  // implies input length divisible by 3, therefore no padding: we're done
+
+  // now there must be either 1 or 2 trailing input bytes
+  b1 = d[i++];
+  b2 = d[i++];
   out[j++] =
     chpairs[b1 << 4 | (b2 || 0) >>> 4] |
     (b2 === undefined ? padChar : ch[(((b2 || 0) & 15) << 2)]) << 16 |
     padChar << 24;
 
-  // if we're padding, we're done
+  // if we're padding the, we're golden
   if (pad) return tdb.decode(out);
 
-  // we aren't, so truncate output by interpreting array as Uint8Array
+  // we aren't padding the end, so truncate the output by interpreting it as a Uint8Array
   let out8 = new Uint8Array(out.buffer, 0, (outints << 2) - (b2 === undefined ? 2 : 1));
   return tdb.decode(out8);
 }
