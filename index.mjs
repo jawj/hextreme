@@ -213,12 +213,9 @@ export function toBase64(d, pad, urlsafe) {
   if (!tdb) {  // one-time prep
     tdb = new TextDecoder();
     ch = new Uint8Array(64);
-    chpairs = new Uint16Array(4096);  // 2^12
-    for (let i = 0; i < 64; i++) {
-      const chari = b64StdChars.charCodeAt(i);
-      ch[i] = chari;
-      for (let j = 0; j < 64; j++) chpairs[i << 6 | j] = chari | b64StdChars.charCodeAt(j) << 8;
-    }
+    chpairs = new Uint16Array(4096);  // this lookup table uses 8KB
+    for (let i = 0; i < 64; i++) ch[i] = b64StdChars.charCodeAt(i);
+    for (let i = 0; i < 64; i++) for (let j = 0; j < 64; j++) chpairs[i << 6 | j] = ch[i] | ch[j] << 8;
   }
 
   const
@@ -279,7 +276,7 @@ export function toBase64(d, pad, urlsafe) {
 
   if (i === inlen) return tdb.decode(out);  // implies input length divisible by 3, therefore no padding: we're done
 
-  // now there must be either 1 or 2 trailing input bytes
+  // OK, so there must be either 1 or 2 trailing input bytes
   b1 = d[i++];
   b2 = d[i++];
   out[j++] =
@@ -287,10 +284,9 @@ export function toBase64(d, pad, urlsafe) {
     (b2 === undefined ? padChar : ch[(((b2 || 0) & 15) << 2)]) << 16 |
     padChar << 24;
 
-  // if we're padding the, we're golden
-  if (pad) return tdb.decode(out);
+  if (pad) return tdb.decode(out);  // if we're padding the end, we're golden
 
-  // we aren't padding the end, so truncate the output by interpreting it as a Uint8Array
+  // OK, we aren't padding the end, so truncate the output by viewing it as a Uint8Array
   let out8 = new Uint8Array(out.buffer, 0, (outints << 2) - (b2 === undefined ? 2 : 1));
   return tdb.decode(out8);
 }
