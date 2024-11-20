@@ -221,34 +221,23 @@ export function toBase64(d, pad, urlsafe) {
     }
   }
 
-  const inlen = d.length;
-  if (inlen === 0) return '';
-
   const
+    inlen = d.length,
     last2 = inlen - 2,
-    out16s = Math.ceil(inlen / 3) << 1,
-    out = new Uint16Array(out16s);
+    outints = Math.ceil(inlen / 3),
+    out = new Uint32Array(outints);
 
-  let i = 0, j = 0, b1, b2, b3;
-
-  b1 = d[i++];  // always defined
-  b2 = d[i++];
-  b3 = d[i++];
-
-  out[j++] =
-    ch[b1 >>> 2] |
-    ch[((b1 & 3) << 4) | ((b2 || 0) >>> 4)] << 8;
-
-  out[j++] =
-    (b2 === undefined ? padChar : ch[(((b2 || 0) & 15) << 2) | ((b3 || 0) >>> 6)]) |
-    (b3 === undefined ? padChar : ch[(b3 || 0) & 63]) << 8;
+  let i = 0, j = 0;
 
   while (i < last2) {
-    b1 = d[i++];
-    b2 = d[i++];
-    b3 = d[i++];
-    out[j++] = chpairs[b1 << 4 | (b2 & 240) >>> 4];
-    out[j++] = chpairs[(b2 & 15) << 8 | b3];
+    const
+      b1 = d[i++],
+      b2 = d[i++],
+      b3 = d[i++];
+
+    out[j++] =
+      chpairs[b1 << 4 | b2 >>> 4] |
+      chpairs[(b2 & 15) << 8 | b3] << 16;
   }
 
   // input length was divisible by 3: no padding, we're done
@@ -256,21 +245,19 @@ export function toBase64(d, pad, urlsafe) {
 
   // it wasn't, so deal with trailing 1 or 2 bytes
 
-  b1 = d[i++];  // always defined
-  b2 = d[i++];
+  const
+    b1 = d[i++],
+    b2 = d[i++];
 
   out[j++] =
-    ch[b1 >>> 2] |
-    ch[((b1 & 3) << 4) | ((b2 || 0) >>> 4)] << 8;
-
-  out[j++] =
-    (b2 === undefined ? padChar : ch[(((b2 || 0) & 15) << 2)]) |
-    padChar << 8;
+    chpairs[b1 << 4 | (b2 || 0) >>> 4] |
+    (b2 === undefined ? padChar : ch[(((b2 || 0) & 15) << 2)]) << 16 |
+    padChar << 24;
 
   // if we're padding, we're done
   if (pad) return tdb.decode(out);
 
   // we aren't, so truncate output by interpreting array as Uint8Array
-  let out8 = new Uint8Array(out.buffer, 0, (out16s << 1) - (b2 === undefined ? 2 : 1));
+  let out8 = new Uint8Array(out.buffer, 0, (outints << 2) - (b2 === undefined ? 2 : 1));
   return tdb.decode(out8);
 }

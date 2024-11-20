@@ -39,8 +39,8 @@ console.log('Checking results ...');
 for (let i = 0; i < arrays.length; i++) {
   if (rNodeBufferB64Std[i] !== rToBase64Std[i]) {
     throw new Error(`base64 mismatch for array length ${lengths[i]}:
-  toString('base64'): ${rNodeBufferB64Std[i]}
-  toBase64: ${rToBase64Std[i]}`);
+  toString('base64'): '${rNodeBufferB64Std[i]}' (${rNodeBufferB64Std[i].length})
+  toBase64: '${rToBase64Std[i]}' (${rToBase64Std[i].length})`);
   }
 }
 
