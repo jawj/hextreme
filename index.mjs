@@ -124,7 +124,7 @@ export function _fromHexUsingTextEncoder(s, lax, outArr, scratchArr, indexOffset
   if (!lax && slen & 1) throw new Error('Hex input is an odd number of characters');
 
   const
-    bytelen = slen >> 1,
+    bytelen = slen >>> 1,
     last7 = bytelen - 7,
     h16len = bytelen + 2,  // `+ 2` allows an extra 4 bytes: enough space for a 4-byte UTF-8 char to be encoded even at the end, so we can detect any multi-byte char
     h16 = scratchArr || new Uint16Array(h16len),
@@ -167,7 +167,7 @@ export function _fromHexInChunksUsingTextEncoder(s, lax) {
   if (!lax && slen & 1) throw new Error('Hex input is an odd number of characters');
 
   const
-    bytelen = slen >> 1,
+    bytelen = slen >>> 1,
     chunks = Math.ceil(bytelen / chunkSize),
     scratchArr = new Uint16Array((chunks > 1 ? chunkSize : bytelen) + 2),
     outArr = new Uint8Array(bytelen);
@@ -209,12 +209,6 @@ const
 
 let tdb, stdCh1, stdCh2, stdCh3, stdCh4, urlCh1, urlCh2, urlCh3, urlCh4, chpairs, ch;
 
-function binstr(n, len) {
-  let s = n.toString(2);
-  s = '0'.repeat(len - s.length) + s;
-  return s;
-}
-
 export function toBase64(d, pad, urlsafe) {
   if (!tdb) {  // one-time prep
     tdb = new TextDecoder();
@@ -233,39 +227,29 @@ export function toBase64(d, pad, urlsafe) {
   const
     last2 = inlen - 2,
     out16s = Math.ceil(inlen / 3) << 1,
-    out = new Uint16Array(out16s),
-    dv = new DataView(d.buffer);
+    out = new Uint16Array(out16s);
 
   let i = 0, j = 0, b1, b2, b3;
 
   b1 = d[i++];  // always defined
   b2 = d[i++];
-  b3 = d[i++];  // omit ++!
+  b3 = d[i++];
 
   out[j++] =
-    ch[b1 >> 2] |
-    ch[((b1 & 3) << 4) | ((b2 || 0) >> 4)] << 8;
+    ch[b1 >>> 2] |
+    ch[((b1 & 3) << 4) | ((b2 || 0) >>> 4)] << 8;
 
   out[j++] =
-    (b2 === undefined ? padChar : ch[(((b2 || 0) & 15) << 2) | ((b3 || 0) >> 6)]) |
+    (b2 === undefined ? padChar : ch[(((b2 || 0) & 15) << 2) | ((b3 || 0) >>> 6)]) |
     (b3 === undefined ? padChar : ch[(b3 || 0) & 63]) << 8;
-
-  if (inlen < 4) return tdb.decode(pad ? out : new Uint8Array(out.buffer, 0, inlen + 1));
 
   while (i < last2) {
     b1 = d[i++];
     b2 = d[i++];
     b3 = d[i++];
-    out[j++] = chpairs[b1 << 4 | (b2 & 240) >> 4];
+    out[j++] = chpairs[b1 << 4 | (b2 & 240) >>> 4];
     out[j++] = chpairs[(b2 & 15) << 8 | b3];
-
-    // const u32 = dv.getUint32(i);
-    // out[j++] = chpairs[(u32 & 16773120) >>> 12];
-    // out[j++] = chpairs[u32 & 4095];
   }
-
-  // increment i since counter is always 1 behind due to the leading byte we skip
-  // i++;
 
   // input length was divisible by 3: no padding, we're done
   if (i === inlen) return tdb.decode(out);
@@ -276,8 +260,8 @@ export function toBase64(d, pad, urlsafe) {
   b2 = d[i++];
 
   out[j++] =
-    ch[b1 >> 2] |
-    ch[((b1 & 3) << 4) | ((b2 || 0) >> 4)] << 8;
+    ch[b1 >>> 2] |
+    ch[((b1 & 3) << 4) | ((b2 || 0) >>> 4)] << 8;
 
   out[j++] =
     (b2 === undefined ? padChar : ch[(((b2 || 0) & 15) << 2)]) |
