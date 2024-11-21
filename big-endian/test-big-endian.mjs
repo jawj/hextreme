@@ -12,6 +12,10 @@ TextEncoder.prototype.encodeInto = function(s, arr) {
   return {};  // should be { read, written }
 }
 
+function err(s) {  // qjs just quits on error
+  console.log(s);
+  throw new Error(s);
+}
 
 console.log('Generating random test data ...');
 
@@ -85,7 +89,7 @@ const
 console.log('Checking results ...');
 
 for (let i = 0; i < arrays.length; i++) {
-  if (goodHex[i] !== testHex[i]) throw new Error(`Hex mismatch for array length ${lengths[i]}`);
+  if (goodHex[i] !== testHex[i]) err(`Hex mismatch for array length ${lengths[i]}`);
 }
 
 console.log('Tests passed\n');
@@ -99,9 +103,9 @@ for (let i = 0; i < arrays.length; i++) {
     hex = goodHex[i],
     dataAgain = fromHex(hex);
 
-  if (dataAgain.length !== data.length) throw new Error(`Length mismatch`);
+  if (dataAgain.length !== data.length) err(`Length mismatch`);
   for (let j = 0; j < data.length; j++) {
-    if (data[j] !== dataAgain[j]) throw new Error(`Value mismatch: ${data} != ${dataAgain}`);
+    if (data[j] !== dataAgain[j]) err(`Value mismatch: ${data} != ${dataAgain}`);
   }
 }
 
@@ -111,14 +115,14 @@ console.log('Tests passed\n');
 console.log('Decoding hex with invalid characters ...');
 
 function expectError(hex) {
-  let err = null;
+  let caughtErr = null;
   try {
     fromHex(hex)
   } catch (e) {
-    err = e
+    caughtErr = e
   } finally {
-    if (!err) throw new Error(`Should have caught error: ${hex}`);
-    else console.log(`As expected -- ${err}`);
+    if (!caughtErr) err(`Should have caught error: ${hex}`);
+    else console.log(`As expected -- ${caughtErr}`);
   }
 }
 
@@ -147,7 +151,7 @@ const
 console.log('Checking results ...');
 
 for (let i = 0; i < arrays.length; i++) {
-  if (testBase64[i] !== goodBase64[i]) throw new Error(`base64 mismatch for array length ${lengths[i]}`);
+  if (testBase64[i] !== goodBase64[i]) err(`base64 mismatch for array length ${lengths[i]}: '${testBase64[i]}' !== '${goodBase64[i]}'`);
 }
 
 console.log('Tests passed\n');
