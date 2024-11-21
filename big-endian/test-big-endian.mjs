@@ -2,7 +2,7 @@ import {
   fromHex,
   _toHexInChunksUsingTextDecoder,
   toBase64,
-} from './index.mjs';
+} from '../index.mjs';
 
 
 // this is a highly incomplete shim, but works here
