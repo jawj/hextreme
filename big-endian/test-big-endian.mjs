@@ -17,36 +17,12 @@ function err(s) {  // qjs just quits on error
   throw new Error(s);
 }
 
-console.log('Generating random test data ...');
-
-const
-  lengths = [...new Array(102).fill(0).map((_, i) => i), 1010, 10101],
-  arrays = lengths.map(length => {
-    const arr = new Uint8Array(length);
-    for (let i = 0; i < length; i++) arr[i] = Math.random() * 256 >> 0;
-    return arr;
-  });
-
-console.log('Generated\n');
-
-
 function basicToHex(arr) {
   const chars = '0123456789abcdef';
   let out = '';
   for (let i = 0, len = arr.length; i < len; i++) {
     const c = arr[i];
     out += chars.charAt(c >>> 4) + chars.charAt(c & 15);
-  }
-  return out;
-}
-
-function basicFromHex(s) {
-  const chars = '0123456789abcdef';
-  const bytelen = s.length >>> 1;
-  let out = new Uint8Array(bytelen);
-  for (let i = 0; i < bytelen; i++) {
-    const i2 = i << 1, c1 = s.charAt(i2), c2 = s.charAt(i2 + 1);
-    out[i] = (chars.indexOf(c1) << 4) + (chars.indexOf(c2));
   }
   return out;
 }
@@ -80,6 +56,20 @@ function basicToBase64(input, pad, urlsafe) {
   }
   return output;
 }
+
+
+console.log('Generating random test data ...');
+
+const
+  lengths = [...new Array(102).fill(0).map((_, i) => i), 1010, 10101],
+  arrays = lengths.map(length => {
+    const arr = new Uint8Array(length);
+    for (let i = 0; i < length; i++) arr[i] = Math.random() * 256 >> 0;
+    return arr;
+  });
+
+console.log('Generated\n');
+
 
 console.log('Encoding as base64 ...');
 

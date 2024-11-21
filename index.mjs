@@ -281,7 +281,7 @@ export function toBase64(d, pad, urlsafe) {
       chpairs[(b2 & 15) << 8 | b3] << 16;
   }
 
-  else while (i < intlast3) {
+  else while (i < intlast3) {  // big-endian byte order makes life much easier here
     u1 = d32[i++];
     u2 = d32[i++];
     u3 = d32[i++];
