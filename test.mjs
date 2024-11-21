@@ -1,9 +1,8 @@
 import {
   fromHex,
   toHex,
-  _toHexUsingStringConcat,
-  _toHexUsingTextDecoder,
-  _toHexInChunksUsingTextDecoder,
+  _toHex,
+  _toHexChunked,
   toBase64,
 } from './index.mjs';
 
@@ -71,25 +70,22 @@ console.log('Encoding as hex ...');
 const
   rNodeBuffer = arrays.map(arr => Buffer.from(arr).toString('hex')),
   rToHex = arrays.map(arr => toHex(arr)),
-  rStringConcat = arrays.map(arr => _toHexUsingStringConcat(arr)),
-  rTextDecoder = arrays.map(arr => _toHexUsingTextDecoder(arr)),
-  rTextDecoderInChunks = arrays.map(arr => _toHexInChunksUsingTextDecoder(arr));
+  rTextDecoder = arrays.map(arr => _toHex(arr)),
+  rTextDecoderInChunks = arrays.map(arr => _toHexChunked(arr));
 
 console.log('Checking results ...');
 
 for (let i = 0; i < arrays.length; i++) {
   if (
     rNodeBuffer[i] !== rToHex[i] ||
-    rNodeBuffer[i] !== rStringConcat[i] ||
     rNodeBuffer[i] !== rTextDecoder[i] ||
     rNodeBuffer[i] !== rTextDecoderInChunks[i]
   ) {
     throw new Error(`Hex mismatch for array length ${lengths[i]}:
   toString('hex'): ${rNodeBuffer[i]}
   toHex: ${rToHex[i]}
-  _toHexUsingStringConcat: ${rStringConcat[i]}
-  _toHexUsingTextDecoder: ${rTextDecoder[i]}
-  _toHexInChunksUsingTextDecoder: ${rTextDecoderInChunks[i]}`);
+  _toHex: ${rTextDecoder[i]}
+  _toHexChunked: ${rTextDecoderInChunks[i]}`);
   }
 }
 
@@ -202,9 +198,8 @@ console.log();
 
 console.log('* Encode hex\n')
 console.log(`toHex                                  ${benchmark(() => toHex(benchmarkArray), iterations)}`);
-console.log(`_toHexUsingTextDecoder                 ${benchmark(() => _toHexUsingTextDecoder(benchmarkArray), iterations)}`);
-console.log(`_toHexInChunksUsingTextDecoder         ${benchmark(() => _toHexInChunksUsingTextDecoder(benchmarkArray), iterations)}`);
-console.log(`_toHexUsingStringConcat                ${benchmark(() => _toHexUsingStringConcat(benchmarkArray), iterations)}`);
+console.log(`_toHex                                 ${benchmark(() => _toHex(benchmarkArray), iterations)}`);
+console.log(`_toHexChunked                          ${benchmark(() => _toHexChunked(benchmarkArray), iterations)}`);
 console.log(`cf. native Buffer toString             ${benchmark(() => benchmarkBuffer.toString('hex'), iterations)}`);
 console.log(`cf. feross/buffer toString             ${benchmark(() => benchmarkBufferShim.toString('hex'), iterations)}`);
 console.log(`cf. @smithy/util-hex-encoding toHex    ${benchmark(() => smithy.toHex(benchmarkArray), iterations)}`);

@@ -1,44 +1,12 @@
 const
-  hasTD = typeof TextDecoder === 'function',
   littleEndian = new Uint8Array((new Uint16Array([0x0102]).buffer))[0] === 0x02,
-  chunkSize = 524288;  // temporary buffer allocation size is never more than 2x this value, in bytes
+  chunkSize = 504000;  // must be divisible by 12; temporary buffer allocations (in bytes) are up to 2x this value
 
 // hex
 
-let hp, tdh, cc;
+let tdh, cc;
 
-export function _toHexUsingStringConcat(d) {
-  if (!hp) {
-    hp = new Array(256);
-    for (let i = 0; i < 256; i++) hp[i] = (i < 16 ? '0' : '') + i.toString(16);
-  }
-
-  const
-    len = d.length,
-    last7 = len - 7;
-
-  let
-    out = '',
-    i = 0;
-
-  while (i < last7) {  // a bit of loop unrolling helps performance in V8 specifically
-    out += hp[d[i++]];
-    out += hp[d[i++]];
-    out += hp[d[i++]];
-    out += hp[d[i++]]; // 4
-    out += hp[d[i++]];
-    out += hp[d[i++]];
-    out += hp[d[i++]];
-    out += hp[d[i++]]; // 8
-  }
-  while (i < len) {
-    out += hp[d[i++]];
-  }
-
-  return out;
-}
-
-export function _toHexUsingTextDecoder(d, scratchArr) {
+export function _toHex(d, scratchArr) {
   if (!tdh) {
     tdh = new TextDecoder();
     cc = new Uint16Array(256);
@@ -73,7 +41,7 @@ export function _toHexUsingTextDecoder(d, scratchArr) {
   return hex;
 }
 
-export function _toHexInChunksUsingTextDecoder(d) {
+export function _toHexChunked(d) {
   let
     hex = '',
     len = d.length,
@@ -85,17 +53,14 @@ export function _toHexInChunksUsingTextDecoder(d) {
       start = i * chunkSize,
       end = start + chunkSize;  // subarray has no problem going past the end of the array
 
-    hex += _toHexUsingTextDecoder(d.subarray(start, end), scratchArr);
+    hex += _toHex(d.subarray(start, end), scratchArr);
   }
 
   return hex;
 }
 
 export function toHex(d) {
-  return (
-    typeof d.toHex === 'function' ? d.toHex() :
-      hasTD === true ? _toHexInChunksUsingTextDecoder(d) :
-        _toHexUsingStringConcat(d));
+  return typeof d.toHex === 'function' ? d.toHex() : _toHexChunked(d);
 }
 
 let te, hl, v00, vff;
