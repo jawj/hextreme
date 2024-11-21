@@ -209,9 +209,10 @@ const
 let tdb, chStd, chUrl, chpairsStd, chpairsUrl;
 
 export function toBase64(d, pad, urlsafe) {
-  if (!tdb) {  // one-time prep
+  if (!tdb) {  // one-time prep: look-up tables use just over 16KiB of memory
     tdb = new TextDecoder();
 
+    // lookup tables for standard hex-chars and hex-char pairs
     chStd = new Uint8Array(64);
     for (let i = 0; i < 64; i++) chStd[i] = b64Chars.charCodeAt(i);
 
@@ -219,6 +220,7 @@ export function toBase64(d, pad, urlsafe) {
     if (littleEndian) for (let i = 0; i < 64; i++) for (let j = 0; j < 64; j++) chpairsStd[i << 6 | j] = chStd[i] | chStd[j] << 8;
     else for (let i = 0; i < 64; i++) for (let j = 0; j < 64; j++) chpairsStd[i << 6 | j] = chStd[i] << 8 | chStd[j];
 
+    // lookup table diffs for url-safe hex-chars and hex-char pairs
     chUrl = chStd.slice();
     chUrl[62] = chUrl62;
     chUrl[63] = chUrl63;
@@ -226,11 +228,11 @@ export function toBase64(d, pad, urlsafe) {
     chpairsUrl = chpairsStd.slice();
     if (littleEndian) {
       for (let i = 0; i < 64; i++) for (let j = 62; j < 64; j++) chpairsUrl[i << 6 | j] = chUrl[i] | chUrl[j] << 8;
-      for (let i = 62; i < 64; i++) for (let j = 0; j < 64; j++) chpairsUrl[i << 6 | j] = chUrl[i] | chUrl[j] << 8;
+      for (let i = 62; i < 64; i++) for (let j = 0; j < 62; j++) chpairsUrl[i << 6 | j] = chUrl[i] | chUrl[j] << 8;  // j < 62 avoids overlap
 
     } else {
       for (let i = 0; i < 64; i++) for (let j = 62; j < 64; j++) chpairsUrl[i << 6 | j] = chUrl[i] << 8 | chUrl[j];
-      for (let i = 62; i < 64; i++) for (let j = 0; j < 64; j++) chpairsUrl[i << 6 | j] = chUrl[i] << 8 | chUrl[j];
+      for (let i = 62; i < 64; i++) for (let j = 0; j < 62; j++) chpairsUrl[i << 6 | j] = chUrl[i] << 8 | chUrl[j];  // j < 62 avoids overlap
     }
   }
 
