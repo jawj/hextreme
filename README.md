@@ -59,3 +59,11 @@ _toHexUsingTextDecoder: 27.54 ms
 _toHexInChunksUsingTextDecoder: 24.02 ms
 _toHexUsingStringConcat: 369.94 ms
 ```
+
+ 
+Testing on big endian systems
+
+```
+qjs -I encoding-indexes.js -I encoding.js test-big-endian.mjs
+
+```

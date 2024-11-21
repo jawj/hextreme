@@ -68,7 +68,7 @@ export function _toHexUsingTextDecoder(d, scratchArr) {
   while (i < len) {
     a[i] = cc[d[i++]];
   }
-
+  
   const hex = tdh.decode(a.subarray(0, len));
   return hex;
 }

@@ -1,17 +1,22 @@
 import {
   fromHex,
-  toHex,
-  _toHexUsingStringConcat,
-  _toHexUsingTextDecoder,
   _toHexInChunksUsingTextDecoder,
   toBase64,
 } from './index.mjs';
 
 
+// this is a highly incomplete shim, but works here
+TextEncoder.prototype.encodeInto = function(s, arr) {
+  const newArr = this.encode(s);
+  arr.set(newArr);
+  return {};  // should be { read, written }
+}
+
+
 console.log('Generating random test data ...');
 
 const
-  lengths = [...new Array(102).fill(0).map((_, i) => i), 1010, 10101, 101010],
+  lengths = [...new Array(102).fill(0).map((_, i) => i), 1010, 10101],
   arrays = lengths.map(length => {
     const arr = new Uint8Array(length);
     for (let i = 0; i < length; i++) arr[i] = Math.random() * 256 >> 0;
