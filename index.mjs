@@ -68,7 +68,7 @@ export function _toHexUsingTextDecoder(d, scratchArr) {
   while (i < len) {
     a[i] = cc[d[i++]];
   }
-  
+
   const hex = tdh.decode(a.subarray(0, len));
   return hex;
 }
@@ -201,23 +201,42 @@ export function fromHex(s, lax) {
 // base64
 
 const
-  b64StdChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',
-  b64UrlChars = '^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-_',  // only the last two are used
-  padChar = '='.charCodeAt(0);
+  b64Chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',
+  chUrl62 = '-'.charCodeAt(0),
+  chUrl63 = '_'.charCodeAt(0),
+  chPad = '='.charCodeAt(0);
 
-let tdb, stdCh1, stdCh2, stdCh3, stdCh4, urlCh1, urlCh2, urlCh3, urlCh4, chpairs, ch;
+let tdb, chStd, chUrl, chpairsStd, chpairsUrl;
 
 export function toBase64(d, pad, urlsafe) {
   if (!tdb) {  // one-time prep
     tdb = new TextDecoder();
-    ch = new Uint8Array(64);
-    chpairs = new Uint16Array(4096);  // this lookup table uses 8KB
-    for (let i = 0; i < 64; i++) ch[i] = b64StdChars.charCodeAt(i);
-    if (littleEndian) for (let i = 0; i < 64; i++) for (let j = 0; j < 64; j++) chpairs[i << 6 | j] = ch[i] | ch[j] << 8;
-    else for (let i = 0; i < 64; i++) for (let j = 0; j < 64; j++) chpairs[i << 6 | j] = ch[i] << 8 | ch[j];
+
+    chStd = new Uint8Array(64);
+    for (let i = 0; i < 64; i++) chStd[i] = b64Chars.charCodeAt(i);
+
+    chpairsStd = new Uint16Array(4096);  // this lookup table uses 8KB
+    if (littleEndian) for (let i = 0; i < 64; i++) for (let j = 0; j < 64; j++) chpairsStd[i << 6 | j] = chStd[i] | chStd[j] << 8;
+    else for (let i = 0; i < 64; i++) for (let j = 0; j < 64; j++) chpairsStd[i << 6 | j] = chStd[i] << 8 | chStd[j];
+
+    chUrl = chStd.slice();
+    chUrl[62] = chUrl62;
+    chUrl[63] = chUrl63;
+
+    chpairsUrl = chpairsStd.slice();
+    if (littleEndian) {
+      for (let i = 0; i < 64; i++) for (let j = 62; j < 64; j++) chpairsUrl[i << 6 | j] = chUrl[i] | chUrl[j] << 8;
+      for (let i = 62; i < 64; i++) for (let j = 0; j < 64; j++) chpairsUrl[i << 6 | j] = chUrl[i] | chUrl[j] << 8;
+
+    } else {
+      for (let i = 0; i < 64; i++) for (let j = 62; j < 64; j++) chpairsUrl[i << 6 | j] = chUrl[i] << 8 | chUrl[j];
+      for (let i = 62; i < 64; i++) for (let j = 0; j < 64; j++) chpairsUrl[i << 6 | j] = chUrl[i] << 8 | chUrl[j];
+    }
   }
 
   const
+    ch = urlsafe ? chUrl : chStd,
+    chpairs = urlsafe ? chpairsUrl : chpairsStd,
     inlen = d.length,
     last2 = inlen - 2,
     inints = inlen >>> 2,  // divide by 4, round down
@@ -290,7 +309,6 @@ export function toBase64(d, pad, urlsafe) {
     b1 = d[i++];
     b2 = d[i++];
     b3 = d[i++];
-
     out[j++] =
       chpairs[b1 << 4 | b2 >>> 4] << (littleEndian ? 0 : 16) |
       chpairs[(b2 & 15) << 8 | b3] << (littleEndian ? 16 : 0);
@@ -302,9 +320,9 @@ export function toBase64(d, pad, urlsafe) {
   b1 = d[i++];
   b2 = d[i++];
   out[j++] =
-    chpairs[b1 << 4 | (b2 || 0) >>> 4] << (littleEndian ? 0 : 16) |
-    (b2 === undefined ? padChar : ch[(((b2 || 0) & 15) << 2)]) << (littleEndian ? 16 : 8) |
-    padChar << (littleEndian ? 24 : 0);
+    chpairs[b1 << 4 | (b2 || 0) >>> 4] << (littleEndian ? 0 : 16) |  // first 16 bits (no padding)
+    (b2 === undefined ? chPad : ch[(((b2 || 0) & 15) << 2)]) << (littleEndian ? 16 : 8) |  // next 8 bits
+    chPad << (littleEndian ? 24 : 0);  // next 8 bits
 
   if (pad) return tdb.decode(out);  // if we're padding the end, we're golden
 
