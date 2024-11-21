@@ -61,7 +61,7 @@ function basicToBase64(input, pad, urlsafe) {
 console.log('Generating random test data ...');
 
 const
-  lengths = [...new Array(102).fill(0).map((_, i) => i), 1010, 10101],
+  lengths = [...new Array(102).fill(0).map((_, i) => i), 1010, 10101, 101010],
   arrays = lengths.map(length => {
     const arr = new Uint8Array(length);
     for (let i = 0; i < length; i++) arr[i] = Math.random() * 256 >> 0;
