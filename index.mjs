@@ -1,6 +1,6 @@
 const
   littleEndian = new Uint8Array((new Uint16Array([0x0102]).buffer))[0] === 0x02,
-  chunkSize = 1008000;  // must be divisible by 24; temporary buffer allocations (in bytes) are up to this value
+  chunkBytes = 1008000;  // must be divisible by 24; temporary buffer allocations (in bytes) are up to this value
 
 // hex
 
@@ -45,7 +45,7 @@ export function _toHexChunked(d) {
   let
     hex = '',
     len = d.length,
-    chunkInts = chunkSize >>> 1,
+    chunkInts = chunkBytes >>> 1,
     chunks = Math.ceil(len / chunkInts),
     scratchArr = new Uint16Array(chunks > 1 ? chunkInts : len);
 
@@ -130,18 +130,18 @@ export function _fromHex(s, lax, outArr, scratchArr, indexOffset) {
 
 export function _fromHexChunked(s, lax) {
   const slen = s.length;
-  
+
   // needs checking here because it will be rounded down to a multiple of two below
   if (!lax && slen & 1) throw new Error('Hex input is an odd number of characters');
 
   const
-    bytelen = slen >>> 1,
-    chunkInts = chunkSize >>> 1,
-    chunks = Math.ceil(bytelen / chunkInts),
-    scratchArr = new Uint16Array((chunks > 1 ? chunkInts : bytelen) + 2),
-    outArr = new Uint8Array(bytelen);
+    byteLength = slen >>> 1,
+    chunkInts = chunkBytes >>> 1,
+    chunksCount = Math.ceil(byteLength / chunkInts),
+    scratchArr = new Uint16Array((chunksCount > 1 ? chunkInts : byteLength) + 2),
+    outArr = new Uint8Array(byteLength);
 
-  for (let i = 0; i < chunks; i++) {
+  for (let i = 0; i < chunksCount; i++) {
     const
       chunkStartByte = i * chunkInts,
       chunkEndByte = chunkStartByte + chunkInts,
@@ -175,7 +175,7 @@ const
 
 let tdb, chStd, chUrl, chpairsStd, chpairsUrl;
 
-export function toBase64(d, pad, urlsafe) {
+export function _toBase64(d, pad, urlsafe, scratchArr) {
   if (!tdb) {  // one-time prep: look-up tables use just over 16KiB of memory
     tdb = new TextDecoder();
 
@@ -210,9 +210,9 @@ export function toBase64(d, pad, urlsafe) {
     last2 = inlen - 2,
     inints = inlen >>> 2,  // divide by 4, round down
     intlast3 = inints - 3,
-    d32 = new Uint32Array(d.buffer, 0, inints),
+    d32 = new Uint32Array(d.buffer, d.byteOffset, inints),
     outints = Math.ceil(inlen / 3),
-    out = new Uint32Array(outints);
+    out = scratchArr || new Uint32Array(outints);
 
   let i = 0, j = 0, u1, u2, u3, b1, b2, b3;
 
@@ -298,4 +298,38 @@ export function toBase64(d, pad, urlsafe) {
   // OK, we aren't padding the end, so truncate the output by viewing it as a Uint8Array
   let out8 = new Uint8Array(out.buffer, 0, (outints << 2) - (b2 === undefined ? 2 : 1));
   return tdb.decode(out8);
+}
+
+export function _toBase64Chunked(d, pad, urlsafe) {
+  const
+    inBytes = d.length,
+    outInts = Math.ceil(inBytes / 3),
+    outChunkInts = chunkBytes >>> 2,  // divide by 4
+    chunksCount = Math.ceil(outInts / outChunkInts),
+    inChunkBytes = outChunkInts * 3,
+    scratchArr = new Uint32Array(chunksCount > 1 ? outChunkInts : outInts);
+
+  let b64 = '';
+  for (let i = 0; i < chunksCount; i++) {
+    const
+      startInBytes = i * inChunkBytes,
+      endInBytes = startInBytes + inChunkBytes,
+      startOutInts = i * outChunkInts,
+      endOutInts = Math.min(startOutInts + outChunkInts, outInts);
+
+    b64 += _toBase64(
+      d.subarray(startInBytes, endInBytes),
+      pad,
+      urlsafe,
+      scratchArr.subarray(0, endOutInts - startOutInts)
+    );
+  }
+
+  return b64;
+}
+
+export function toBase64(d, pad, urlsafe) {
+  return typeof d.toBase64 === 'function' ?
+    d.toBase64({ alphabet: urlsafe ? 'base64url' : 'base64', omitPadding: !pad }) :
+    _toBase64Chunked(d, pad, urlsafe);
 }
