@@ -28,7 +28,7 @@ const
 console.log('Generated\n');
 
 
-console.log('Converting to base64 ...');
+console.log('Encoding as base64 ...');
 
 const
   rNodeBufferB64Std = arrays.map(arr => Buffer.from(arr).toString('base64')),
@@ -47,7 +47,7 @@ for (let i = 0; i < arrays.length; i++) {
 console.log('Tests passed\n');
 
 
-console.log('Converting to base64url ...');
+console.log('Encoding as base64url ...');
 
 const
   rNodeBufferB64Url = arrays.map(arr => Buffer.from(arr).toString('base64url')),

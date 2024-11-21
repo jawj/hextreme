@@ -6,7 +6,7 @@ import {
 
 
 // this is a highly incomplete shim, but works here
-TextEncoder.prototype.encodeInto = function(s, arr) {
+TextEncoder.prototype.encodeInto = function (s, arr) {
   const newArr = this.encode(s);
   arr.set(newArr);
   return {};  // should be { read, written }
@@ -51,8 +51,10 @@ function basicFromHex(s) {
   return out;
 }
 
-function basicToBase64(input) {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+function basicToBase64(input, pad, urlsafe) {
+  const chars = urlsafe ?
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_=" :
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
 
   let
     output = '',
@@ -69,8 +71,8 @@ function basicToBase64(input) {
     enc3 = ((chr2 & 15) << 2) | (chr3 >> 6);
     enc4 = chr3 & 63;
 
-    if (isNaN(chr2)) enc3 = enc4 = 64;
-    else if (isNaN(chr3)) enc4 = 64;
+    if (isNaN(chr2)) enc3 = enc4 = pad ? 64 : 65;
+    else if (isNaN(chr3)) enc4 = pad ? 64 : 65;
 
     output = output +
       chars.charAt(enc1) + chars.charAt(enc2) +
@@ -78,6 +80,35 @@ function basicToBase64(input) {
   }
   return output;
 }
+
+console.log('Encoding as base64 ...');
+
+const
+  goodBase64 = arrays.map(arr => basicToBase64(arr, true, false)),
+  testBase64 = arrays.map(arr => toBase64(arr, true, false));
+
+console.log('Checking results ...');
+
+for (let i = 0; i < arrays.length; i++) {
+  if (testBase64[i] !== goodBase64[i]) err(`base64 mismatch for array length ${lengths[i]}: '${testBase64[i]}' !== '${goodBase64[i]}'`);
+}
+
+console.log('Tests passed\n');
+
+
+console.log('Encoding as base64url ...');
+
+const
+  goodBase64Url = arrays.map(arr => basicToBase64(arr, false, true)),
+  testBase64Url = arrays.map(arr => toBase64(arr, false, true));
+
+console.log('Checking results ...');
+
+for (let i = 0; i < arrays.length; i++) {
+  if (testBase64Url[i] !== goodBase64Url[i]) err(`base64 mismatch for array length ${lengths[i]}: '${testBase64Url[i]}' !== '${goodBase64Url[i]}'`);
+}
+
+console.log('Tests passed\n');
 
 
 console.log('Encoding as hex ...');
@@ -138,20 +169,5 @@ expectError('00ff9£');
 expectError('£00ff9£');
 expectError('00ff😀');
 expectError('123456==00');
-
-console.log('Tests passed\n');
-
-
-console.log('Converting to base64 ...');
-
-const
-  goodBase64 = arrays.map(arr => basicToBase64(arr)),
-  testBase64 = arrays.map(arr => toBase64(arr, true, false));
-
-console.log('Checking results ...');
-
-for (let i = 0; i < arrays.length; i++) {
-  if (testBase64[i] !== goodBase64[i]) err(`base64 mismatch for array length ${lengths[i]}: '${testBase64[i]}' !== '${goodBase64[i]}'`);
-}
 
 console.log('Tests passed\n');
