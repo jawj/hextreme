@@ -4,15 +4,16 @@ import {
   toBase64,
 } from '../index.mjs';
 
+// supporting code
 
-// this is a highly incomplete shim, but works here
+// this is a highly incomplete shim, but it works here
 TextEncoder.prototype.encodeInto = function (s, arr) {
   const newArr = this.encode(s);
   arr.set(newArr);
   return {};  // should be { read, written }
 }
 
-function err(s) {  // qjs just quits on error
+function err(s) {  // qjs just quits on errors, so let's also log the message
   console.log(s);
   throw new Error(s);
 }
@@ -43,8 +44,8 @@ function basicToBase64(input, pad, urlsafe) {
     chr3 = input[i++];
 
     enc1 = chr1 >> 2;
-    enc2 = ((chr1 & 3) << 4) | (chr2 >> 4);
-    enc3 = ((chr2 & 15) << 2) | (chr3 >> 6);
+    enc2 = ((chr1 & 3) << 4) | (chr2 >>> 4);
+    enc3 = ((chr2 & 15) << 2) | (chr3 >>> 6);
     enc4 = chr3 & 63;
 
     if (isNaN(chr2)) enc3 = enc4 = pad ? 64 : 65;
@@ -57,6 +58,7 @@ function basicToBase64(input, pad, urlsafe) {
   return output;
 }
 
+// tests
 
 console.log('Generating random test data ...');
 
