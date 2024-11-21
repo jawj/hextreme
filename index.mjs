@@ -214,7 +214,7 @@ export function toBase64(d, pad, urlsafe) {
     chpairs = new Uint16Array(4096);  // this lookup table uses 8KB
     for (let i = 0; i < 64; i++) ch[i] = b64StdChars.charCodeAt(i);
     if (littleEndian) for (let i = 0; i < 64; i++) for (let j = 0; j < 64; j++) chpairs[i << 6 | j] = ch[i] | ch[j] << 8;
-    else for (let i = 0; i < 64; i++) for (let j = 0; j < 64; j++) chpairs[i << 6 | j] = ch[i << 8] | ch[j];
+    else for (let i = 0; i < 64; i++) for (let j = 0; j < 64; j++) chpairs[i << 6 | j] = ch[i] << 8 | ch[j];
   }
 
   const
