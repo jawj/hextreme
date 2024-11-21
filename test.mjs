@@ -1,8 +1,11 @@
 import {
-  fromHex,
   toHex,
   _toHex,
   _toHexChunked,
+  fromHex,
+  _fromHex,
+  _fromHexChunked,
+  
   toBase64,
 } from './index.mjs';
 
@@ -98,22 +101,23 @@ for (let i = 0; i < arrays.length; i++) {
   const
     data = arrays[i],
     hex = rNodeBuffer[i],
-    dataAgain = fromHex(hex);
+    dataAgain = _fromHexChunked(hex);
 
   if (dataAgain.length !== data.length) throw new Error(`Length mismatch`);
   for (let j = 0; j < data.length; j++) {
     if (data[j] !== dataAgain[j]) throw new Error(`Value mismatch: ${data} != ${dataAgain}`);
   }
 }
+
 console.log('Tests passed\n');
 
 
-console.log('Decoding hex with invalid characters ...');
+console.log('Decoding hex with invalid characters (strict) ...');
 
 function expectError(hex) {
   let err = null;
   try {
-    fromHex(hex)
+    _fromHexChunked(hex)
   } catch (e) {
     err = e
   } finally {
@@ -139,11 +143,11 @@ expectError(benchmarkHex + ' 123456789');
 console.log('Tests passed\n');
 
 
-console.log('Decoding hex with invalid characters (lax mode) ...');
+console.log('Decoding hex with invalid characters (lax) ...');
 
 function expectTrunc(hex) {
   const
-    localLax = fromHex(hex, true),
+    localLax = _fromHexChunked(hex, true),
     nodeLax = Buffer.from(hex, 'hex');
 
   if (localLax.length !== nodeLax.length) throw new Error(`Lax hex parsing results in different length to Node: ${toHex(localLax)} instead of ${toHex(nodeLax)}`);

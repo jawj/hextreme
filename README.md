@@ -1,6 +1,10 @@
 # hextreme
 
-Fast hex string generation for `Uint8Array`, like [`.toHex()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array/toHex).
+Hex and base64 string encoding and decoding for `Uint8Array` — like [`.toHex()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array/toHex)/[`.fromHex()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array/fromHex) and [`.toBase64()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array/toBase64)/[`.fromBase64()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array/fromBase64), which are not yet widely supported.
+
+An order of magnitude faster than most other libraries, and intended to be as fast as is reasonably possible using only plain JavaScript.
+
+## Performance
 
 As at November 2024 on an M3 Pro MacBook Pro, this implementation is about 2x **faster** than the native `.toHex()` in Firefox 133b7, and about 2.5x slower than the one in Safari Tech Preview 207. 
 
@@ -14,11 +18,9 @@ What we do is this:
 
 * If `.toHex()` is present on the object, we just call it.
 
-* Otherwise, as long as `TextDecoder` is available, we map one-byte source values to two-byte output (ASCII character) values in a `Uint16Array`, and then decode this to a string. We do this in 1MB chunks to avoid huge memory allocations.
+* Otherwise, we map one-byte source values to two-byte output (ASCII character) values in a `Uint16Array`, and then decode this to a string. We do this in 1MB chunks to avoid huge memory allocations.
 
-* Or if `TextDecoder` is not available, we fall back on a string-concatenation approach.
-
-For both the `TextDecoder` and string concatenation approaches, we do some manual loop-unrolling using a kind of JS equivalent of Duff's device. This makes very little difference in Firefox and Safari, but speeds things up considerably in Chrome.
+We do some manual loop-unrolling using a kind of JS equivalent of Duff's device. This makes very little difference in Firefox and Safari, but speeds things up considerably in Chrome.
 
 A test run looks like this:
 

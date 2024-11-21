@@ -1,6 +1,6 @@
 import {
-  fromHex,
-  _toHexInChunksUsingTextDecoder,
+  _fromHexChunked,
+  _toHexChunked,
   toBase64,
 } from '../index.mjs';
 
@@ -107,7 +107,7 @@ console.log('Encoding as hex ...');
 
 const
   goodHex = arrays.map(arr => basicToHex(arr)),
-  testHex = arrays.map(arr => _toHexInChunksUsingTextDecoder(arr));
+  testHex = arrays.map(arr => _toHexChunked(arr));
 
 console.log('Checking results ...');
 
@@ -124,7 +124,7 @@ for (let i = 0; i < arrays.length; i++) {
   const
     data = arrays[i],
     hex = goodHex[i],
-    dataAgain = fromHex(hex);
+    dataAgain = _fromHexChunked(hex);
 
   if (dataAgain.length !== data.length) err(`Length mismatch`);
   for (let j = 0; j < data.length; j++) {
@@ -135,12 +135,12 @@ for (let i = 0; i < arrays.length; i++) {
 console.log('Tests passed\n');
 
 
-console.log('Decoding hex with invalid characters ...');
+console.log('Decoding hex with invalid characters (strict) ...');
 
 function expectError(hex) {
   let caughtErr = null;
   try {
-    fromHex(hex)
+    _fromHexChunked(hex)
   } catch (e) {
     caughtErr = e
   } finally {
@@ -149,8 +149,8 @@ function expectError(hex) {
   }
 }
 
-fromHex('');
-fromHex('00');
+_fromHexChunked('');
+_fromHexChunked('00');
 expectError('001');
 expectError('0123456789abcdef0g');
 expectError('0123456789xxabcdef');

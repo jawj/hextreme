@@ -1,6 +1,6 @@
 const
   littleEndian = new Uint8Array((new Uint16Array([0x0102]).buffer))[0] === 0x02,
-  chunkSize = 504000;  // must be divisible by 12; temporary buffer allocations (in bytes) are up to 2x this value
+  chunkSize = 1008000;  // must be divisible by 24; temporary buffer allocations (in bytes) are up to this value
 
 // hex
 
@@ -45,13 +45,14 @@ export function _toHexChunked(d) {
   let
     hex = '',
     len = d.length,
-    chunks = Math.ceil(len / chunkSize),
-    scratchArr = new Uint16Array(chunks > 1 ? chunkSize : len);
+    chunkInts = chunkSize >>> 1,
+    chunks = Math.ceil(len / chunkInts),
+    scratchArr = new Uint16Array(chunks > 1 ? chunkInts : len);
 
   for (let i = 0; i < chunks; i++) {
     const
-      start = i * chunkSize,
-      end = start + chunkSize;  // subarray has no problem going past the end of the array
+      start = i * chunkInts,
+      end = start + chunkInts;  // subarray has no problem going past the end of the array
 
     hex += _toHex(d.subarray(start, end), scratchArr);
   }
@@ -63,9 +64,10 @@ export function toHex(d) {
   return typeof d.toHex === 'function' ? d.toHex() : _toHexChunked(d);
 }
 
+
 let te, hl, v00, vff;
 
-export function _fromHexUsingTextEncoder(s, lax, outArr, scratchArr, indexOffset) {
+export function _fromHex(s, lax, outArr, scratchArr, indexOffset) {
   // note: using a Map or a big switch/case block are both an order of magnitude slower than these TypedArray lookups
 
   if (!te) {  // one-time prep
@@ -126,22 +128,24 @@ export function _fromHexUsingTextEncoder(s, lax, outArr, scratchArr, indexOffset
   return i < bytelen ? out.subarray(0, i) : out;
 }
 
-export function _fromHexInChunksUsingTextEncoder(s, lax) {
+export function _fromHexChunked(s, lax) {
   const slen = s.length;
+  
   // needs checking here because it will be rounded down to a multiple of two below
   if (!lax && slen & 1) throw new Error('Hex input is an odd number of characters');
 
   const
     bytelen = slen >>> 1,
-    chunks = Math.ceil(bytelen / chunkSize),
-    scratchArr = new Uint16Array((chunks > 1 ? chunkSize : bytelen) + 2),
+    chunkInts = chunkSize >>> 1,
+    chunks = Math.ceil(bytelen / chunkInts),
+    scratchArr = new Uint16Array((chunks > 1 ? chunkInts : bytelen) + 2),
     outArr = new Uint8Array(bytelen);
 
   for (let i = 0; i < chunks; i++) {
     const
-      chunkStartByte = i * chunkSize,
-      chunkEndByte = chunkStartByte + chunkSize,
-      result = _fromHexUsingTextEncoder(
+      chunkStartByte = i * chunkInts,
+      chunkEndByte = chunkStartByte + chunkInts,
+      result = _fromHex(
         s.slice(chunkStartByte << 1, chunkEndByte << 1),
         lax,
         outArr.subarray(chunkStartByte, chunkEndByte),
@@ -158,9 +162,7 @@ export function _fromHexInChunksUsingTextEncoder(s, lax) {
 }
 
 export function fromHex(s, lax) {
-  return (
-    !lax && typeof Uint8Array.fromHex === 'function' ? Uint8Array.fromHex(s) :
-      _fromHexInChunksUsingTextEncoder(s, lax));
+  return (!lax && typeof Uint8Array.fromHex === 'function') ? Uint8Array.fromHex(s) : _fromHexChunked(s, lax);
 }
 
 // base64
