@@ -203,9 +203,7 @@ export function fromHex(s, lax) {
 const
   b64StdChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',
   b64UrlChars = '^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-_',  // only the last two are used
-  padChar = '='.charCodeAt(0),
-  padChar3 = padChar << (littleEndian ? 16 : 8),
-  padChar4 = padChar << (littleEndian ? 24 : 0);
+  padChar = '='.charCodeAt(0);
 
 let tdb, stdCh1, stdCh2, stdCh3, stdCh4, urlCh1, urlCh2, urlCh3, urlCh4, chpairs, ch;
 
@@ -215,7 +213,8 @@ export function toBase64(d, pad, urlsafe) {
     ch = new Uint8Array(64);
     chpairs = new Uint16Array(4096);  // this lookup table uses 8KB
     for (let i = 0; i < 64; i++) ch[i] = b64StdChars.charCodeAt(i);
-    for (let i = 0; i < 64; i++) for (let j = 0; j < 64; j++) chpairs[i << 6 | j] = ch[i] | ch[j] << 8;
+    if (littleEndian) for (let i = 0; i < 64; i++) for (let j = 0; j < 64; j++) chpairs[i << 6 | j] = ch[i] | ch[j] << 8;
+    else for (let i = 0; i < 64; i++) for (let j = 0; j < 64; j++) chpairs[i << 6 | j] = ch[i << 8] | ch[j];
   }
 
   const
@@ -229,7 +228,7 @@ export function toBase64(d, pad, urlsafe) {
 
   let i = 0, j = 0, u1, u2, u3, b1, b2, b3;
 
-  while (i < intlast3) {  // while we can, read 3x uint32 (12 bytes) + write 4x uint32 (16 bytes)
+  if (littleEndian) while (i < intlast3) {  // while we can, read 3x uint32 (12 bytes) + write 4x uint32 (16 bytes)
     u1 = d32[i++];
     u2 = d32[i++];
     u3 = d32[i++];
@@ -263,15 +262,38 @@ export function toBase64(d, pad, urlsafe) {
       chpairs[(b2 & 15) << 8 | b3] << 16;
   }
 
+  else while (i < intlast3) {
+    u1 = d32[i++];
+    u2 = d32[i++];
+    u3 = d32[i++];
+
+    out[j++] =
+      chpairs[u1 >>> 20] << 16 |
+      chpairs[(u1 >>> 8) & 4095];
+
+    out[j++] =
+      chpairs[(u1 & 255) << 4 | u2 >>> 28] << 16 |
+      chpairs[(u2 >>> 16) & 4095];
+
+    out[j++] =
+      chpairs[(u2 >>> 4) & 4095] << 16 |
+      chpairs[(u2 & 15) << 8 | u3 >>> 24];
+
+    out[j++] =
+      chpairs[(u3 >> 12) & 4095] << 16 |
+      chpairs[u3 & 4095];
+  }
+
   i = i << 2;  // * 4 -- translates from a uint32 index to a uint8 index
 
   while (i < last2) {  // mop up any remaining sequences of 3 input bytes
     b1 = d[i++];
     b2 = d[i++];
     b3 = d[i++];
+
     out[j++] =
-      chpairs[b1 << 4 | b2 >>> 4] |
-      chpairs[(b2 & 15) << 8 | b3] << 16;
+      chpairs[b1 << 4 | b2 >>> 4] << (littleEndian ? 0 : 16) |
+      chpairs[(b2 & 15) << 8 | b3] << (littleEndian ? 16 : 0);
   }
 
   if (i === inlen) return tdb.decode(out);  // implies input length divisible by 3, therefore no padding: we're done
@@ -280,9 +302,9 @@ export function toBase64(d, pad, urlsafe) {
   b1 = d[i++];
   b2 = d[i++];
   out[j++] =
-    chpairs[b1 << 4 | (b2 || 0) >>> 4] |
+    chpairs[b1 << 4 | (b2 || 0) >>> 4] << (littleEndian ? 0 : 24) |
     (b2 === undefined ? padChar : ch[(((b2 || 0) & 15) << 2)]) << 16 |
-    padChar << 24;
+    padChar << (littleEndian ? 24 : 0);
 
   if (pad) return tdb.decode(out);  // if we're padding the end, we're golden
 
