@@ -280,7 +280,7 @@ export function toBase64(d, pad, urlsafe) {
       chpairs[(u2 & 15) << 8 | u3 >>> 24];
 
     out[j++] =
-      chpairs[(u3 >> 12) & 4095] << 16 |
+      chpairs[(u3 >>> 12) & 4095] << 16 |
       chpairs[u3 & 4095];
   }
 
@@ -302,8 +302,8 @@ export function toBase64(d, pad, urlsafe) {
   b1 = d[i++];
   b2 = d[i++];
   out[j++] =
-    chpairs[b1 << 4 | (b2 || 0) >>> 4] << (littleEndian ? 0 : 24) |
-    (b2 === undefined ? padChar : ch[(((b2 || 0) & 15) << 2)]) << 16 |
+    chpairs[b1 << 4 | (b2 || 0) >>> 4] << (littleEndian ? 0 : 16) |
+    (b2 === undefined ? padChar : ch[(((b2 || 0) & 15) << 2)]) << (littleEndian ? 16 : 8) |
     padChar << (littleEndian ? 24 : 0);
 
   if (pad) return tdb.decode(out);  // if we're padding the end, we're golden
