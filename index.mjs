@@ -168,21 +168,22 @@ export function fromHex(s, lax) {
 // base64
 
 const
-  b64Chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',
-  chUrl62 = '-'.charCodeAt(0),
-  chUrl63 = '_'.charCodeAt(0),
-  chPad = '='.charCodeAt(0);
+  chStd = new Uint8Array([  // ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/
+    65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88,
+    89, 90, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+    115, 116, 117, 118, 119, 120, 121, 122, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 43, 47
+  ]),
+  chUrl62 = 45, // -
+  chUrl63 = 95, // _
+  chPad = 61;   // =  
 
-let tdb, chStd, chUrl, chpairsStd, chpairsUrl;
+let tdb, chUrl, chpairsStd, chpairsUrl;
 
 export function _toBase64(d, pad, urlsafe, scratchArr) {
   if (!tdb) {  // one-time prep: look-up tables use just over 16KiB of memory
     tdb = new TextDecoder();
 
-    // lookup tables for standard hex-chars and hex-char pairs
-    chStd = new Uint8Array(64);
-    for (let i = 0; i < 64; i++) chStd[i] = b64Chars.charCodeAt(i);
-
+    // lookup tables for standard hex-char pairs
     chpairsStd = new Uint16Array(4096);  // this lookup table uses 8KB
     if (littleEndian) for (let i = 0; i < 64; i++) for (let j = 0; j < 64; j++) chpairsStd[i << 6 | j] = chStd[i] | chStd[j] << 8;
     else for (let i = 0; i < 64; i++) for (let j = 0; j < 64; j++) chpairsStd[i << 6 | j] = chStd[i] << 8 | chStd[j];
@@ -332,4 +333,44 @@ export function toBase64(d, pad, urlsafe) {
   return typeof d.toBase64 === 'function' ?
     d.toBase64({ alphabet: urlsafe ? 'base64url' : 'base64', omitPadding: !pad }) :
     _toBase64Chunked(d, pad, urlsafe);
+}
+
+let teb, b64ToValue;
+
+function fromBase64(s, urlsafe) {
+  // reading base64 is the least easy thing to optimise, since whitespace is allowed anywhere and there is thus no alignment
+  if (!teb) {
+    teb = new TextEncoder();
+    b64ToValue = new Uint8Array(256).fill(128);  // 128 means: invalid character
+    b64ToValue[chPad] = b64ToValue[9] = b64ToValue[10] = b64ToValue[13] = b64ToValue[32] = 64;  // 64 means: whitespace or padding
+    for (let i = 0; i < 64; i++) b64ToValue[chStd[i]] = i;  // 6-bit values mean themselves
+  }
+
+  const
+    inlen = s.length,
+    inBytes = teb.encode(s),
+    maxOutLen = Math.ceil(inlen / 4 * 3),
+    out = new Uint8Array(maxOutLen);
+
+  let i = 0, j = 0, v1, v2, v3, v4, ok = false;
+  loops: {
+    while (i < inlen) {
+      do { v1 = b64ToValue[inBytes[i++]] } while (v1 === 64);
+      if (v1 === 128) break loops;
+      do { v2 = b64ToValue[inBytes[i++]] } while (v2 === 64);
+      if (v2 === 128) break loops;
+      do { v3 = b64ToValue[inBytes[i++]] } while (v3 === 64);
+      if (v3 === 128) break loops;
+      do { v4 = b64ToValue[inBytes[i++]] } while (v4 === 64);
+      if (v4 === 128) break loops;
+
+      out[j++] = v1 << 2 | v2 >>> 4;
+      out[j++] = (v2 << 4 | v3 >>> 2) & 255;
+      out[j++] = (v3 << 6 | v4) & 255;
+    }
+    ok = true;
+  }
+
+  if (!ok) throw new Error(`Invalid character in base64 at index ${i - 1}`);
+  return out;
 }
