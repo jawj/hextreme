@@ -7,6 +7,7 @@ import {
   _fromHexChunked,
   _toBase64,
   _toBase64Chunked,
+  fromBase64,
 } from './index.mjs';
 
 import smithy from '@smithy/util-hex-encoding';
@@ -25,7 +26,8 @@ const
   benchmarkArray = arrays[arrays.length - 1],
   benchmarkBuffer = Buffer.from(benchmarkArray),
   benchmarkBufferShim = BufferShim.from(benchmarkArray),
-  benchmarkHex = benchmarkBuffer.toString('hex');
+  benchmarkHex = benchmarkBuffer.toString('hex'),
+  benchmarkBase64 = benchmarkBuffer.toString('base64');
 
 console.log('Generated\n');
 
@@ -49,6 +51,23 @@ for (let i = 0; i < arrays.length; i++) {
 console.log('Tests passed\n');
 
 
+console.log('Decoding back from base64 and checking results ...');
+
+for (let i = 0; i < arrays.length; i++) {
+  const
+    data = arrays[i],
+    base64 = ' ' + rNodeBufferB64Std[i] + '\n'.repeat(i % 5),
+    dataAgain = fromBase64(base64);
+
+  if (dataAgain.length !== data.length) throw new Error(`Length mismatch decoding '${base64}': ${data} != ${dataAgain}`);
+  for (let j = 0; j < data.length; j++) {
+    if (data[j] !== dataAgain[j]) throw new Error(`Value mismatch: ${data} != ${dataAgain}`);
+  }
+}
+
+console.log('Tests passed\n');
+
+
 console.log('Encoding as base64url ...');
 
 const
@@ -66,6 +85,24 @@ for (let i = 0; i < arrays.length; i++) {
 }
 
 console.log('Tests passed\n');
+
+
+console.log('Decoding back from base64url and checking results ...');
+
+for (let i = 0; i < arrays.length; i++) {
+  const
+    data = arrays[i],
+    base64 = ' '.repeat(Math.floor(Math.random() * 16)) + rNodeBufferB64Url[i] + '\n'.repeat(i % 5),
+    dataAgain = fromBase64(base64, true);
+
+  if (dataAgain.length !== data.length) throw new Error(`Length mismatch decoding '${base64}': ${data} != ${dataAgain}`);
+  for (let j = 0; j < data.length; j++) {
+    if (data[j] !== dataAgain[j]) throw new Error(`Value mismatch: ${data} != ${dataAgain}`);
+  }
+}
+
+console.log('Tests passed\n');
+
 
 
 console.log('Encoding as hex ...');
@@ -191,6 +228,12 @@ console.log('* Encode base64\n')
 console.log(`_toBase64Chunked                       ${benchmark(() => _toBase64Chunked(benchmarkArray, true, false), iterations)}`);
 console.log(`cf. native Buffer.toString             ${benchmark(() => benchmarkBuffer.toString('base64'), iterations)}`);
 console.log(`cf. feross/buffer.toString             ${benchmark(() => benchmarkBufferShim.toString('base64'), iterations)}`);
+console.log();
+
+console.log('* Decode base64\n')
+console.log(`fromBase64                             ${benchmark(() => fromBase64(benchmarkBase64, false, true), iterations)}`);
+console.log(`cf. native Buffer.from                 ${benchmark(() => Buffer.from(benchmarkBase64, 'base64'), iterations)}`);
+console.log(`cf. feross/buffer.from                 ${benchmark(() => BufferShim.from(benchmarkBase64, 'base64'), iterations)}`);
 console.log();
 
 console.log('* Encode base64url\n')

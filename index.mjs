@@ -173,11 +173,13 @@ const
     89, 90, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
     115, 116, 117, 118, 119, 120, 121, 122, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 43, 47
   ]),
-  chUrl62 = 45, // -
-  chUrl63 = 95, // _
-  chPad = 61;   // =  
+  chPad = 61,  // =
+  chUrl = chStd.slice();
 
-let tdb, chUrl, chpairsStd, chpairsUrl;
+chUrl[62] = 45;  // -
+chUrl[63] = 95;  // _
+
+let tdb, chpairsStd, chpairsUrl;
 
 export function _toBase64(d, pad, urlsafe, scratchArr) {
   if (!tdb) {  // one-time prep: look-up tables use just over 16KiB of memory
@@ -189,9 +191,6 @@ export function _toBase64(d, pad, urlsafe, scratchArr) {
     else for (let i = 0; i < 64; i++) for (let j = 0; j < 64; j++) chpairsStd[i << 6 | j] = chStd[i] << 8 | chStd[j];
 
     // lookup table diffs for url-safe hex-chars and hex-char pairs
-    chUrl = chStd.slice();
-    chUrl[62] = chUrl62;
-    chUrl[63] = chUrl63;
 
     chpairsUrl = chpairsStd.slice();
     if (littleEndian) {
@@ -335,26 +334,47 @@ export function toBase64(d, pad, urlsafe) {
     _toBase64Chunked(d, pad, urlsafe);
 }
 
-let teb, b64ToValue;
+let teb, b64StdToValue, b64UrlToValue;
 
-function fromBase64(s, urlsafe) {
+export function fromBase64(s, urlsafe, lax) {
   // reading base64 is the least easy thing to optimise, since whitespace is allowed anywhere and there is thus no alignment
   if (!teb) {
     teb = new TextEncoder();
-    b64ToValue = new Uint8Array(256).fill(128);  // 128 means: invalid character
-    b64ToValue[chPad] = b64ToValue[9] = b64ToValue[10] = b64ToValue[13] = b64ToValue[32] = 64;  // 64 means: whitespace or padding
-    for (let i = 0; i < 64; i++) b64ToValue[chStd[i]] = i;  // 6-bit values mean themselves
+
+    b64StdToValue = new Uint8Array(256).fill(128);  // 128 means: invalid character
+    b64StdToValue[chPad] = b64StdToValue[9] = b64StdToValue[10] = b64StdToValue[13] = b64StdToValue[32] = 64;  // 64 means: whitespace or padding
+    
+    b64UrlToValue = new Uint8Array(256).fill(128);
+    b64UrlToValue[chPad] = b64UrlToValue[9] = b64UrlToValue[10] = b64UrlToValue[13] = b64UrlToValue[32] = 64;
+
+    for (let i = 0; i < 64; i++) {
+      b64StdToValue[chStd[i]] = i;  // 6-bit values mean themselves
+      b64UrlToValue[chUrl[i]] = i;
+    }
   }
 
   const
     inlen = s.length,
     inBytes = teb.encode(s),
     maxOutLen = Math.ceil(inlen / 4 * 3),
-    out = new Uint8Array(maxOutLen);
+    out = new Uint8Array(maxOutLen),
+    b64ToValue = urlsafe ? b64UrlToValue : b64StdToValue;
 
-  let i = 0, j = 0, v1, v2, v3, v4, ok = false;
+  let i = 0, j = 0, v1, v2, v3, v4, ok = false, i0;
   loops: {
-    while (i < inlen) {
+    if (lax) while (i < inlen) {
+      i0 = i;
+      do { v1 = b64ToValue[inBytes[i++]] } while (v1 > 63);
+      do { v2 = b64ToValue[inBytes[i++]] } while (v2 > 63);
+      do { v3 = b64ToValue[inBytes[i++]] } while (v3 > 63);
+      do { v4 = b64ToValue[inBytes[i++]] } while (v4 > 63);
+
+      out[j++] = v1 << 2 | v2 >>> 4;
+      out[j++] = (v2 << 4 | v3 >>> 2) & 255;
+      out[j++] = (v3 << 6 | v4) & 255;
+    }
+    else while (i < inlen) {
+      i0 = i;
       do { v1 = b64ToValue[inBytes[i++]] } while (v1 === 64);
       if (v1 === 128) break loops;
       do { v2 = b64ToValue[inBytes[i++]] } while (v2 === 64);
@@ -370,7 +390,13 @@ function fromBase64(s, urlsafe) {
     }
     ok = true;
   }
-
   if (!ok) throw new Error(`Invalid character in base64 at index ${i - 1}`);
-  return out;
+
+  // the last 0 - 3 bytes may require truncation, if input string ended with padding and/or whitespace;
+  // we need to count how many valid input characters (0 – 4) there are after i0
+
+  let validChars = 0;
+  for (let i = i0; i < inlen; i++) if (b64ToValue[inBytes[i]] < 64) validChars++;
+  const truncateBytes = { 4: 0, 3: 1, 2: 2, 1: 2, 0: 3 }[validChars]; //Math.max(0, 3 - validChars);
+  return out.subarray(0, j - truncateBytes);
 }
