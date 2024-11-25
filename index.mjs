@@ -2,18 +2,20 @@ const
   littleEndian = new Uint8Array((new Uint16Array([0x0102]).buffer))[0] === 0x02,
   chunkBytes = 1008000;  // must be divisible by 24; temporary buffer allocations (in bytes) are up to this value
 
+let td, te;  // TextEncoder, TextDecoder
+
 // hex
 
-let tdh, cc;
+const chHex = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 97, 98, 99, 100, 101, 102];  // 0123456789abcdef
+let cc;
 
 export function _toHex(d, scratchArr) {
-  if (!tdh) {
-    tdh = new TextDecoder();
-    cc = new Uint16Array(256);
+  if (!td) td = new TextDecoder();
 
-    const c = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 97, 98, 99, 100, 101, 102];  // 0123456789abcdef
-    if (littleEndian) for (let i = 0; i < 256; i++) cc[i] = c[i & 0xF] << 8 | c[i >>> 4];
-    else for (let i = 0; i < 256; i++) cc[i] = c[i & 0xF] | c[i >>> 4] << 8;
+  if (!cc) {
+    cc = new Uint16Array(256);
+    if (littleEndian) for (let i = 0; i < 256; i++) cc[i] = chHex[i & 0xF] << 8 | chHex[i >>> 4];
+    else for (let i = 0; i < 256; i++) cc[i] = chHex[i & 0xF] | chHex[i >>> 4] << 8;
   }
 
   const
@@ -37,7 +39,7 @@ export function _toHex(d, scratchArr) {
     a[i] = cc[d[i++]];
   }
 
-  const hex = tdh.decode(a.subarray(0, len));
+  const hex = td.decode(a.subarray(0, len));
   return hex;
 }
 
@@ -65,16 +67,17 @@ export function toHex(d) {
 }
 
 
-let te, hl, v00, vff;
+let hl, v00, vff;
 
 export function _fromHex(s, lax, outArr, scratchArr, indexOffset) {
   // note: using a Map or a big switch/case block are both an order of magnitude slower than these TypedArray lookups
+  if (!te) te = new TextEncoder();
 
-  if (!te) {  // one-time prep
+  if (!hl) {  // one-time prep
     v00 = (48 << 8) | 48;
     vff = (102 << 8) | 102;  // vFF is smaller, so not relevant
     hl = new Uint8Array(vff + 1);  // hex lookup -- takes 26KB of memory (could halve that by doing vff - v00 + 1, but that's slower)
-    te = new TextEncoder();
+    
 
     for (let l = 0; l < 22; l++) for (let r = 0; r < 22; r++) {  // 484 unique possibilities, 00 – FF/ff/fF/Ff
       const
@@ -179,11 +182,12 @@ const
 chUrl[62] = 45;  // -
 chUrl[63] = 95;  // _
 
-let tdb, chpairsStd, chpairsUrl;
+let chpairsStd, chpairsUrl;
 
 export function _toBase64(d, pad, urlsafe, scratchArr) {
-  if (!tdb) {  // one-time prep: look-up tables use just over 16KiB of memory
-    tdb = new TextDecoder();
+  if (!td) td = new TextDecoder();
+  
+  if (!chpairsStd) {  // one-time prep: look-up tables use just over 16KiB of memory
 
     // lookup tables for standard hex-char pairs
     chpairsStd = new Uint16Array(4096);  // this lookup table uses 8KB
@@ -283,7 +287,7 @@ export function _toBase64(d, pad, urlsafe, scratchArr) {
       chpairs[(b2 & 15) << 8 | b3] << (littleEndian ? 16 : 0);
   }
 
-  if (i === inlen) return tdb.decode(out);  // implies input length divisible by 3, therefore no padding: we're done
+  if (i === inlen) return td.decode(out);  // implies input length divisible by 3, therefore no padding: we're done
 
   // OK, so there must be either 1 or 2 trailing input bytes
   b1 = d[i++];
@@ -293,11 +297,11 @@ export function _toBase64(d, pad, urlsafe, scratchArr) {
     (b2 === undefined ? chPad : ch[(((b2 || 0) & 15) << 2)]) << (littleEndian ? 16 : 8) |  // next 8 bits
     chPad << (littleEndian ? 24 : 0);  // next 8 bits
 
-  if (pad) return tdb.decode(out);  // if we're padding the end, we're golden
+  if (pad) return td.decode(out);  // if we're padding the end, we're golden
 
   // OK, we aren't padding the end, so truncate the output by viewing it as a Uint8Array
   let out8 = new Uint8Array(out.buffer, 0, (outints << 2) - (b2 === undefined ? 2 : 1));
-  return tdb.decode(out8);
+  return td.decode(out8);
 }
 
 export function _toBase64Chunked(d, pad, urlsafe) {
@@ -334,34 +338,113 @@ export function toBase64(d, pad, urlsafe) {
     _toBase64Chunked(d, pad, urlsafe);
 }
 
-let teb, b64StdToValue, b64UrlToValue;
+let b64StdByteLookup, b64UrlByteLookup, vAA, vzz, b64StdWordLookup;
+
+export function fromBase64Fast(s, urlsafe, scratchArr, outArr, indexOffset) {  // for base64 with only valid characters and no whitespace, remaining aligned
+  if (!te) te = new TextEncoder();
+  
+  if (!b64StdWordLookup) {  // one-time prep
+    vAA = (65 << 8) | 65;  // signifies zero
+    vzz = (122 << 8) | 122;  // vZZ is smaller, so not relevant
+    b64StdWordLookup = new Uint16Array(vzz + 1);  // base64 lookup -- takes ~62KB of memory (could halve that by doing vzz - vpp + 1, but that's slower)
+
+    for (let l = 0; l < 64; l++) for (let r = 0; r < 64; r++) {
+      const
+        cl = chStd[l],
+        cr = chStd[r],
+        vin = littleEndian ? (cr << 8) | cl : cr | (cl << 8),
+        vout = l << 6 | r;
+
+      b64StdWordLookup[vin] = vout;
+    }
+  }
+
+  const slen = s.length;
+
+  const
+    maxOutBytes = Math.ceil(slen / 4) * 3,
+    inIntsLen = (slen >>> 2) + (slen & 3 ? 1 : 0),
+    inIntsLenPlus = inIntsLen + 1,  // `+ 1` allows an extra 4 bytes: enough space for a 4-byte UTF-8 char to be encoded even at the end, so we can detect any multi-byte char
+    fastIntsLen = (slen >>> 2) - 3,  // 4 bytes per Uint32, and we want to work in groups of 3, plus avoid the last 2 bytes (which may be padding)
+    inInts = scratchArr || new Uint32Array(inIntsLenPlus),
+    u8 = new Uint8Array(inInts.buffer),  // view onto same memory
+    out = outArr || new Uint8Array(maxOutBytes);
+
+  if (inInts.length < inIntsLenPlus) throw new Error(`Wrong-sized scratch array supplied (was ${inInts.length}, expected at least ${inIntsLenPlus})`);
+  if (out.length != maxOutBytes) throw new Error(`Wrong-sized output array supplied (was ${out.length}, expected ${maxOutBytes})`);
+
+  te.encodeInto(s, u8);
+  // we don't need to explicitly check for multibyte characters (via `result.written > slen`)
+  // because any multi-byte character includes bytes that are outside the valid range
+
+  let i = 0, j = 0, ok = false;
+  e: {
+    let inInt, inL, inR, vL, vR;
+    while (i < fastIntsLen) {  // a bit of loop unrolling helps performance in V8
+      // 1
+      inInt = inInts[i++];
+      inL = inInt & 65535;
+      inR = inInt >>> 16;
+      vL = b64StdWordLookup[inL];  // 12 bits
+      if (!vL && inL !== vAA) break e;
+      vR = b64StdWordLookup[inR];  // 12 bits
+      if (!vR && inR !== vAA) break e;
+      out[j++] = vL >>> 4;
+      out[j++] = (vL << 4 | vR >>> 8) & 255;
+      out[j++] = vR & 255;
+      // 2
+      inInt = inInts[i++];
+      inL = inInt & 65535;
+      inR = inInt >>> 16;
+      vL = b64StdWordLookup[inL];
+      if (!vL && inL !== vAA) break e;
+      vR = b64StdWordLookup[inR];
+      if (!vR && inR !== vAA) break e;
+      out[j++] = vL >>> 4;
+      out[j++] = (vL << 4 | vR >>> 8) & 255;
+      out[j++] = vR & 255;
+      // 3
+      inInt = inInts[i++];
+      inL = inInt & 65535;
+      inR = inInt >>> 16;
+      vL = b64StdWordLookup[inL];
+      if (!vL && inL !== vAA) break e;
+      vR = b64StdWordLookup[inR];
+      if (!vR && inR !== vAA) break e;
+      out[j++] = vL >>> 4;
+      out[j++] = (vL << 4 | vR >>> 8) & 255;
+      out[j++] = vR & 255;
+    }
+    ok = true;
+  }
+
+  if (!ok) throw new Error(`Invalid base64 input at index ${(indexOffset || 0) + i << 1}`);
+  return j < maxOutBytes ? out.subarray(0, j) : out;
+}
 
 export function fromBase64(s, urlsafe, lax) {
-  // reading base64 is the least easy thing to optimise, since whitespace is allowed anywhere and there is thus no alignment
-  if (!teb) {
-    teb = new TextEncoder();
+  if (!te) te = new TextEncoder();
 
-    b64StdToValue = new Uint8Array(256).fill(128);  // 128 means: invalid character
-    b64StdToValue[chPad] = b64StdToValue[9] = b64StdToValue[10] = b64StdToValue[13] = b64StdToValue[32] = 64;  // 64 means: whitespace or padding
-    
-    b64UrlToValue = new Uint8Array(256).fill(128);
-    b64UrlToValue[chPad] = b64UrlToValue[9] = b64UrlToValue[10] = b64UrlToValue[13] = b64UrlToValue[32] = 64;
-
+  if (!b64StdByteLookup) {
+    b64StdByteLookup = new Uint8Array(256).fill(128);  // 128 means: invalid character
+    b64StdByteLookup[chPad] = b64StdByteLookup[9] = b64StdByteLookup[10] = b64StdByteLookup[13] = b64StdByteLookup[32] = 64;  // 64 means: whitespace or padding
+    b64UrlByteLookup = new Uint8Array(256).fill(128);
+    b64UrlByteLookup[chPad] = b64UrlByteLookup[9] = b64UrlByteLookup[10] = b64UrlByteLookup[13] = b64UrlByteLookup[32] = 64;
     for (let i = 0; i < 64; i++) {
-      b64StdToValue[chStd[i]] = i;  // 6-bit values mean themselves
-      b64UrlToValue[chUrl[i]] = i;
+      b64StdByteLookup[chStd[i]] = i;  // 6-bit values mean themselves
+      b64UrlByteLookup[chUrl[i]] = i;
     }
   }
 
   const
     inlen = s.length,
-    inBytes = teb.encode(s),
-    maxOutLen = Math.ceil(inlen / 4 * 3),
-    out = new Uint8Array(maxOutLen),
-    b64ToValue = urlsafe ? b64UrlToValue : b64StdToValue;
+    inBytes = te.encode(s),
+    maxOutBytes = Math.ceil(inlen / 4) * 3,
+    out = new Uint8Array(maxOutBytes),
+    b64ToValue = urlsafe ? b64UrlByteLookup : b64StdByteLookup;
 
   let i = 0, j = 0, v1, v2, v3, v4, ok = false, i0;
-  loops: {
+  e: {
     if (lax) while (i < inlen) {
       i0 = i;
       do { v1 = b64ToValue[inBytes[i++]] } while (v1 > 63);
@@ -376,13 +459,13 @@ export function fromBase64(s, urlsafe, lax) {
     else while (i < inlen) {
       i0 = i;
       do { v1 = b64ToValue[inBytes[i++]] } while (v1 === 64);
-      if (v1 === 128) break loops;
+      if (v1 === 128) break e;
       do { v2 = b64ToValue[inBytes[i++]] } while (v2 === 64);
-      if (v2 === 128) break loops;
+      if (v2 === 128) break e;
       do { v3 = b64ToValue[inBytes[i++]] } while (v3 === 64);
-      if (v3 === 128) break loops;
+      if (v3 === 128) break e;
       do { v4 = b64ToValue[inBytes[i++]] } while (v4 === 64);
-      if (v4 === 128) break loops;
+      if (v4 === 128) break e;
 
       out[j++] = v1 << 2 | v2 >>> 4;
       out[j++] = (v2 << 4 | v3 >>> 2) & 255;
