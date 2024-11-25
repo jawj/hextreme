@@ -56,8 +56,8 @@ console.log('Decoding back from base64 and checking results ...');
 for (let i = 0; i < arrays.length; i++) {
   const
     data = arrays[i],
-    base64 = ' ' + rNodeBufferB64Std[i] + '\n'.repeat(i % 5),
-    dataAgain = fromBase64(base64);
+    base64 = rNodeBufferB64Std[i] + '\n'.repeat(i % 5),
+    dataAgain = fromBase64(base64, false, true);
 
   if (dataAgain.length !== data.length) throw new Error(`Length mismatch decoding '${base64}': ${data} != ${dataAgain}`);
   for (let j = 0; j < data.length; j++) {
