@@ -2,6 +2,7 @@ import {
   _fromHexChunked,
   _toHexChunked,
   toBase64,
+  fromBase64,
 } from '../index.mjs';
 
 // supporting code
@@ -83,6 +84,23 @@ console.log('Checking results ...');
 
 for (let i = 0; i < arrays.length; i++) {
   if (testBase64[i] !== goodBase64[i]) err(`base64 mismatch for array length ${lengths[i]}: '${testBase64[i]}' !== '${goodBase64[i]}'`);
+}
+
+console.log('Tests passed\n');
+
+
+console.log('Decoding back from base64 and checking results ...');
+
+for (let i = 0; i < arrays.length; i++) {
+  const
+    data = arrays[i],
+    base64 = goodBase64[i],
+    dataAgain = fromBase64(base64, false, true);
+
+  if (dataAgain.length !== data.length) err(`Length mismatch decoding '${base64}': ${data} != ${dataAgain}`);
+  for (let j = 0; j < data.length; j++) {
+    if (data[j] !== dataAgain[j]) err(`Value mismatch decoding '${base64}': ${data} != ${dataAgain}`);
+  }
 }
 
 console.log('Tests passed\n');
