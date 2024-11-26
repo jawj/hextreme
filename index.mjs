@@ -439,7 +439,7 @@ export function fromBase64(s, urlsafe, lax, scratchArr, outArr) {
       ((vL4 << 4 | vR4 >>> 8) & 255) << 16 |
       (vR4 & 255) << 24;
   }
-  else while (i < fastIntsLen) {  // while we can, read 4x uint32 (16 bytes) + write 3x uint32 (12 bytes)
+  else while (i < fastIntsLen) {
     inInt = inInts[i++];
     inL = inInt >>> 16;
     vL1 = b64StdWordLookup[inL];
@@ -472,7 +472,7 @@ export function fromBase64(s, urlsafe, lax, scratchArr, outArr) {
     vR4 = b64StdWordLookup[inR];
     if (!vR4 && inR !== vAA) { i -= 4; break; }
 
-    outInts[j++] = vL1 << 20 | vR1 << 8 | vL2 >>> 4;
+    outInts[j++] = vL1 << 20 | vR1 << 8 | vL2 >>> 4;  // this is so much nicer in big-endian
     outInts[j++] = (vL2 & 15) << 28 | vR2 << 16 | vL3 << 4 | vR3 >>> 8;
     outInts[j++] = (vR3 & 255) << 24 | vL4 << 12 | vR4;
   }
