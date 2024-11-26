@@ -25,7 +25,7 @@ export function _toHex(d, scratchArr) {
 
   let i = 0;
 
-  while (i < last7) {
+  while (i < last7) {  // loop unrolling helps quite a bit in V8
     a[i] = cc[d[i++]];
     a[i] = cc[d[i++]];
     a[i] = cc[d[i++]];
@@ -338,100 +338,16 @@ export function toBase64(d, pad, urlsafe) {
     _toBase64Chunked(d, pad, urlsafe);
 }
 
-let b64StdByteLookup, b64UrlByteLookup, vAA, vzz, b64StdWordLookup;
-
-export function fromBase64Fast(s, urlsafe, scratchArr, outArr, indexOffset) {  // for base64 with only valid characters and no whitespace, remaining aligned
-  if (!te) te = new TextEncoder();
-
-  if (!b64StdWordLookup) {  // one-time prep
-    vAA = (65 << 8) | 65;  // signifies zero
-    vzz = (122 << 8) | 122;  // vZZ is smaller, so not relevant
-    b64StdWordLookup = new Uint16Array(vzz + 1);  // base64 lookup -- takes ~62KB of memory (could halve that by doing vzz - vpp + 1, but that's slower)
-
-    for (let l = 0; l < 64; l++) for (let r = 0; r < 64; r++) {
-      const
-        cl = chStd[l],
-        cr = chStd[r],
-        vin = littleEndian ? (cr << 8) | cl : cr | (cl << 8),
-        vout = l << 6 | r;
-
-      b64StdWordLookup[vin] = vout;
-    }
-  }
-
-  const slen = s.length;
-
-  const
-    maxOutBytes = Math.ceil(slen / 4) * 3,
-    inIntsLen = (slen >>> 2) + (slen & 3 ? 1 : 0),
-    inIntsLenPlus = inIntsLen + 1,  // `+ 1` allows an extra 4 bytes: enough space for a 4-byte UTF-8 char to be encoded even at the end, so we can detect any multi-byte char
-    fastIntsLen = (slen >>> 2) - 3,  // 4 bytes per Uint32, and we want to work in groups of 3, plus avoid the last 2 bytes (which may be padding)
-    inInts = scratchArr || new Uint32Array(inIntsLenPlus),
-    u8 = new Uint8Array(inInts.buffer),  // view onto same memory
-    out = outArr || new Uint8Array(maxOutBytes);
-
-  if (inInts.length < inIntsLenPlus) throw new Error(`Wrong-sized scratch array supplied (was ${inInts.length}, expected at least ${inIntsLenPlus})`);
-  if (out.length != maxOutBytes) throw new Error(`Wrong-sized output array supplied (was ${out.length}, expected ${maxOutBytes})`);
-
-  te.encodeInto(s, u8);
-  // we don't need to explicitly check for multibyte characters (via `result.written > slen`)
-  // because any multi-byte character includes bytes that are outside the valid range
-
-  let i = 0, j = 0, ok = false;
-  e: {
-    let inInt, inL, inR, vL, vR;
-    while (i < fastIntsLen) {  // a bit of loop unrolling helps performance in V8
-      // 1
-      inInt = inInts[i++];
-      inL = inInt & 65535;
-      inR = inInt >>> 16;
-      vL = b64StdWordLookup[inL];  // 12 bits
-      if (!vL && inL !== vAA) break e;
-      vR = b64StdWordLookup[inR];  // 12 bits
-      if (!vR && inR !== vAA) break e;
-      out[j++] = vL >>> 4;
-      out[j++] = (vL << 4 | vR >>> 8) & 255;
-      out[j++] = vR & 255;
-      // 2
-      inInt = inInts[i++];
-      inL = inInt & 65535;
-      inR = inInt >>> 16;
-      vL = b64StdWordLookup[inL];
-      if (!vL && inL !== vAA) break e;
-      vR = b64StdWordLookup[inR];
-      if (!vR && inR !== vAA) break e;
-      out[j++] = vL >>> 4;
-      out[j++] = (vL << 4 | vR >>> 8) & 255;
-      out[j++] = vR & 255;
-      // 3
-      inInt = inInts[i++];
-      inL = inInt & 65535;
-      inR = inInt >>> 16;
-      vL = b64StdWordLookup[inL];
-      if (!vL && inL !== vAA) break e;
-      vR = b64StdWordLookup[inR];
-      if (!vR && inR !== vAA) break e;
-      out[j++] = vL >>> 4;
-      out[j++] = (vL << 4 | vR >>> 8) & 255;
-      out[j++] = vR & 255;
-    }
-    ok = true;
-  }
-
-  if (!ok) throw new Error(`Invalid base64 input at index ${(indexOffset || 0) + i << 1}`);
-  return j < maxOutBytes ? out.subarray(0, j) : out;
-}
-
-let b64ByteLookup;
+let b64StdWordLookup, b64StdByteLookup, b64UrlByteLookup, vAA, vzz;
 
 export function fromBase64(s, urlsafe, lax, scratchArr, outArr) {
   if (!te) te = new TextEncoder();
 
   if (!b64StdWordLookup) {
-    // fast Uint16 lookups
-    vAA = (65 << 8) | 65;  // signifies zero
+    // Uint16 lookups
+    vAA = (65 << 8) | 65;    // signifies zero value
     vzz = (122 << 8) | 122;  // vZZ is smaller, so not relevant
-    b64StdWordLookup = new Uint16Array(vzz + 1);  // base64 lookup -- takes ~62KB of memory (could halve that by doing vzz - vpp + 1, but that's slower)
+    b64StdWordLookup = new Uint16Array(vzz + 1);  // base64 lookup -- takes ~62KB of memory
 
     for (let l = 0; l < 64; l++) for (let r = 0; r < 64; r++) {
       const
@@ -443,7 +359,7 @@ export function fromBase64(s, urlsafe, lax, scratchArr, outArr) {
       b64StdWordLookup[vin] = vout;
     }
 
-    // slow Uint8 lookups
+    // Uint8 lookups
     b64StdByteLookup = new Uint8Array(256).fill(128);  // 128 means: invalid character
     b64StdByteLookup[chPad] = b64StdByteLookup[9] = b64StdByteLookup[10] = b64StdByteLookup[13] = b64StdByteLookup[32] = 64;  // 64 means: whitespace or padding
     b64UrlByteLookup = new Uint8Array(256).fill(128);
@@ -459,60 +375,76 @@ export function fromBase64(s, urlsafe, lax, scratchArr, outArr) {
     strlen = s.length,
     inIntsLen = Math.ceil(strlen / 4),
     inIntsLenPlus = inIntsLen + 1,  // `+ 1` allows an extra 4 bytes: enough space for a 4-byte UTF-8 char to be encoded even at the end, so we can detect any multi-byte char
-    fastIntsLen = inIntsLen - 3,  // 4 bytes per Uint32, and we want to work in groups of 3, plus avoid the last 2 bytes (which may be padding)
+    fastIntsLen = inIntsLen - 4,  // 4 bytes per Uint32, and we want to work in groups of 4, plus avoid the last 2 bytes (which may be padding)
     inInts = scratchArr || new Uint32Array(inIntsLenPlus),
     inBytes = new Uint8Array(inInts.buffer, 0, strlen),  // view onto same memory
-    maxOutBytes = inIntsLen * 3,
-    out = outArr || new Uint8Array(maxOutBytes);
-
-  b64ByteLookup = urlsafe ? b64UrlByteLookup : b64StdByteLookup;
+    maxOutBytesLen = inIntsLen * 3,
+    outBytes = outArr || new Uint8Array(maxOutBytesLen),
+    outInts = new Uint32Array(outBytes.buffer, 0, outBytes.length >>> 2),
+    b64ByteLookup = urlsafe ? b64UrlByteLookup : b64StdByteLookup;
 
   te.encodeInto(s, inBytes);
   // we don't need to explicitly check for multibyte characters (via `result.written > strlen`)
   // because any multi-byte character includes bytes that are outside the valid range
 
-  let i = 0, j = 0, inInt, inL, inR, vL, vR;
-  e: {
-    while (i < fastIntsLen) {  // loop unrolling helps performance in V8
-      // 1
-      inInt = inInts[i++];
-      inL = inInt & 65535;
-      inR = inInt >>> 16;
-      vL = b64StdWordLookup[inL];
-      if (!vL && inL !== vAA) { i--; break e; }
-      vR = b64StdWordLookup[inR];
-      if (!vR && inR !== vAA) { i--; break e; }
-      out[j++] = vL >>> 4;
-      out[j++] = (vL << 4 | vR >>> 8) & 255;
-      out[j++] = vR & 255;
-      // 2
-      inInt = inInts[i++];
-      inL = inInt & 65535;
-      inR = inInt >>> 16;
-      vL = b64StdWordLookup[inL];
-      if (!vL && inL !== vAA) { i--; break e; }
-      vR = b64StdWordLookup[inR];
-      if (!vR && inR !== vAA) { i--; break e; }
-      out[j++] = vL >>> 4;
-      out[j++] = (vL << 4 | vR >>> 8) & 255;
-      out[j++] = vR & 255;
-      // 3
-      inInt = inInts[i++];
-      inL = inInt & 65535;
-      inR = inInt >>> 16;
-      vL = b64StdWordLookup[inL];
-      if (!vL && inL !== vAA) { i--; break e; }
-      vR = b64StdWordLookup[inR];
-      if (!vR && inR !== vAA) { i--; break e; }
-      out[j++] = vL >>> 4;
-      out[j++] = (vL << 4 | vR >>> 8) & 255;
-      out[j++] = vR & 255;
-    }
-  }
-  
-  i <<= 2;  // translate Uint32 addressing to Uint8 addressing
+  let i = 0, j = 0, inInt, inL, inR, vL1, vR1, vL2, vR2, vL3, vR3, vL4, vR4;
+  while (i < fastIntsLen) {  // while we can, read 4x uint32 (16 bytes) + write 3x uint32 (12 bytes)
 
-  let v1, v2, v3, v4, i0, ok = false;
+    inInt = inInts[i++];
+    inL = inInt & 65535;
+    vL1 = b64StdWordLookup[inL];
+    if (!vL1 && inL !== vAA) { i -= 1; break; }
+    inR = inInt >>> 16;
+    vR1 = b64StdWordLookup[inR];
+    if (!vR1 && inR !== vAA) { i -= 1; break; }
+
+    inInt = inInts[i++];
+    inL = inInt & 65535;
+    vL2 = b64StdWordLookup[inL];
+    if (!vL2 && inL !== vAA) { i -= 2; break; }
+    inR = inInt >>> 16;
+    vR2 = b64StdWordLookup[inR];
+    if (!vR2 && inR !== vAA) { i -= 2; break; }
+
+    inInt = inInts[i++];
+    inL = inInt & 65535;
+    vL3 = b64StdWordLookup[inL];
+    if (!vL3 && inL !== vAA) { i -= 3; break; }
+    inR = inInt >>> 16;
+    vR3 = b64StdWordLookup[inR];
+    if (!vR3 && inR !== vAA) { i -= 3; break; }
+
+    inInt = inInts[i++];
+    inL = inInt & 65535;
+    vL4 = b64StdWordLookup[inL];
+    if (!vL4 && inL !== vAA) { i -= 4; break; }
+    inR = inInt >>> 16;
+    vR4 = b64StdWordLookup[inR];
+    if (!vR4 && inR !== vAA) { i -= 4; break; }
+
+    outInts[j++] =
+      vL1 >>> 4 |
+      ((vL1 << 4 | vR1 >>> 8) & 255) << 8 |
+      (vR1 & 255) << 16 |
+      (vL2 >>> 4) << 24;
+
+    outInts[j++] =
+      ((vL2 << 4 | vR2 >>> 8) & 255) |
+      (vR2 & 255) << 8 |
+      (vL3 >>> 4) << 16 |
+      ((vL3 << 4 | vR3 >>> 8) & 255) << 24;
+
+    outInts[j++] =
+      vR3 & 255 |
+      (vL4 >>> 4) << 8 |
+      ((vL4 << 4 | vR4 >>> 8) & 255) << 16 |
+      (vR4 & 255) << 24;
+  }
+
+  i <<= 2;  // translate Uint32 addressing to Uint8 addressing
+  j <<= 2;
+
+  let i0, v1, v2, v3, v4, ok = false;
   e: {
     if (lax) while (i < strlen) {
       i0 = i;
@@ -520,9 +452,10 @@ export function fromBase64(s, urlsafe, lax, scratchArr, outArr) {
       do { v2 = b64ByteLookup[inBytes[i++]] } while (v2 > 63);
       do { v3 = b64ByteLookup[inBytes[i++]] } while (v3 > 63);
       do { v4 = b64ByteLookup[inBytes[i++]] } while (v4 > 63);
-      out[j++] = v1 << 2 | v2 >>> 4;
-      out[j++] = (v2 << 4 | v3 >>> 2) & 255;
-      out[j++] = (v3 << 6 | v4) & 255;
+
+      outBytes[j++] = v1 << 2 | v2 >>> 4;
+      outBytes[j++] = (v2 << 4 | v3 >>> 2) & 255;
+      outBytes[j++] = (v3 << 6 | v4) & 255;
     }
     else while (i < strlen) {
       i0 = i;
@@ -534,20 +467,21 @@ export function fromBase64(s, urlsafe, lax, scratchArr, outArr) {
       if (v3 === 128) break e;
       do { v4 = b64ByteLookup[inBytes[i++]] } while (v4 === 64);
       if (v4 === 128) break e;
-      out[j++] = v1 << 2 | v2 >>> 4;
-      out[j++] = (v2 << 4 | v3 >>> 2) & 255;
-      out[j++] = (v3 << 6 | v4) & 255;
+
+      outBytes[j++] = v1 << 2 | v2 >>> 4;
+      outBytes[j++] = (v2 << 4 | v3 >>> 2) & 255;
+      outBytes[j++] = (v3 << 6 | v4) & 255;
     }
     ok = true;
   }
 
   if (!ok) throw new Error(`Invalid character in base64 at index ${i - 1}`);
 
-  // the last 0 - 3 bytes may require truncation, if input string ended with padding and/or whitespace;
+  // if input string included padding and/or whitespace, it will need truncating
   // we need to count how many valid input characters (0 – 4) there are after i0
 
   let validChars = 0;
   for (let i = i0; i < strlen; i++) if (b64ByteLookup[inBytes[i]] < 64) validChars++;
   const truncateBytes = { 4: 0, 3: 1, 2: 2, 1: 2, 0: 3 }[validChars];
-  return out.subarray(0, j - truncateBytes);
+  return outBytes.subarray(0, j - truncateBytes);
 }
