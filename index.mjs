@@ -364,11 +364,7 @@ export function fromBase64(s, urlsafe, lax, scratchArr, outArr) {
     b64StdByteLookup[chPad] = b64StdByteLookup[9] = b64StdByteLookup[10] = b64StdByteLookup[13] = b64StdByteLookup[32] = 64;  // 64 means: whitespace or padding
     b64UrlByteLookup = new Uint8Array(256).fill(128);
     b64UrlByteLookup[chPad] = b64UrlByteLookup[9] = b64UrlByteLookup[10] = b64UrlByteLookup[13] = b64UrlByteLookup[32] = 64;
-
-    for (let i = 0; i < 64; i++) {
-      b64StdByteLookup[chStd[i]] = i;  // 6-bit values mean themselves
-      b64UrlByteLookup[chUrl[i]] = i;
-    }
+    for (let i = 0; i < 64; i++) b64StdByteLookup[chStd[i]] = b64UrlByteLookup[chUrl[i]] = i;  // 6-bit values mean themselves
   }
 
   const
