@@ -388,8 +388,7 @@ export function fromBase64(s, urlsafe, lax, scratchArr, outArr) {
   // because any multi-byte character includes bytes that are outside the valid range
 
   let i = 0, j = 0, inInt, inL, inR, vL1, vR1, vL2, vR2, vL3, vR3, vL4, vR4;
-  while (i < fastIntsLen) {  // while we can, read 4x uint32 (16 bytes) + write 3x uint32 (12 bytes)
-
+  if (littleEndian) while (i < fastIntsLen) {  // while we can, read 4x uint32 (16 bytes) + write 3x uint32 (12 bytes)
     inInt = inInts[i++];
     inL = inInt & 65535;
     vL1 = b64StdWordLookup[inL];
@@ -439,6 +438,43 @@ export function fromBase64(s, urlsafe, lax, scratchArr, outArr) {
       (vL4 >>> 4) << 8 |
       ((vL4 << 4 | vR4 >>> 8) & 255) << 16 |
       (vR4 & 255) << 24;
+  }
+  else while (i < fastIntsLen) {  // while we can, read 4x uint32 (16 bytes) + write 3x uint32 (12 bytes)
+    inInt = inInts[i++];
+    inL = inInt >>> 16;
+    vL1 = b64StdWordLookup[inL];
+    if (!vL1 && inL !== vAA) { i -= 1; break; }
+    inR = inInt & 65535;
+    vR1 = b64StdWordLookup[inR];
+    if (!vR1 && inR !== vAA) { i -= 1; break; }
+
+    inInt = inInts[i++];
+    inL = inInt >>> 16;
+    vL2 = b64StdWordLookup[inL];
+    if (!vL2 && inL !== vAA) { i -= 2; break; }
+    inR = inInt & 65535;
+    vR2 = b64StdWordLookup[inR];
+    if (!vR2 && inR !== vAA) { i -= 2; break; }
+
+    inInt = inInts[i++];
+    inL = inInt >>> 16;
+    vL3 = b64StdWordLookup[inL];
+    if (!vL3 && inL !== vAA) { i -= 3; break; }
+    inR = inInt & 65535;
+    vR3 = b64StdWordLookup[inR];
+    if (!vR3 && inR !== vAA) { i -= 3; break; }
+
+    inInt = inInts[i++];
+    inL = inInt >>> 16;
+    vL4 = b64StdWordLookup[inL];
+    if (!vL4 && inL !== vAA) { i -= 4; break; }
+    inR = inInt & 65535;
+    vR4 = b64StdWordLookup[inR];
+    if (!vR4 && inR !== vAA) { i -= 4; break; }
+
+    outInts[j++] = vL1 << 20 | vR1 << 8 | vL2 >>> 4;
+    outInts[j++] = (vL2 & 15) << 28 | vR2 << 16 | vL3 << 4 | vR3 >>> 8;
+    outInts[j++] = (vR3 & 255) << 24 | vL4 << 12 | vR4;
   }
 
   i <<= 2;  // translate Uint32 addressing to Uint8 addressing
