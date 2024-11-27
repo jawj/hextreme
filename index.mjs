@@ -338,28 +338,43 @@ export function toBase64(d, pad, urlsafe) {
     _toBase64Chunked(d, pad, urlsafe);
 }
 
-let b64StdWordLookup, b64StdByteLookup, b64UrlByteLookup, vAA, vzz;
+
+const 
+  vAA = (65 << 8) | 65,    // signifies zero value
+  vzz = (122 << 8) | 122;  // vZZ is smaller, so not relevant
+
+let b64StdWordLookup, b64UrlWordLookup, b64StdByteLookup, b64UrlByteLookup;
 
 export function fromBase64(s, urlsafe, lax, scratchArr, outArr) {
   if (!te) te = new TextEncoder();
 
-  if (!b64StdWordLookup) {
-    // Uint16 lookups
-    vAA = (65 << 8) | 65;    // signifies zero value
-    vzz = (122 << 8) | 122;  // vZZ is smaller, so not relevant
-    b64StdWordLookup = new Uint16Array(vzz + 1);  // base64 lookup -- takes ~62KB of memory
-
+  if (!b64StdWordLookup & !urlsafe) {
+    b64StdWordLookup = new Uint16Array(vzz + 1);  // takes ~62KB of memory
     for (let l = 0; l < 64; l++) for (let r = 0; r < 64; r++) {
       const
-        cl = chStd[l],
+        cl = chStd[l], 
         cr = chStd[r],
         vin = littleEndian ? (cr << 8) | cl : cr | (cl << 8),
         vout = l << 6 | r;
 
       b64StdWordLookup[vin] = vout;
     }
+  }
 
-    // Uint8 lookups
+  if (!b64UrlWordLookup & urlsafe) {
+    b64UrlWordLookup = new Uint16Array(vzz + 1);  // takes ~62KB of memory
+    for (let l = 0; l < 64; l++) for (let r = 0; r < 64; r++) {
+      const
+        cl = chUrl[l], 
+        cr = chUrl[r],
+        vin = littleEndian ? (cr << 8) | cl : cr | (cl << 8),
+        vout = l << 6 | r;
+
+      b64UrlWordLookup[vin] = vout;
+    }
+  }
+
+  if (!b64StdByteLookup) {
     b64StdByteLookup = new Uint8Array(256).fill(128);  // 128 means: invalid character
     b64StdByteLookup[chPad] = b64StdByteLookup[9] = b64StdByteLookup[10] = b64StdByteLookup[13] = b64StdByteLookup[32] = 64;  // 64 means: whitespace or padding
     b64UrlByteLookup = new Uint8Array(256).fill(128);
@@ -377,6 +392,7 @@ export function fromBase64(s, urlsafe, lax, scratchArr, outArr) {
     maxOutBytesLen = inIntsLen * 3,
     outBytes = outArr || new Uint8Array(maxOutBytesLen),
     outInts = new Uint32Array(outBytes.buffer, 0, outBytes.length >>> 2),
+    b64WordLookup = urlsafe ? b64UrlWordLookup : b64StdWordLookup,
     b64ByteLookup = urlsafe ? b64UrlByteLookup : b64StdByteLookup;
 
   te.encodeInto(s, inBytes);
@@ -387,34 +403,34 @@ export function fromBase64(s, urlsafe, lax, scratchArr, outArr) {
   if (littleEndian) while (i < fastIntsLen) {  // while we can, read 4x uint32 (16 bytes) + write 3x uint32 (12 bytes)
     inInt = inInts[i++];
     inL = inInt & 65535;
-    vL1 = b64StdWordLookup[inL];
+    vL1 = b64WordLookup[inL];
     if (!vL1 && inL !== vAA) { i -= 1; break; }
     inR = inInt >>> 16;
-    vR1 = b64StdWordLookup[inR];
+    vR1 = b64WordLookup[inR];
     if (!vR1 && inR !== vAA) { i -= 1; break; }
 
     inInt = inInts[i++];
     inL = inInt & 65535;
-    vL2 = b64StdWordLookup[inL];
+    vL2 = b64WordLookup[inL];
     if (!vL2 && inL !== vAA) { i -= 2; break; }
     inR = inInt >>> 16;
-    vR2 = b64StdWordLookup[inR];
+    vR2 = b64WordLookup[inR];
     if (!vR2 && inR !== vAA) { i -= 2; break; }
 
     inInt = inInts[i++];
     inL = inInt & 65535;
-    vL3 = b64StdWordLookup[inL];
+    vL3 = b64WordLookup[inL];
     if (!vL3 && inL !== vAA) { i -= 3; break; }
     inR = inInt >>> 16;
-    vR3 = b64StdWordLookup[inR];
+    vR3 = b64WordLookup[inR];
     if (!vR3 && inR !== vAA) { i -= 3; break; }
 
     inInt = inInts[i++];
     inL = inInt & 65535;
-    vL4 = b64StdWordLookup[inL];
+    vL4 = b64WordLookup[inL];
     if (!vL4 && inL !== vAA) { i -= 4; break; }
     inR = inInt >>> 16;
-    vR4 = b64StdWordLookup[inR];
+    vR4 = b64WordLookup[inR];
     if (!vR4 && inR !== vAA) { i -= 4; break; }
 
     outInts[j++] =
@@ -438,34 +454,34 @@ export function fromBase64(s, urlsafe, lax, scratchArr, outArr) {
   else while (i < fastIntsLen) {
     inInt = inInts[i++];
     inL = inInt >>> 16;
-    vL1 = b64StdWordLookup[inL];
+    vL1 = b64WordLookup[inL];
     if (!vL1 && inL !== vAA) { i -= 1; break; }
     inR = inInt & 65535;
-    vR1 = b64StdWordLookup[inR];
+    vR1 = b64WordLookup[inR];
     if (!vR1 && inR !== vAA) { i -= 1; break; }
 
     inInt = inInts[i++];
     inL = inInt >>> 16;
-    vL2 = b64StdWordLookup[inL];
+    vL2 = b64WordLookup[inL];
     if (!vL2 && inL !== vAA) { i -= 2; break; }
     inR = inInt & 65535;
-    vR2 = b64StdWordLookup[inR];
+    vR2 = b64WordLookup[inR];
     if (!vR2 && inR !== vAA) { i -= 2; break; }
 
     inInt = inInts[i++];
     inL = inInt >>> 16;
-    vL3 = b64StdWordLookup[inL];
+    vL3 = b64WordLookup[inL];
     if (!vL3 && inL !== vAA) { i -= 3; break; }
     inR = inInt & 65535;
-    vR3 = b64StdWordLookup[inR];
+    vR3 = b64WordLookup[inR];
     if (!vR3 && inR !== vAA) { i -= 3; break; }
 
     inInt = inInts[i++];
     inL = inInt >>> 16;
-    vL4 = b64StdWordLookup[inL];
+    vL4 = b64WordLookup[inL];
     if (!vL4 && inL !== vAA) { i -= 4; break; }
     inR = inInt & 65535;
-    vR4 = b64StdWordLookup[inR];
+    vR4 = b64WordLookup[inR];
     if (!vR4 && inR !== vAA) { i -= 4; break; }
 
     outInts[j++] = vL1 << 20 | vR1 << 8 | vL2 >>> 4;  // this is so much nicer in big-endian
