@@ -225,26 +225,26 @@ function benchmark(fn, iterations) {
 }
 
 console.log('* Encode base64\n')
-console.log(`_toBase64Chunked                       ${benchmark(() => _toBase64Chunked(benchmarkArray, true, false), iterations)}`);
+console.log(`_toBase64Chunked                       ${benchmark(() => _toBase64Chunked(benchmarkArray), iterations)}`);
 console.log(`cf. native Buffer.toString             ${benchmark(() => benchmarkBuffer.toString('base64'), iterations)}`);
 console.log(`cf. feross/buffer.toString             ${benchmark(() => benchmarkBufferShim.toString('base64'), iterations)}`);
 console.log();
 
 console.log('* Decode base64\n')
-console.log(`fromBase64                             ${benchmark(() => fromBase64(benchmarkBase64Std, false, true), iterations)}`);
+console.log(`fromBase64                             ${benchmark(() => fromBase64(benchmarkBase64Std), iterations)}`);
 console.log(`cf. native Buffer.from                 ${benchmark(() => Buffer.from(benchmarkBase64Std, 'base64'), iterations)}`);
 console.log(`cf. feross/buffer.from                 ${benchmark(() => BufferShim.from(benchmarkBase64Std, 'base64'), iterations)}`);
 console.log();
 
 console.log('* Encode base64url\n')
-console.log(`_toBase64Chunked                       ${benchmark(() => _toBase64Chunked(benchmarkArray, false, true), iterations)}`);
+console.log(`_toBase64Chunked                       ${benchmark(() => _toBase64Chunked(benchmarkArray, { alphabet: 'base64url', omitPadding: true }), iterations)}`);
 console.log(`cf. native Buffer toString             ${benchmark(() => benchmarkBuffer.toString('base64url'), iterations)}`);
 //console.log(`cf. feross/buffer toString: ${benchmark(() => benchmarkBufferShim.toString('base64url'), iterations)} ms`);
 console.log(`cf. feross/buffer toString    (not yet supported)`);
 console.log();
 
 console.log('* Decode base64url\n')
-console.log(`fromBase64                             ${benchmark(() => fromBase64(benchmarkBase64Url, true, true), iterations)}`);
+console.log(`fromBase64                             ${benchmark(() => fromBase64(benchmarkBase64Url, { alphabet: 'base64url', onInvalidInput: 'skip' }), iterations)}`);
 console.log(`cf. native Buffer.from                 ${benchmark(() => Buffer.from(benchmarkBase64Url, 'base64url'), iterations)}`);
 //console.log(`cf. feross/buffer.from                 ${benchmark(() => BufferShim.from(benchmarkBase64Url, 'base64url'), iterations)}`);
 console.log(`cf. feross/buffer from        (not yet supported)`);
