@@ -463,7 +463,7 @@ function _toHexChunked(d) {
 function toHex(d) {
   return typeof d.toHex === "function" ? d.toHex() : _toHexChunked(d);
 }
-function _fromHex(s, lax, outArr, scratchArr, indexOffset) {
+function _fromHex(s, { onInvalidInput, scratchArr, outArr, indexOffset } = {}) {
   if (!te2) te2 = new TextEncoder();
   if (!hl) {
     hl = new Uint8Array(vff + 1);
@@ -473,7 +473,7 @@ function _fromHex(s, lax, outArr, scratchArr, indexOffset) {
       hl[vin] = vout;
     }
   }
-  const slen = s.length;
+  const lax = onInvalidInput === "truncate", slen = s.length;
   if (!lax && slen & 1) throw new Error("Hex input is an odd number of characters");
   const bytelen = slen >>> 1, last7 = bytelen - 7, h16len = bytelen + 2, h16 = scratchArr || new Uint16Array(
   h16len), h8 = new Uint8Array(h16.buffer), out = outArr || new Uint8Array(bytelen);
@@ -530,20 +530,20 @@ expected ${bytelen})`);
   if (!ok && !lax) throw new Error(`Invalid pair in hex input at index ${(indexOffset || 0) + i << 1}`);
   return i < bytelen ? out.subarray(0, i) : out;
 }
-function _fromHexChunked(s, lax) {
-  const slen = s.length;
+function _fromHexChunked(s, { onInvalidInput } = {}) {
+  const lax = onInvalidInput === "truncate", slen = s.length;
   if (!lax && slen & 1) throw new Error("Hex input is an odd number of characters");
   const byteLength = slen >>> 1, chunkInts = chunkBytes2 >>> 1, chunksCount = Math.ceil(byteLength /
   chunkInts), scratchArr = new Uint16Array((chunksCount > 1 ? chunkInts : byteLength) + 2), outArr = new Uint8Array(
   byteLength);
   for (let i = 0; i < chunksCount; i++) {
     const chunkStartByte = i * chunkInts, chunkEndByte = chunkStartByte + chunkInts, result = _fromHex(
-      s.slice(chunkStartByte << 1, chunkEndByte << 1),
-      lax,
-      outArr.subarray(chunkStartByte, chunkEndByte),
+    s.slice(chunkStartByte << 1, chunkEndByte << 1), {
+      onInvalidInput,
       scratchArr,
-      chunkStartByte
-    );
+      outArr: outArr.subarray(chunkStartByte, chunkEndByte),
+      indexOffset: chunkStartByte
+    });
     if (lax && result.length < chunkEndByte - chunkStartByte) {
       return outArr.subarray(0, chunkStartByte + result.length);
     }

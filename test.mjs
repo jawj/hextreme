@@ -184,7 +184,7 @@ console.log('Decoding hex with invalid characters (lax) ...');
 
 function expectTrunc(hex) {
   const
-    localLax = _fromHexChunked(hex, true),
+    localLax = _fromHexChunked(hex, { onInvalidInput: 'truncate' }),
     nodeLax = Buffer.from(hex, 'hex');
 
   if (localLax.length !== nodeLax.length) throw new Error(`Lax hex parsing results in different length to Node: ${toHex(localLax)} instead of ${toHex(nodeLax)}`);

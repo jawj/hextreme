@@ -69,7 +69,17 @@ export function toHex(d: Uint8Array) {
   return typeof d.toHex === 'function' ? d.toHex() : _toHexChunked(d);
 }
 
-export function _fromHex(s: string, lax?: boolean, outArr?: Uint8Array, scratchArr?: Uint16Array, indexOffset?: number) {
+export interface FromHexOptions {
+  onInvalidInput?: 'throw' | 'truncate';
+}
+
+export interface _FromHexOptions extends FromHexOptions {
+  scratchArr?: Uint16Array;
+  outArr?: Uint8Array;
+  indexOffset?: number;
+}
+
+export function _fromHex(s: string, { onInvalidInput, scratchArr, outArr, indexOffset }: _FromHexOptions = {}) {
   // note: using a Map or a big switch/case block are both an order of magnitude slower than these TypedArray lookups
   if (!te) te = new TextEncoder();
 
@@ -87,7 +97,10 @@ export function _fromHex(s: string, lax?: boolean, outArr?: Uint8Array, scratchA
     }
   }
 
-  const slen = s.length;
+  const
+    lax = onInvalidInput === 'truncate',
+    slen = s.length;
+
   if (!lax && slen & 1) throw new Error('Hex input is an odd number of characters');
 
   const
@@ -128,8 +141,10 @@ export function _fromHex(s: string, lax?: boolean, outArr?: Uint8Array, scratchA
   return i < bytelen ? out.subarray(0, i) : out;
 }
 
-export function _fromHexChunked(s: string, lax?: boolean) {
-  const slen = s.length;
+export function _fromHexChunked(s: string, { onInvalidInput }: FromHexOptions = {}) {
+  const
+    lax = onInvalidInput === 'truncate',
+    slen = s.length;
 
   // needs checking here because it will be rounded down to a multiple of two below
   if (!lax && slen & 1) throw new Error('Hex input is an odd number of characters');
@@ -145,13 +160,12 @@ export function _fromHexChunked(s: string, lax?: boolean) {
     const
       chunkStartByte = i * chunkInts,
       chunkEndByte = chunkStartByte + chunkInts,
-      result = _fromHex(
-        s.slice(chunkStartByte << 1, chunkEndByte << 1),
-        lax,
-        outArr.subarray(chunkStartByte, chunkEndByte),
+      result = _fromHex(s.slice(chunkStartByte << 1, chunkEndByte << 1), {
+        onInvalidInput,
         scratchArr,
-        chunkStartByte,
-      );
+        outArr: outArr.subarray(chunkStartByte, chunkEndByte),
+        indexOffset: chunkStartByte
+      });
 
     if (lax && result.length < chunkEndByte - chunkStartByte) {
       return outArr.subarray(0, chunkStartByte + result.length);
