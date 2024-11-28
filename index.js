@@ -1,8 +1,26 @@
 "use strict";
 var __defProp = Object.defineProperty;
+var __defProps = Object.defineProperties;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
 var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getOwnPropSymbols = Object.getOwnPropertySymbols;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __propIsEnum = Object.prototype.propertyIsEnumerable;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true,
+writable: true, value }) : obj[key] = value;
+var __spreadValues = (a, b) => {
+  for (var prop in b || (b = {}))
+    if (__hasOwnProp.call(b, prop))
+      __defNormalProp(a, prop, b[prop]);
+  if (__getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(b)) {
+      if (__propIsEnum.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    }
+  return a;
+};
+var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
@@ -118,7 +136,7 @@ var b64StdWordLookup;
 var b64UrlWordLookup;
 var b64StdByteLookup;
 var b64UrlByteLookup;
-function _toBase64(d, pad, urlsafe, scratchArr) {
+function _toBase64(d, { omitPadding, alphabet, scratchArr } = {}) {
   if (!td) td = new TextDecoder();
   if (!chpairsStd) {
     chpairsStd = new Uint16Array(4096);
@@ -139,9 +157,10 @@ function _toBase64(d, pad, urlsafe, scratchArr) {
       8 | chUrl[j2];
     }
   }
-  const ch = urlsafe ? chUrl : chStd, chpairs = urlsafe ? chpairsUrl : chpairsStd, inlen = d.length,
-  last2 = inlen - 2, inints = inlen >>> 2, intlast3 = inints - 3, d32 = new Uint32Array(d.buffer, d.
-  byteOffset, inints), outints = Math.ceil(inlen / 3), out = scratchArr || new Uint32Array(outints);
+  const urlsafe = alphabet === "base64url", ch = urlsafe ? chUrl : chStd, chpairs = urlsafe ? chpairsUrl :
+  chpairsStd, inlen = d.length, last2 = inlen - 2, inints = inlen >>> 2, intlast3 = inints - 3, d32 = new Uint32Array(
+  d.buffer, d.byteOffset, inints), outints = Math.ceil(inlen / 3), out = scratchArr || new Uint32Array(
+  outints);
   let i = 0, j = 0, u1, u2, u3, b1, b2, b3;
   if (littleEndian) while (i < intlast3) {
     u1 = d32[i++];
@@ -187,11 +206,11 @@ function _toBase64(d, pad, urlsafe, scratchArr) {
   out[j++] = chpairs[b1 << 4 | (b2 || 0) >>> 4] << (littleEndian ? 0 : 16) | // first 16 bits (no padding)
   (b2 === void 0 ? chPad : ch[((b2 || 0) & 15) << 2]) << (littleEndian ? 16 : 8) | // next 8 bits
   chPad << (littleEndian ? 24 : 0);
-  if (pad) return td.decode(out);
+  if (!omitPadding) return td.decode(out);
   let out8 = new Uint8Array(out.buffer, 0, (outints << 2) - (b2 === void 0 ? 2 : 1));
   return td.decode(out8);
 }
-function _toBase64Chunked(d, pad, urlsafe) {
+function _toBase64Chunked(d, options = {}) {
   const inBytes = d.length, outInts = Math.ceil(inBytes / 3), outChunkInts = chunkBytes >>> 2, chunksCount = Math.
   ceil(outInts / outChunkInts), inChunkBytes = outChunkInts * 3, scratchArr = new Uint32Array(chunksCount >
   1 ? outChunkInts : outInts);
@@ -199,21 +218,19 @@ function _toBase64Chunked(d, pad, urlsafe) {
   for (let i = 0; i < chunksCount; i++) {
     const startInBytes = i * inChunkBytes, endInBytes = startInBytes + inChunkBytes, startOutInts = i *
     outChunkInts, endOutInts = Math.min(startOutInts + outChunkInts, outInts);
-    b64 += _toBase64(
-      d.subarray(startInBytes, endInBytes),
-      pad,
-      urlsafe,
-      scratchArr.subarray(0, endOutInts - startOutInts)
-    );
+    b64 += _toBase64(d.subarray(startInBytes, endInBytes), __spreadProps(__spreadValues({}, options),
+    {
+      scratchArr: scratchArr.subarray(0, endOutInts - startOutInts)
+    }));
   }
   return b64;
 }
-function toBase64(d, pad, urlsafe) {
-  return typeof d.toBase64 === "function" ? d.toBase64({ alphabet: urlsafe ? "base64url" : "base64",
-  omitPadding: !pad }) : _toBase64Chunked(d, pad, urlsafe);
+function toBase64(d, options = {}) {
+  return typeof d.toBase64 === "function" ? d.toBase64(options) : _toBase64Chunked(d, options);
 }
-function fromBase64(s, urlsafe, lax, scratchArr, outArr) {
+function fromBase64(s, { alphabet, onInvalidInput, scratchArr, outArr } = {}) {
   if (!te) te = new TextEncoder();
+  const lax = onInvalidInput === "skip", urlsafe = alphabet === "base64url";
   if (!urlsafe && !b64StdWordLookup) {
     b64StdWordLookup = new Uint16Array(vzz + 1);
     for (let l = 0; l < 64; l++) for (let r = 0; r < 64; r++) {
@@ -550,7 +567,7 @@ function _fromHexChunked(s, { onInvalidInput } = {}) {
   }
   return outArr;
 }
-function fromHex(s, lax) {
-  return !lax && typeof Uint8Array.fromHex === "function" ? Uint8Array.fromHex(s) : _fromHexChunked(
-  s, lax);
+function fromHex(s, options = {}) {
+  return options.onInvalidInput !== "truncate" && typeof Uint8Array.fromHex === "function" ? Uint8Array.
+  fromHex(s) : _fromHexChunked(s, options);
 }

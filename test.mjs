@@ -73,7 +73,7 @@ console.log('Encoding as base64url ...');
 
 const
   rNodeBufferB64Url = arrays.map(arr => Buffer.from(arr).toString('base64url')),
-  rToBase64Url = arrays.map(arr => _toBase64Chunked(arr, false, true));
+  rToBase64Url = arrays.map(arr => _toBase64Chunked(arr, { alphabet: 'base64url', omitPadding: true }));
 
 console.log('Checking results ...');
 
@@ -94,7 +94,7 @@ for (let i = 0; i < arrays.length; i++) {
   const
     data = arrays[i],
     base64 = ' '.repeat(Math.floor(Math.random() * 16)) + rNodeBufferB64Url[i] + '\n'.repeat(i % 5),
-    dataAgain = fromBase64(base64, true);
+    dataAgain = fromBase64(base64, { alphabet: 'base64url' });
 
   if (dataAgain.length !== data.length) throw new Error(`Length mismatch decoding '${base64}': ${data} != ${dataAgain}`);
   for (let j = 0; j < data.length; j++) {

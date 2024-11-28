@@ -2,7 +2,6 @@ export interface Base64Options {
   alphabet?: 'base64' | 'base64url';
 }
 
-
 export interface FromBase64Options extends Base64Options {
   onInvalidInput?: 'throw' | 'skip';
 }
@@ -13,7 +12,7 @@ export interface _FromBase64Options extends FromBase64Options {
 }
 
 export interface ToBase64Options extends Base64Options {
-  padEnd?: boolean;
+  omitPadding?: boolean;
 }
 
 export interface _ToBase64Options extends ToBase64Options {
@@ -47,7 +46,9 @@ let
   b64StdByteLookup: Uint8Array,
   b64UrlByteLookup: Uint8Array;
 
-export function _toBase64(d: Uint8Array, { padEnd, alphabet, scratchArr }: _ToBase64Options = {}) {
+// === encode ===
+
+export function _toBase64(d: Uint8Array, { omitPadding, alphabet, scratchArr }: _ToBase64Options = {}) {
   if (!td) td = new TextDecoder();
 
   if (!chpairsStd) {  // one-time prep: look-up tables use just over 16KiB of memory
@@ -161,7 +162,7 @@ export function _toBase64(d: Uint8Array, { padEnd, alphabet, scratchArr }: _ToBa
     (b2 === undefined ? chPad : ch[(((b2 || 0) & 15) << 2)]) << (littleEndian ? 16 : 8) |  // next 8 bits
     chPad << (littleEndian ? 24 : 0);  // next 8 bits
 
-  if (padEnd) return td.decode(out);  // if we're padding the end, we're golden
+  if (!omitPadding) return td.decode(out);  // if we're padding the end, we're golden
 
   // OK, we aren't padding the end, so truncate the output by viewing it as a Uint8Array
   let out8 = new Uint8Array(out.buffer, 0, (outints << 2) - (b2 === undefined ? 2 : 1));
@@ -194,15 +195,19 @@ export function _toBase64Chunked(d: Uint8Array, options: ToBase64Options = {}) {
   return b64;
 }
 
-export function toBase64(d: Uint8Array, pad?: boolean, urlsafe?: 'boolean') {
+export function toBase64(d: Uint8Array, options: ToBase64Options = {}) {
   // @ts-expect-error TS doesn't know about toBase64
-  return typeof d.toBase64 === 'function' ? d.toBase64({ alphabet: urlsafe ? 'base64url' : 'base64', omitPadding: !pad }) : _toBase64Chunked(d, pad, urlsafe);
+  return typeof d.toBase64 === 'function' ? d.toBase64(options) : _toBase64Chunked(d, options);
 }
 
+// === decode ===
 
-
-export function fromBase64(s: string, urlsafe?: boolean, lax?: boolean, scratchArr?: Uint32Array, outArr?: Uint8Array) {
+export function fromBase64(s: string, { alphabet, onInvalidInput, scratchArr, outArr }: _FromBase64Options = {} /*urlsafe?: boolean, lax?: boolean, scratchArr?: Uint32Array, outArr?: Uint8Array*/) {
   if (!te) te = new TextEncoder();
+
+  const
+    lax = onInvalidInput === 'skip', 
+    urlsafe = alphabet === 'base64url';
 
   if (!urlsafe && !b64StdWordLookup) {
     b64StdWordLookup = new Uint16Array(vzz + 1);  // takes ~62KB of memory

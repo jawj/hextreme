@@ -1,5 +1,3 @@
-import { Base64Options } from "./base64";
-
 export interface FromHexOptions {
   onInvalidInput?: 'throw' | 'truncate';
 }
@@ -22,6 +20,8 @@ let
   te: TextEncoder,
   hl: Uint8Array,   // hex lookup
   cc: Uint16Array;  // char codes
+
+// === encode ===
 
 export function _toHex(d: Uint8Array | number[], scratchArr: Uint16Array) {
   if (!td) td = new TextDecoder();
@@ -143,6 +143,8 @@ export function _fromHex(s: string, { onInvalidInput, scratchArr, outArr, indexO
   return i < bytelen ? out.subarray(0, i) : out;
 }
 
+// === decode ===
+
 export function _fromHexChunked(s: string, { onInvalidInput }: FromHexOptions = {}) {
   const
     lax = onInvalidInput === 'truncate',
@@ -177,7 +179,7 @@ export function _fromHexChunked(s: string, { onInvalidInput }: FromHexOptions = 
   return outArr;
 }
 
-export function fromHex(s: string, options: FromHexOptions) {
+export function fromHex(s: string, options: FromHexOptions = {}) {
   // @ts-expect-error TS doesn't know about fromHex
   return (options.onInvalidInput !== 'truncate' && typeof Uint8Array.fromHex === 'function') ? Uint8Array.fromHex(s) : _fromHexChunked(s, options);
 }
