@@ -210,7 +210,7 @@ console.log('Tests passed\n');
 console.log('✅ All tests passed\n');
 
 
-let iterations = 8;
+let iterations = 10;
 
 console.log(`Benchmarking ${(benchmarkArray.length / 2 ** 20).toFixed(1)} MiB random data, mean of ${iterations} iterations ...`);
 console.log()

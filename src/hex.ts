@@ -8,9 +8,18 @@ export interface _FromHexOptions extends FromHexOptions {
   indexOffset?: number;
 }
 
+export interface ToHexOptions {
+  alphabet?: 'lower' | 'upper';
+}
+
+export interface _ToHexOptions extends ToHexOptions {
+  scratchArr?: Uint16Array;
+}
+
 const
   littleEndian = new Uint8Array((new Uint16Array([0x0102]).buffer))[0] === 0x02,
-  chHex = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 97, 98, 99, 100, 101, 102],  // 0123456789abcdef
+  hexCharsLower = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 97, 98, 99, 100, 101, 102],  // 0123456789abcdef
+  hexCharsUpper = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 65, 66, 67, 68, 69, 70],  // 0123456789ABCDEF
   chunkBytes = 1008000,  // must be divisible by 24; temporary buffer allocations (in bytes) are up to this value
   v00 = (48 << 8) | 48,
   vff = (102 << 8) | 102;  // vFF is smaller, so not relevant
@@ -18,24 +27,33 @@ const
 let
   td: TextDecoder,
   te: TextEncoder,
-  hl: Uint8Array,   // hex lookup
-  cc: Uint16Array;  // char codes
+  hl: Uint8Array,    // hex lookup
+  ccl: Uint16Array,  // char codes, lower case
+  ccu: Uint16Array;
 
 // === encode ===
 
-export function _toHex(d: Uint8Array | number[], scratchArr?: Uint16Array) {
+export function _toHex(d: Uint8Array | number[], { alphabet, scratchArr }: _ToHexOptions = {}) {
   if (!td) td = new TextDecoder();
 
-  if (!cc) {
-    cc = new Uint16Array(256);
-    if (littleEndian) for (let i = 0; i < 256; i++) cc[i] = chHex[i & 0xF] << 8 | chHex[i >>> 4];
-    else for (let i = 0; i < 256; i++) cc[i] = chHex[i & 0xF] | chHex[i >>> 4] << 8;
+  if (!ccl) {
+    ccl = new Uint16Array(256);
+    ccu = new Uint16Array(256);
+    if (littleEndian) for (let i = 0; i < 256; i++) {
+      ccl[i] = hexCharsLower[i & 0xF] << 8 | hexCharsLower[i >>> 4];
+      ccu[i] = hexCharsUpper[i & 0xF] << 8 | hexCharsUpper[i >>> 4];
+    }
+    else for (let i = 0; i < 256; i++) {
+      ccl[i] = hexCharsLower[i & 0xF] | hexCharsLower[i >>> 4] << 8;
+      ccu[i] = hexCharsUpper[i & 0xF] | hexCharsUpper[i >>> 4] << 8;
+    }
   }
 
   const
     len = d.length,
     last7 = len - 7,
-    a = scratchArr || new Uint16Array(len);
+    a = scratchArr || new Uint16Array(len),
+    cc = alphabet === 'upper' ? ccu : ccl;
 
   let i = 0;
 
@@ -57,7 +75,7 @@ export function _toHex(d: Uint8Array | number[], scratchArr?: Uint16Array) {
   return hex;
 }
 
-export function _toHexChunked(d: Uint8Array) {
+export function _toHexChunked(d: Uint8Array, options: ToHexOptions = {}) {
   let
     hex = '',
     len = d.length,
@@ -70,15 +88,15 @@ export function _toHexChunked(d: Uint8Array) {
       start = i * chunkInts,
       end = start + chunkInts;  // subarray has no problem going past the end of the array
 
-    hex += _toHex(d.subarray(start, end), scratchArr);
+    hex += _toHex(d.subarray(start, end), { ...options, scratchArr });
   }
 
   return hex;
 }
 
-export function toHex(d: Uint8Array) {
+export function toHex(d: Uint8Array, options: ToHexOptions = {}) {
   // @ts-expect-error TS doesn't know about toHex
-  return typeof d.toHex === 'function' ? d.toHex() : _toHexChunked(d);
+  return options.alphabet !== 'upper' && typeof d.toHex === 'function' ? d.toHex() : _toHexChunked(d, options);
 }
 
 export function _fromHex(s: string, { onInvalidInput, scratchArr, outArr, indexOffset }: _FromHexOptions = {}) {

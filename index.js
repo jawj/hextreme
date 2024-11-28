@@ -435,22 +435,32 @@ function fromBase64(s, { alphabet, onInvalidInput, scratchArr, outArr } = {}) {
 
 // src/hex.ts
 var littleEndian2 = new Uint8Array(new Uint16Array([258]).buffer)[0] === 2;
-var chHex = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 97, 98, 99, 100, 101, 102];
+var hexCharsLower = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 97, 98, 99, 100, 101, 102];
+var hexCharsUpper = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 65, 66, 67, 68, 69, 70];
 var chunkBytes2 = 1008e3;
 var v00 = 48 << 8 | 48;
 var vff = 102 << 8 | 102;
 var td2;
 var te2;
 var hl;
-var cc;
-function _toHex(d, scratchArr) {
+var ccl;
+var ccu;
+function _toHex(d, { alphabet, scratchArr } = {}) {
   if (!td2) td2 = new TextDecoder();
-  if (!cc) {
-    cc = new Uint16Array(256);
-    if (littleEndian2) for (let i2 = 0; i2 < 256; i2++) cc[i2] = chHex[i2 & 15] << 8 | chHex[i2 >>> 4];
-    else for (let i2 = 0; i2 < 256; i2++) cc[i2] = chHex[i2 & 15] | chHex[i2 >>> 4] << 8;
+  if (!ccl) {
+    ccl = new Uint16Array(256);
+    ccu = new Uint16Array(256);
+    if (littleEndian2) for (let i2 = 0; i2 < 256; i2++) {
+      ccl[i2] = hexCharsLower[i2 & 15] << 8 | hexCharsLower[i2 >>> 4];
+      ccu[i2] = hexCharsUpper[i2 & 15] << 8 | hexCharsUpper[i2 >>> 4];
+    }
+    else for (let i2 = 0; i2 < 256; i2++) {
+      ccl[i2] = hexCharsLower[i2 & 15] | hexCharsLower[i2 >>> 4] << 8;
+      ccu[i2] = hexCharsUpper[i2 & 15] | hexCharsUpper[i2 >>> 4] << 8;
+    }
   }
-  const len = d.length, last7 = len - 7, a = scratchArr || new Uint16Array(len);
+  const len = d.length, last7 = len - 7, a = scratchArr || new Uint16Array(len), cc = alphabet === "\
+upper" ? ccu : ccl;
   let i = 0;
   while (i < last7) {
     a[i] = cc[d[i++]];
@@ -468,17 +478,18 @@ function _toHex(d, scratchArr) {
   const hex = td2.decode(a.subarray(0, len));
   return hex;
 }
-function _toHexChunked(d) {
+function _toHexChunked(d, options = {}) {
   let hex = "", len = d.length, chunkInts = chunkBytes2 >>> 1, chunks = Math.ceil(len / chunkInts), scratchArr = new Uint16Array(
   chunks > 1 ? chunkInts : len);
   for (let i = 0; i < chunks; i++) {
     const start = i * chunkInts, end = start + chunkInts;
-    hex += _toHex(d.subarray(start, end), scratchArr);
+    hex += _toHex(d.subarray(start, end), __spreadProps(__spreadValues({}, options), { scratchArr }));
   }
   return hex;
 }
-function toHex(d) {
-  return typeof d.toHex === "function" ? d.toHex() : _toHexChunked(d);
+function toHex(d, options = {}) {
+  return options.alphabet !== "upper" && typeof d.toHex === "function" ? d.toHex() : _toHexChunked(d,
+  options);
 }
 function _fromHex(s, { onInvalidInput, scratchArr, outArr, indexOffset } = {}) {
   if (!te2) te2 = new TextEncoder();
