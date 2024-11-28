@@ -1,4 +1,4 @@
 * Chunking for fromBase64
 * Tests for fromBase64 lax and non-lax with whitespace and invalid characters
 * Options objects for all functions (e.g. { alphabet: 'base64url' } instead of a list of booleans)
-* Specify "files" key in package.json
+* Uppercase hex output

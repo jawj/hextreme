@@ -4,6 +4,8 @@ Hex and base64 string encoding and decoding for `Uint8Array` — like [`.toHex()
 
 An order of magnitude faster than most other libraries, and intended to be as fast as is reasonably possible using only plain JavaScript.
 
+No external dependencies. 4KB zipped.
+
 ## Performance
 
 As at November 2024 on an M3 Pro MacBook Pro, this implementation is about 2x **faster** than the native `.toHex()` in Firefox 133b7, and about 2.5x slower than the one in Safari Tech Preview 207. 
@@ -18,9 +20,9 @@ What we do is this:
 
 * If `.toHex()` is present on the object, we just call it.
 
-* Otherwise, we map one-byte source values to two-byte output (ASCII character) values in a `Uint16Array`, and then decode this to a string. We do this in 1MB chunks to avoid huge memory allocations.
+* Otherwise, we map one-byte source values to two-byte output (ASCII character) values in a `Uint16Array`, and then decode this to a string. We do this in roughly 1MB chunks to avoid huge memory allocations.
 
-We do some manual loop-unrolling using a kind of JS equivalent of Duff's device. This makes very little difference in Firefox and Safari, but speeds things up considerably in Chrome.
+We do some manual loop-unrolling, which makes very little difference in Firefox and Safari but speeds things up considerably in Chrome.
 
 A test run looks like this:
 
