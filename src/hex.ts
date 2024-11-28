@@ -1,3 +1,15 @@
+import { Base64Options } from "./base64";
+
+export interface FromHexOptions {
+  onInvalidInput?: 'throw' | 'truncate';
+}
+
+export interface _FromHexOptions extends FromHexOptions {
+  scratchArr?: Uint16Array;
+  outArr?: Uint8Array;
+  indexOffset?: number;
+}
+
 const
   littleEndian = new Uint8Array((new Uint16Array([0x0102]).buffer))[0] === 0x02,
   chHex = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 97, 98, 99, 100, 101, 102],  // 0123456789abcdef
@@ -67,16 +79,6 @@ export function _toHexChunked(d: Uint8Array) {
 export function toHex(d: Uint8Array) {
   // @ts-expect-error TS doesn't know about toHex
   return typeof d.toHex === 'function' ? d.toHex() : _toHexChunked(d);
-}
-
-export interface FromHexOptions {
-  onInvalidInput?: 'throw' | 'truncate';
-}
-
-export interface _FromHexOptions extends FromHexOptions {
-  scratchArr?: Uint16Array;
-  outArr?: Uint8Array;
-  indexOffset?: number;
 }
 
 export function _fromHex(s: string, { onInvalidInput, scratchArr, outArr, indexOffset }: _FromHexOptions = {}) {
@@ -175,7 +177,7 @@ export function _fromHexChunked(s: string, { onInvalidInput }: FromHexOptions = 
   return outArr;
 }
 
-export function fromHex(s: string, lax?: boolean) {
+export function fromHex(s: string, options: FromHexOptions) {
   // @ts-expect-error TS doesn't know about fromHex
-  return (!lax && typeof Uint8Array.fromHex === 'function') ? Uint8Array.fromHex(s) : _fromHexChunked(s, lax);
+  return (options.onInvalidInput !== 'truncate' && typeof Uint8Array.fromHex === 'function') ? Uint8Array.fromHex(s) : _fromHexChunked(s, options);
 }

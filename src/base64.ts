@@ -1,3 +1,26 @@
+export interface Base64Options {
+  alphabet?: 'base64' | 'base64url';
+}
+
+
+export interface FromBase64Options extends Base64Options {
+  onInvalidInput?: 'throw' | 'skip';
+}
+
+export interface _FromBase64Options extends FromBase64Options {
+  scratchArr?: Uint32Array;
+  outArr?: Uint8Array;
+}
+
+export interface ToBase64Options extends Base64Options {
+  padEnd?: boolean;
+}
+
+export interface _ToBase64Options extends ToBase64Options {
+  scratchArr?: Uint32Array;
+}
+
+
 const
   littleEndian = new Uint8Array((new Uint32Array([0x01020304]).buffer))[0] === 0x04,
   chunkBytes = 1008000,  // must be divisible by 24; temporary buffer allocations (in bytes) are up to this value
@@ -24,8 +47,7 @@ let
   b64StdByteLookup: Uint8Array,
   b64UrlByteLookup: Uint8Array;
 
-
-export function _toBase64(d: Uint8Array, pad?: boolean, urlsafe?: boolean, scratchArr?: Uint32Array) {
+export function _toBase64(d: Uint8Array, { padEnd, alphabet, scratchArr }: _ToBase64Options = {}) {
   if (!td) td = new TextDecoder();
 
   if (!chpairsStd) {  // one-time prep: look-up tables use just over 16KiB of memory
@@ -49,6 +71,7 @@ export function _toBase64(d: Uint8Array, pad?: boolean, urlsafe?: boolean, scrat
   }
 
   const
+    urlsafe = alphabet === 'base64url',
     ch = urlsafe ? chUrl : chStd,
     chpairs = urlsafe ? chpairsUrl : chpairsStd,
     inlen = d.length,
@@ -138,14 +161,14 @@ export function _toBase64(d: Uint8Array, pad?: boolean, urlsafe?: boolean, scrat
     (b2 === undefined ? chPad : ch[(((b2 || 0) & 15) << 2)]) << (littleEndian ? 16 : 8) |  // next 8 bits
     chPad << (littleEndian ? 24 : 0);  // next 8 bits
 
-  if (pad) return td.decode(out);  // if we're padding the end, we're golden
+  if (padEnd) return td.decode(out);  // if we're padding the end, we're golden
 
   // OK, we aren't padding the end, so truncate the output by viewing it as a Uint8Array
   let out8 = new Uint8Array(out.buffer, 0, (outints << 2) - (b2 === undefined ? 2 : 1));
   return td.decode(out8);
 }
 
-export function _toBase64Chunked(d: Uint8Array, pad?: boolean, urlsafe?: boolean) {
+export function _toBase64Chunked(d: Uint8Array, options: ToBase64Options = {}) {
   const
     inBytes = d.length,
     outInts = Math.ceil(inBytes / 3),
@@ -162,12 +185,10 @@ export function _toBase64Chunked(d: Uint8Array, pad?: boolean, urlsafe?: boolean
       startOutInts = i * outChunkInts,
       endOutInts = Math.min(startOutInts + outChunkInts, outInts);
 
-    b64 += _toBase64(
-      d.subarray(startInBytes, endInBytes),
-      pad,
-      urlsafe,
-      scratchArr.subarray(0, endOutInts - startOutInts)
-    );
+    b64 += _toBase64(d.subarray(startInBytes, endInBytes), {
+      ...options,
+      scratchArr: scratchArr.subarray(0, endOutInts - startOutInts)
+    });
   }
 
   return b64;
