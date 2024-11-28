@@ -78,7 +78,7 @@ console.log('Encoding as base64 ...');
 
 const
   goodBase64 = arrays.map(arr => basicToBase64(arr, true, false)),
-  testBase64 = arrays.map(arr => toBase64(arr, true, false));
+  testBase64 = arrays.map(arr => toBase64(arr));
 
 console.log('Checking results ...');
 
@@ -95,7 +95,7 @@ for (let i = 0; i < arrays.length; i++) {
   const
     data = arrays[i],
     base64 = goodBase64[i],
-    dataAgain = fromBase64(base64, false, true);
+    dataAgain = fromBase64(base64);
 
   if (dataAgain.length !== data.length) err(`Length mismatch decoding '${base64}': ${data} != ${dataAgain}`);
   for (let j = 0; j < data.length; j++) {
@@ -110,7 +110,7 @@ console.log('Encoding as base64url ...');
 
 const
   goodBase64Url = arrays.map(arr => basicToBase64(arr, false, true)),
-  testBase64Url = arrays.map(arr => toBase64(arr, false, true));
+  testBase64Url = arrays.map(arr => toBase64(arr, { alphabet: 'base64url', omitPadding: true }));
 
 console.log('Checking results ...');
 
