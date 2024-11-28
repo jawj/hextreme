@@ -27,7 +27,8 @@ const
   benchmarkBuffer = Buffer.from(benchmarkArray),
   benchmarkBufferShim = BufferShim.from(benchmarkArray),
   benchmarkHex = benchmarkBuffer.toString('hex'),
-  benchmarkBase64 = benchmarkBuffer.toString('base64');
+  benchmarkBase64Std = benchmarkBuffer.toString('base64'),
+  benchmarkBase64Url = benchmarkBuffer.toString('base64url');
 
 console.log('Generated\n');
 
@@ -102,7 +103,6 @@ for (let i = 0; i < arrays.length; i++) {
 }
 
 console.log('Tests passed\n');
-
 
 
 console.log('Encoding as hex ...');
@@ -231,9 +231,9 @@ console.log(`cf. feross/buffer.toString             ${benchmark(() => benchmarkB
 console.log();
 
 console.log('* Decode base64\n')
-console.log(`fromBase64                             ${benchmark(() => fromBase64(benchmarkBase64, false, true), iterations)}`);
-console.log(`cf. native Buffer.from                 ${benchmark(() => Buffer.from(benchmarkBase64, 'base64'), iterations)}`);
-console.log(`cf. feross/buffer.from                 ${benchmark(() => BufferShim.from(benchmarkBase64, 'base64'), iterations)}`);
+console.log(`fromBase64                             ${benchmark(() => fromBase64(benchmarkBase64Std, false, true), iterations)}`);
+console.log(`cf. native Buffer.from                 ${benchmark(() => Buffer.from(benchmarkBase64Std, 'base64'), iterations)}`);
+console.log(`cf. feross/buffer.from                 ${benchmark(() => BufferShim.from(benchmarkBase64Std, 'base64'), iterations)}`);
 console.log();
 
 console.log('* Encode base64url\n')
@@ -241,6 +241,13 @@ console.log(`_toBase64Chunked                       ${benchmark(() => _toBase64C
 console.log(`cf. native Buffer toString             ${benchmark(() => benchmarkBuffer.toString('base64url'), iterations)}`);
 //console.log(`cf. feross/buffer toString: ${benchmark(() => benchmarkBufferShim.toString('base64url'), iterations)} ms`);
 console.log(`cf. feross/buffer toString    (not yet supported)`);
+console.log();
+
+console.log('* Decode base64url\n')
+console.log(`fromBase64                             ${benchmark(() => fromBase64(benchmarkBase64Url, true, true), iterations)}`);
+console.log(`cf. native Buffer.from                 ${benchmark(() => Buffer.from(benchmarkBase64Url, 'base64url'), iterations)}`);
+//console.log(`cf. feross/buffer.from                 ${benchmark(() => BufferShim.from(benchmarkBase64Url, 'base64url'), iterations)}`);
+console.log(`cf. feross/buffer from        (not yet supported)`);
 console.log();
 
 console.log('* Encode hex\n')
@@ -254,8 +261,8 @@ console.log();
 
 console.log('* Decode hex\n')
 console.log(`fromHex                                ${benchmark(() => fromHex(benchmarkHex), iterations)}`);
-console.log(`cf. native Buffer fromString           ${benchmark(() => Buffer.from(benchmarkHex, 'hex'), iterations)}`);
-console.log(`cf. feross/buffer fromString           ${benchmark(() => BufferShim.from(benchmarkHex, 'hex'), iterations)}`);
+console.log(`cf. native Buffer from                 ${benchmark(() => Buffer.from(benchmarkHex, 'hex'), iterations)}`);
+console.log(`cf. feross/buffer from                 ${benchmark(() => BufferShim.from(benchmarkHex, 'hex'), iterations)}`);
 console.log(`cf. @smithy/util-hex-encoding fromHex  ${benchmark(() => smithy.fromHex(benchmarkHex), iterations)}`);
 console.log();
 

@@ -348,7 +348,7 @@ let b64StdWordLookup, b64UrlWordLookup, b64StdByteLookup, b64UrlByteLookup;
 export function fromBase64(s, urlsafe, lax, scratchArr, outArr) {
   if (!te) te = new TextEncoder();
 
-  if (!b64StdWordLookup & !urlsafe) {
+  if (!urlsafe && !b64StdWordLookup) {
     b64StdWordLookup = new Uint16Array(vzz + 1);  // takes ~62KB of memory
     for (let l = 0; l < 64; l++) for (let r = 0; r < 64; r++) {
       const
@@ -361,7 +361,7 @@ export function fromBase64(s, urlsafe, lax, scratchArr, outArr) {
     }
   }
 
-  if (!b64UrlWordLookup & urlsafe) {
+  if (urlsafe && !b64UrlWordLookup) {
     b64UrlWordLookup = new Uint16Array(vzz + 1);  // takes ~62KB of memory
     for (let l = 0; l < 64; l++) for (let r = 0; r < 64; r++) {
       const
