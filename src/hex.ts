@@ -23,7 +23,7 @@ let
 
 // === encode ===
 
-export function _toHex(d: Uint8Array | number[], scratchArr: Uint16Array) {
+export function _toHex(d: Uint8Array | number[], scratchArr?: Uint16Array) {
   if (!td) td = new TextDecoder();
 
   if (!cc) {

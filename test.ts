@@ -8,11 +8,12 @@ import {
   _toBase64,
   _toBase64Chunked,
   fromBase64,
-} from './index.mjs';
+} from './src/index';
 
-import smithy from '@smithy/util-hex-encoding';
 import bufferShimDefault from 'buffer/index.js';  // just 'buffer' imports Node native implementation
+
 const BufferShim = bufferShimDefault.Buffer;
+
 
 console.log('Generating random test data ...');
 
@@ -37,7 +38,7 @@ console.log('Encoding as base64 ...');
 
 const
   rNodeBufferB64Std = arrays.map(arr => Buffer.from(arr).toString('base64')),
-  rToBase64Std = arrays.map(arr => _toBase64Chunked(arr, true, false));
+  rToBase64Std = arrays.map(arr => _toBase64Chunked(arr));
 
 console.log('Checking results ...');
 
@@ -58,7 +59,7 @@ for (let i = 0; i < arrays.length; i++) {
   const
     data = arrays[i],
     base64 = rNodeBufferB64Std[i] + '\n'.repeat(i % 5),
-    dataAgain = fromBase64(base64, false, true);
+    dataAgain = fromBase64(base64);
 
   if (dataAgain.length !== data.length) throw new Error(`Length mismatch decoding '${base64}': ${data} != ${dataAgain}`);
   for (let j = 0; j < data.length; j++) {
@@ -151,7 +152,7 @@ console.log('Tests passed\n');
 
 console.log('Decoding hex with invalid characters (strict) ...');
 
-function expectError(hex) {
+function expectError(hex: string) {
   let err = null;
   try {
     _fromHexChunked(hex)
@@ -182,7 +183,7 @@ console.log('Tests passed\n');
 
 console.log('Decoding hex with invalid characters (lax) ...');
 
-function expectTrunc(hex) {
+function expectTrunc(hex: string) {
   const
     localLax = _fromHexChunked(hex, { onInvalidInput: 'truncate' }),
     nodeLax = Buffer.from(hex, 'hex');
@@ -191,8 +192,8 @@ function expectTrunc(hex) {
   for (let i = 0; i < localLax.length; i++) if (localLax[i] != nodeLax[i]) throw new Error(`Lax hex parsing results in different result to Node: ${toHex(localLax)} instead of ${toHex(nodeLax)}`);
 }
 
-fromHex('', true);
-fromHex('00', true);
+fromHex('');
+fromHex('00');
 expectTrunc('001');
 expectTrunc('0123456789abcdef0g');
 expectTrunc('0123456789xxabcdef');
@@ -214,7 +215,7 @@ let iterations = 8;
 console.log(`Benchmarking ${(benchmarkArray.length / 2 ** 20).toFixed(1)} MiB random data, mean of ${iterations} iterations ...`);
 console.log()
 
-function benchmark(fn, iterations) {
+function benchmark(fn: () => any, iterations: number) {
   const t0 = performance.now();
   for (let i = 0; i < iterations; i++) fn();
   const t1 = performance.now();
@@ -256,13 +257,11 @@ console.log(`_toHex                                 ${benchmark(() => _toHex(ben
 console.log(`_toHexChunked                          ${benchmark(() => _toHexChunked(benchmarkArray), iterations)}`);
 console.log(`cf. native Buffer toString             ${benchmark(() => benchmarkBuffer.toString('hex'), iterations)}`);
 console.log(`cf. feross/buffer toString             ${benchmark(() => benchmarkBufferShim.toString('hex'), iterations)}`);
-console.log(`cf. @smithy/util-hex-encoding toHex    ${benchmark(() => smithy.toHex(benchmarkArray), iterations)}`);
 console.log();
 
 console.log('* Decode hex\n')
 console.log(`fromHex                                ${benchmark(() => fromHex(benchmarkHex), iterations)}`);
 console.log(`cf. native Buffer from                 ${benchmark(() => Buffer.from(benchmarkHex, 'hex'), iterations)}`);
 console.log(`cf. feross/buffer from                 ${benchmark(() => BufferShim.from(benchmarkHex, 'hex'), iterations)}`);
-console.log(`cf. @smithy/util-hex-encoding fromHex  ${benchmark(() => smithy.fromHex(benchmarkHex), iterations)}`);
 console.log();
 

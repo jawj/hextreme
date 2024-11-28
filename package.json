@@ -22,7 +22,9 @@
     "_makeTypes": "tsc src/index.ts --declaration --emitDeclarationOnly --outDir .",
     "_copyTypes": "for f in *.d.ts; do cp -- $f ${f%.d.ts}.d.mts; done",
     "build": "npm run _makeTypes && npm run _copyTypes && npm run _bundleESM && npm run _bundleCJS",
-    "test": "npm run build && echo '\n== Node ==\n' && node test.mjs && echo '\n== Bun ==\n' && bun test.mjs"
+    "_testNode": "esbuild test.ts --bundle --platform=node --target=es6 --format=esm | node",
+    "_testBun": "bun run test.ts",
+    "test": "npm run build && echo '\n== Node ==\n' && npm run _testNode && echo '\n== Bun ==\n' && npm run _testBun"
   },
   "keywords": [
     "toHex",
@@ -35,7 +37,7 @@
   "author": "George MacKerron",
   "license": "MIT",
   "devDependencies": {
-    "@smithy/util-hex-encoding": "^3.0.0",
+    "@types/node": "^22.10.1",
     "buffer": "^6.0.3",
     "esbuild": "^0.24.0",
     "typescript": "^5.7.2"
