@@ -106,6 +106,61 @@ for (let i = 0; i < arrays.length; i++) {
 console.log('Tests passed\n');
 
 
+console.log('Decoding base64 with invalid characters (strict) ...');
+
+function expectBase64Error(b64: string) {
+  let err = null;
+  try {
+    fromBase64(b64)
+  } catch (e) {
+    err = e
+  } finally {
+    if (!err) throw new Error(`Should have caught error: ${b64}`);
+    else console.log(`As expected -- ${err}`);
+  }
+}
+
+fromBase64('');
+fromBase64('AAA=');
+fromBase64('AA BB CC ++');
+fromBase64(' AAaa88ZZ00\n\n\n\n\n\nAAaa//ZZ00\t\tAAaaZZ0099  == ');
+expectBase64Error('**********');
+expectBase64Error('AAaaZZ.aa');
+expectBase64Error('AAaaZZ00-');
+expectBase64Error(' AAaa88ZZ00\nAAaa//ZZ00\t~AAaaZZ0099== ');
+expectBase64Error(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099== 😀');
+expectBase64Error(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099==  😀');
+expectBase64Error(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099==   😀');
+expectBase64Error(benchmarkBase64Std + ':::' + benchmarkBase64Std);
+
+console.log('Tests passed\n');
+
+
+console.log('Decoding base64 with invalid characters (lax) ...');
+
+function expectBase64Skip(b64: string) {
+  const
+    localLax = fromBase64(b64, { onInvalidInput: 'skip' }),
+    nodeLax = Buffer.from(b64, 'base64');
+
+  if (localLax.length !== nodeLax.length) throw new Error(`Lax base64 parsing results in different length to Node: ${_toBase64(localLax)} instead of ${_toBase64(nodeLax)}`);
+  for (let i = 0; i < localLax.length; i++) if (localLax[i] != nodeLax[i]) throw new Error(`Lax base64 parsing results in different result to Node: ${_toBase64(localLax)} instead of ${_toBase64(nodeLax)}`);
+}
+
+expectBase64Skip('');
+expectBase64Skip('**********');
+expectBase64Skip('AAaaZZ.aa');
+expectBase64Skip('AAaaZZ00-');
+expectBase64Skip(' AAaa88ZZ00\nAAaa//ZZ00\t~AAaaZZ0099== ');
+expectBase64Skip(' AA``aa88ZZ(00)\nAA|aa//ZZ00\t~AAaaZZ0099== "');
+expectBase64Skip(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099== 😀');
+expectBase64Skip(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099==  😀');
+expectBase64Skip(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099==   😀');
+expectBase64Skip(benchmarkBase64Std + ':::' + benchmarkBase64Std);
+
+console.log('Tests passed\n');
+
+
 console.log('Encoding as hex ...');
 
 const
@@ -152,7 +207,7 @@ console.log('Tests passed\n');
 
 console.log('Decoding hex with invalid characters (strict) ...');
 
-function expectError(hex: string) {
+function expectHexError(hex: string) {
   let err = null;
   try {
     _fromHexChunked(hex)
@@ -166,24 +221,24 @@ function expectError(hex: string) {
 
 fromHex('');
 fromHex('00');
-expectError('001');
-expectError('0123456789abcdef0g');
-expectError('0123456789xxabcdef');
-expectError('11FFG0');
-expectError('x');
-expectError('😀00');
-expectError('00ff9£');
-expectError('£00ff9£');
-expectError('00ff😀');
-expectError('123456==00');
-expectError(benchmarkHex + ' 123456789');
+expectHexError('001');
+expectHexError('0123456789abcdef0g');
+expectHexError('0123456789xxabcdef');
+expectHexError('11FFG0');
+expectHexError('x');
+expectHexError('😀00');
+expectHexError('00ff9£');
+expectHexError('£00ff9£');
+expectHexError('00ff😀');
+expectHexError('123456==00');
+expectHexError(benchmarkHex + ' 123456789');
 
 console.log('Tests passed\n');
 
 
 console.log('Decoding hex with invalid characters (lax) ...');
 
-function expectTrunc(hex: string) {
+function expectHexTrunc(hex: string) {
   const
     localLax = _fromHexChunked(hex, { onInvalidInput: 'truncate' }),
     nodeLax = Buffer.from(hex, 'hex');
@@ -194,17 +249,17 @@ function expectTrunc(hex: string) {
 
 fromHex('');
 fromHex('00');
-expectTrunc('001');
-expectTrunc('0123456789abcdef0g');
-expectTrunc('0123456789xxabcdef');
-expectTrunc('11FFG0');
-expectTrunc('x');
-expectTrunc('😀00');
-expectTrunc('00ff9£');
-expectTrunc('£00ff9£');
-expectTrunc('00ff😀');
-expectTrunc('123456==00');
-expectTrunc(benchmarkHex + ' 123456789');
+expectHexTrunc('001');
+expectHexTrunc('0123456789abcdef0g');
+expectHexTrunc('0123456789xxabcdef');
+expectHexTrunc('11FFG0');
+expectHexTrunc('x');
+expectHexTrunc('😀00');
+expectHexTrunc('00ff9£');
+expectHexTrunc('£00ff9£');
+expectHexTrunc('00ff😀');
+expectHexTrunc('123456==00');
+expectHexTrunc(benchmarkHex + ' 123456789');
 
 console.log('Tests passed\n');
 console.log('✅ All tests passed\n');
