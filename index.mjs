@@ -22,86 +22,20 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 // src/common.ts
 var chunkBytes = 1008e3;
 var littleEndian = new Uint8Array(new Uint16Array([258]).buffer)[0] === 2;
-var hexCharsLower = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 97, 98, 99, 100, 101, 102];
-var hexCharsUpper = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 65, 66, 67, 68, 69, 70];
-var b64ChStd = new Uint8Array([
-  // ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/
-  65,
-  66,
-  67,
-  68,
-  69,
-  70,
-  71,
-  72,
-  73,
-  74,
-  75,
-  76,
-  77,
-  78,
-  79,
-  80,
-  81,
-  82,
-  83,
-  84,
-  85,
-  86,
-  87,
-  88,
-  89,
-  90,
-  97,
-  98,
-  99,
-  100,
-  101,
-  102,
-  103,
-  104,
-  105,
-  106,
-  107,
-  108,
-  109,
-  110,
-  111,
-  112,
-  113,
-  114,
-  115,
-  116,
-  117,
-  118,
-  119,
-  120,
-  121,
-  122,
-  48,
-  49,
-  50,
-  51,
-  52,
-  53,
-  54,
-  55,
-  56,
-  57,
-  43,
-  47
-]);
+var td = new TextDecoder();
+var te = new TextEncoder();
+var hexCharsLower = te.encode("0123456789abcdef");
+var hexCharsUpper = te.encode("0123456789ABCDEF");
+var b64ChStd = te.encode("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/");
 var b64ChPad = 61;
 var b64ChUrl = b64ChStd.slice();
 b64ChUrl[62] = 45;
 b64ChUrl[63] = 95;
 
 // src/toHex.ts
-var td;
 var ccl;
 var ccu;
 function _toHex(d, { alphabet, scratchArr } = {}) {
-  if (!td) td = new TextDecoder();
   if (!ccl) {
     ccl = new Uint16Array(256);
     ccu = new Uint16Array(256);
@@ -150,10 +84,8 @@ function toHex(d, options = {}) {
 // src/fromHex.ts
 var v00 = 48 << 8 | 48;
 var vff = 102 << 8 | 102;
-var te;
 var hl;
 function _fromHex(s, { onInvalidInput, scratchArr, outArr, indexOffset } = {}) {
-  if (!te) te = new TextEncoder();
   if (!hl) {
     hl = new Uint8Array(vff + 1);
     for (let l = 0; l < 22; l++) for (let r = 0; r < 22; r++) {
@@ -245,11 +177,9 @@ function fromHex(s, options = {}) {
 }
 
 // src/toBase64.ts
-var td2;
 var chpairsStd;
 var chpairsUrl;
 function _toBase64(d, { omitPadding, alphabet, scratchArr } = {}) {
-  if (!td2) td2 = new TextDecoder();
   if (!chpairsStd) {
     chpairsStd = new Uint16Array(4096);
     if (littleEndian) for (let i2 = 0; i2 < 64; i2++) for (let j2 = 0; j2 < 64; j2++) chpairsStd[i2 <<
@@ -312,15 +242,15 @@ function _toBase64(d, { omitPadding, alphabet, scratchArr } = {}) {
     out[j++] = chpairs[b1 << 4 | b2 >>> 4] << (littleEndian ? 0 : 16) | chpairs[(b2 & 15) << 8 | b3] <<
     (littleEndian ? 16 : 0);
   }
-  if (i === inlen) return td2.decode(out);
+  if (i === inlen) return td.decode(out);
   b1 = d[i++];
   b2 = d[i++];
   out[j++] = chpairs[b1 << 4 | (b2 || 0) >>> 4] << (littleEndian ? 0 : 16) | // first 16 bits (no padding)
   (b2 === void 0 ? b64ChPad : ch[((b2 || 0) & 15) << 2]) << (littleEndian ? 16 : 8) | // next 8 bits
   b64ChPad << (littleEndian ? 24 : 0);
-  if (!omitPadding) return td2.decode(out);
+  if (!omitPadding) return td.decode(out);
   let out8 = new Uint8Array(out.buffer, 0, (outints << 2) - (b2 === void 0 ? 2 : 1));
-  return td2.decode(out8);
+  return td.decode(out8);
 }
 function _toBase64Chunked(d, options = {}) {
   const inBytes = d.length, outInts = Math.ceil(inBytes / 3), outChunkInts = chunkBytes >>> 2, chunksCount = Math.
@@ -344,13 +274,11 @@ function toBase64(d, options = {}) {
 // src/fromBase64.ts
 var vAA = 65 << 8 | 65;
 var vzz = 122 << 8 | 122;
-var te2;
 var b64StdWordLookup;
 var b64UrlWordLookup;
 var b64StdByteLookup;
 var b64UrlByteLookup;
 function fromBase64(s, { alphabet, onInvalidInput, scratchArr, outArr } = {}) {
-  if (!te2) te2 = new TextEncoder();
   const lax = onInvalidInput === "skip", urlsafe = alphabet === "base64url";
   if (!urlsafe && !b64StdWordLookup) {
     b64StdWordLookup = new Uint16Array(vzz + 1);
@@ -383,7 +311,7 @@ function fromBase64(s, { alphabet, onInvalidInput, scratchArr, outArr } = {}) {
   strlen), maxOutBytesLen = inIntsLen * 3, outBytes = outArr || new Uint8Array(maxOutBytesLen), outInts = new Uint32Array(
   outBytes.buffer, 0, outBytes.length >>> 2), b64WordLookup = urlsafe ? b64UrlWordLookup : b64StdWordLookup,
   b64ByteLookup = urlsafe ? b64UrlByteLookup : b64StdByteLookup;
-  te2.encodeInto(s, inBytes);
+  te.encodeInto(s, inBytes);
   let i = 0, j = 0, inInt, inL, inR, vL1, vR1, vL2, vR2, vL3, vR3, vL4, vR4;
   if (littleEndian) while (i < fastIntsLen) {
     inInt = inInts[i++];

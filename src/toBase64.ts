@@ -4,6 +4,7 @@ import {
   b64ChStd,
   b64ChUrl,
   b64ChPad,
+  td,
   type Base64Options
 } from './common';
 
@@ -16,13 +17,10 @@ export interface _ToBase64Options extends ToBase64Options {
 }
 
 let
-  td: TextDecoder,
   chpairsStd: Uint16Array,
   chpairsUrl: Uint16Array;
 
 export function _toBase64(d: Uint8Array, { omitPadding, alphabet, scratchArr }: _ToBase64Options = {}) {
-  if (!td) td = new TextDecoder();
-
   if (!chpairsStd) {  // one-time prep: look-up tables use just over 16KiB of memory
 
     // lookup tables for standard hex-char pairs

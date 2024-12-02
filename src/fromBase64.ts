@@ -4,6 +4,7 @@ import {
   b64ChStd as chStd,
   b64ChUrl as chUrl,
   b64ChPad as chPad,
+  te,
   type Base64Options
 } from './common';
 
@@ -21,15 +22,12 @@ const
   vzz = (122 << 8) | 122;  // vZZ is smaller, so not relevant
 
 let
-  te: TextEncoder,
   b64StdWordLookup: Uint16Array,
   b64UrlWordLookup: Uint16Array,
   b64StdByteLookup: Uint8Array,
   b64UrlByteLookup: Uint8Array;
 
 export function fromBase64(s: string, { alphabet, onInvalidInput, scratchArr, outArr }: _FromBase64Options = {} /*urlsafe?: boolean, lax?: boolean, scratchArr?: Uint32Array, outArr?: Uint8Array*/) {
-  if (!te) te = new TextEncoder();
-
   const
     lax = onInvalidInput === 'skip',
     urlsafe = alphabet === 'base64url';
@@ -81,12 +79,16 @@ export function fromBase64(s: string, { alphabet, onInvalidInput, scratchArr, ou
     b64WordLookup = urlsafe ? b64UrlWordLookup : b64StdWordLookup,
     b64ByteLookup = urlsafe ? b64UrlByteLookup : b64StdByteLookup;
 
-  te.encodeInto(s, inBytes);
   // we don't need to explicitly check for multibyte characters (via `result.written > strlen`)
   // because any multi-byte character includes bytes that are outside the valid range
+  te.encodeInto(s, inBytes);
+  
+  // while we can, read 4x uint32 (16 bytes) + write 3x uint32 (12 bytes);
+  // if we encounter anything that's not a valid base64 character -- even whitespace --
+  // we back up to the start of the iteration and bail out, letting the slow loop handle the rest
 
   let i = 0, j = 0, inInt, inL, inR, vL1, vR1, vL2, vR2, vL3, vR3, vL4, vR4;
-  if (littleEndian) while (i < fastIntsLen) {  // while we can, read 4x uint32 (16 bytes) + write 3x uint32 (12 bytes)
+  if (littleEndian) while (i < fastIntsLen) {  // 
     inInt = inInts[i++];
     inL = inInt & 65535;
     vL1 = b64WordLookup[inL];
@@ -177,6 +179,10 @@ export function fromBase64(s: string, { alphabet, onInvalidInput, scratchArr, ou
 
   i <<= 2;  // translate Uint32 addressing to Uint8 addressing
   j <<= 2;
+
+  // this is the slow loop, which in normal cases should only handle the last few bytes;
+  // here we fall back to reading up to 4 bytes, one at a time, and handling any errors
+  // (if we're not in lax mode)
 
   let i0 = 0, ok = false, v1, v2, v3, v4;
   e: {

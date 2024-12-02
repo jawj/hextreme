@@ -3,6 +3,7 @@ import {
   hexCharsLower as chLower,
   hexCharsUpper as chUpper,
   chunkBytes,
+  td,
 } from './common';
 
 export interface ToHexOptions {
@@ -14,13 +15,10 @@ export interface _ToHexOptions extends ToHexOptions {
 }
 
 let
-  td: TextDecoder,
   ccl: Uint16Array,  // char codes, lower case
   ccu: Uint16Array;
 
 export function _toHex(d: Uint8Array | number[], { alphabet, scratchArr }: _ToHexOptions = {}) {
-  if (!td) td = new TextDecoder();
-
   if (!ccl) {
     ccl = new Uint16Array(256);
     ccu = new Uint16Array(256);

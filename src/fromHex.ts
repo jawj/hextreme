@@ -1,6 +1,7 @@
 import {
   littleEndian,
   chunkBytes,
+  te,
 } from './common';
 
 export interface FromHexOptions {
@@ -17,13 +18,10 @@ const
   v00 = (48 << 8) | 48,
   vff = (102 << 8) | 102;  // vFF is smaller, so not relevant
 
-let
-  te: TextEncoder,
-  hl: Uint8Array;    // hex lookup
+let hl: Uint8Array;    // hex lookup
 
 export function _fromHex(s: string, { onInvalidInput, scratchArr, outArr, indexOffset }: _FromHexOptions = {}) {
   // note: using a Map or a big switch/case block are both an order of magnitude slower than these TypedArray lookups
-  if (!te) te = new TextEncoder();
 
   if (!hl) {  // one-time prep
     hl = new Uint8Array(vff + 1);  // hex lookup -- takes 26KB of memory (could halve that by doing vff - v00 + 1, but that's slower)
