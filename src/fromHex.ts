@@ -81,8 +81,6 @@ export function _fromHex(s: string, { onInvalidInput, scratchArr, outArr, indexO
   return i < bytelen ? out.subarray(0, i) : out;
 }
 
-// === decode ===
-
 export function _fromHexChunked(s: string, { onInvalidInput }: FromHexOptions = {}) {
   const
     lax = onInvalidInput === 'truncate',

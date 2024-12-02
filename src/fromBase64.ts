@@ -27,7 +27,7 @@ let
   b64StdByteLookup: Uint8Array,
   b64UrlByteLookup: Uint8Array;
 
-export function fromBase64(s: string, { alphabet, onInvalidInput, scratchArr, outArr }: _FromBase64Options = {} /*urlsafe?: boolean, lax?: boolean, scratchArr?: Uint32Array, outArr?: Uint8Array*/) {
+export function fromBase64(s: string, { alphabet, onInvalidInput, scratchArr, outArr }: _FromBase64Options = {}) {
   const
     lax = onInvalidInput === 'skip',
     urlsafe = alphabet === 'base64url';

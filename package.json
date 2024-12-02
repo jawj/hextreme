@@ -13,12 +13,12 @@
     "index.d.mts"
   ],
   "scripts": {
-    "_bundleCJS": "esbuild src/index.ts --outdir=. --bundle --line-limit=100 --platform=neutral --target=es6 --format=cjs",
-    "_bundleESM": "esbuild src/index.ts --outdir=. --bundle --line-limit=100 --platform=neutral --target=es6 --format=esm --out-extension:.js=.mjs",
+    "_bundleCJS": "esbuild src/index.ts --outdir=. --bundle --line-limit=130 --platform=neutral --target=es6 --format=cjs",
+    "_bundleESM": "esbuild src/index.ts --outdir=. --bundle --line-limit=130 --platform=neutral --target=es6 --format=esm --out-extension:.js=.mjs",
     "_makeTypes": "dts-bundle-generator -o index.d.ts src/index.ts",
     "_copyTypes": "cp index.d.ts index.d.mts",
     "build": "tsc --noEmit && npm run _makeTypes && npm run _copyTypes && npm run _bundleESM && npm run _bundleCJS",
-    "_testNode": "esbuild test.ts --bundle --platform=node --target=es6 --format=esm | node",
+    "_testNode": "esbuild test.ts --bundle --platform=node --target=es2015 --format=esm | node",
     "_testBun": "bun run test.ts",
     "test": "npm run build && echo '\n== Node ==\n' && npm run _testNode && echo '\n== Bun ==\n' && npm run _testBun"
   },
