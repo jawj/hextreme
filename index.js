@@ -52,10 +52,12 @@ __export(src_exports, {
 });
 module.exports = __toCommonJS(src_exports);
 
-// src/base64.ts
-var littleEndian = new Uint8Array(new Uint32Array([16909060]).buffer)[0] === 4;
+// src/common.ts
 var chunkBytes = 1008e3;
-var chStd = new Uint8Array([
+var littleEndian = new Uint8Array(new Uint16Array([258]).buffer)[0] === 2;
+var hexCharsLower = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 97, 98, 99, 100, 101, 102];
+var hexCharsUpper = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 65, 66, 67, 68, 69, 70];
+var b64ChStd = new Uint8Array([
   // ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/
   65,
   66,
@@ -122,42 +124,185 @@ var chStd = new Uint8Array([
   43,
   47
 ]);
-var chPad = 61;
-var chUrl = chStd.slice();
-var vAA = 65 << 8 | 65;
-var vzz = 122 << 8 | 122;
-chUrl[62] = 45;
-chUrl[63] = 95;
+var b64ChPad = 61;
+var b64ChUrl = b64ChStd.slice();
+b64ChUrl[62] = 45;
+b64ChUrl[63] = 95;
+
+// src/toHex.ts
 var td;
+var ccl;
+var ccu;
+function _toHex(d, { alphabet, scratchArr } = {}) {
+  if (!td) td = new TextDecoder();
+  if (!ccl) {
+    ccl = new Uint16Array(256);
+    ccu = new Uint16Array(256);
+    if (littleEndian) for (let i2 = 0; i2 < 256; i2++) {
+      ccl[i2] = hexCharsLower[i2 & 15] << 8 | hexCharsLower[i2 >>> 4];
+      ccu[i2] = hexCharsUpper[i2 & 15] << 8 | hexCharsUpper[i2 >>> 4];
+    }
+    else for (let i2 = 0; i2 < 256; i2++) {
+      ccl[i2] = hexCharsLower[i2 & 15] | hexCharsLower[i2 >>> 4] << 8;
+      ccu[i2] = hexCharsUpper[i2 & 15] | hexCharsUpper[i2 >>> 4] << 8;
+    }
+  }
+  const len = d.length, last7 = len - 7, a = scratchArr || new Uint16Array(len), cc = alphabet === "\
+upper" ? ccu : ccl;
+  let i = 0;
+  while (i < last7) {
+    a[i] = cc[d[i++]];
+    a[i] = cc[d[i++]];
+    a[i] = cc[d[i++]];
+    a[i] = cc[d[i++]];
+    a[i] = cc[d[i++]];
+    a[i] = cc[d[i++]];
+    a[i] = cc[d[i++]];
+    a[i] = cc[d[i++]];
+  }
+  while (i < len) {
+    a[i] = cc[d[i++]];
+  }
+  const hex = td.decode(a.subarray(0, len));
+  return hex;
+}
+function _toHexChunked(d, options = {}) {
+  let hex = "", len = d.length, chunkInts = chunkBytes >>> 1, chunks = Math.ceil(len / chunkInts), scratchArr = new Uint16Array(
+  chunks > 1 ? chunkInts : len);
+  for (let i = 0; i < chunks; i++) {
+    const start = i * chunkInts, end = start + chunkInts;
+    hex += _toHex(d.subarray(start, end), __spreadProps(__spreadValues({}, options), { scratchArr }));
+  }
+  return hex;
+}
+function toHex(d, options = {}) {
+  return options.alphabet !== "upper" && typeof d.toHex === "function" ? d.toHex() : _toHexChunked(d,
+  options);
+}
+
+// src/fromHex.ts
+var v00 = 48 << 8 | 48;
+var vff = 102 << 8 | 102;
 var te;
+var hl;
+function _fromHex(s, { onInvalidInput, scratchArr, outArr, indexOffset } = {}) {
+  if (!te) te = new TextEncoder();
+  if (!hl) {
+    hl = new Uint8Array(vff + 1);
+    for (let l = 0; l < 22; l++) for (let r = 0; r < 22; r++) {
+      const cl = l + (l < 10 ? 48 : l < 16 ? 55 : 81), cr = r + (r < 10 ? 48 : r < 16 ? 55 : 81), vin = littleEndian ?
+      cr << 8 | cl : cr | cl << 8, vout = (l < 16 ? l : l - 6) << 4 | (r < 16 ? r : r - 6);
+      hl[vin] = vout;
+    }
+  }
+  const lax = onInvalidInput === "truncate", slen = s.length;
+  if (!lax && slen & 1) throw new Error("Hex input is an odd number of characters");
+  const bytelen = slen >>> 1, last7 = bytelen - 7, h16len = bytelen + 2, h16 = scratchArr || new Uint16Array(
+  h16len), h8 = new Uint8Array(h16.buffer), out = outArr || new Uint8Array(bytelen);
+  if (h16.length < h16len) throw new Error(`Wrong-sized scratch array supplied (was ${h16.length}, e\
+xpected at least ${h16len})`);
+  if (out.length != bytelen) throw new Error(`Wrong-sized output array supplied (was ${out.length}, \
+expected ${bytelen})`);
+  te.encodeInto(s, h8);
+  let i = 0, ok = false;
+  e: {
+    let vin, vout;
+    while (i < last7) {
+      vin = h16[i];
+      vout = hl[vin];
+      if (!vout && vin !== v00) break e;
+      out[i++] = vout;
+      vin = h16[i];
+      vout = hl[vin];
+      if (!vout && vin !== v00) break e;
+      out[i++] = vout;
+      vin = h16[i];
+      vout = hl[vin];
+      if (!vout && vin !== v00) break e;
+      out[i++] = vout;
+      vin = h16[i];
+      vout = hl[vin];
+      if (!vout && vin !== v00) break e;
+      out[i++] = vout;
+      vin = h16[i];
+      vout = hl[vin];
+      if (!vout && vin !== v00) break e;
+      out[i++] = vout;
+      vin = h16[i];
+      vout = hl[vin];
+      if (!vout && vin !== v00) break e;
+      out[i++] = vout;
+      vin = h16[i];
+      vout = hl[vin];
+      if (!vout && vin !== v00) break e;
+      out[i++] = vout;
+      vin = h16[i];
+      vout = hl[vin];
+      if (!vout && vin !== v00) break e;
+      out[i++] = vout;
+    }
+    while (i < bytelen) {
+      vin = h16[i];
+      vout = hl[vin];
+      if (!vout && vin !== v00) break e;
+      out[i++] = vout;
+    }
+    ok = true;
+  }
+  if (!ok && !lax) throw new Error(`Invalid pair in hex input at index ${(indexOffset || 0) + i << 1}`);
+  return i < bytelen ? out.subarray(0, i) : out;
+}
+function _fromHexChunked(s, { onInvalidInput } = {}) {
+  const lax = onInvalidInput === "truncate", slen = s.length;
+  if (!lax && slen & 1) throw new Error("Hex input is an odd number of characters");
+  const byteLength = slen >>> 1, chunkInts = chunkBytes >>> 1, chunksCount = Math.ceil(byteLength / chunkInts),
+  scratchArr = new Uint16Array((chunksCount > 1 ? chunkInts : byteLength) + 2), outArr = new Uint8Array(
+  byteLength);
+  for (let i = 0; i < chunksCount; i++) {
+    const chunkStartByte = i * chunkInts, chunkEndByte = chunkStartByte + chunkInts, result = _fromHex(
+    s.slice(chunkStartByte << 1, chunkEndByte << 1), {
+      onInvalidInput,
+      scratchArr,
+      outArr: outArr.subarray(chunkStartByte, chunkEndByte),
+      indexOffset: chunkStartByte
+    });
+    if (lax && result.length < chunkEndByte - chunkStartByte) {
+      return outArr.subarray(0, chunkStartByte + result.length);
+    }
+  }
+  return outArr;
+}
+function fromHex(s, options = {}) {
+  return options.onInvalidInput !== "truncate" && typeof Uint8Array.fromHex === "function" ? Uint8Array.
+  fromHex(s) : _fromHexChunked(s, options);
+}
+
+// src/toBase64.ts
+var td2;
 var chpairsStd;
 var chpairsUrl;
-var b64StdWordLookup;
-var b64UrlWordLookup;
-var b64StdByteLookup;
-var b64UrlByteLookup;
 function _toBase64(d, { omitPadding, alphabet, scratchArr } = {}) {
-  if (!td) td = new TextDecoder();
+  if (!td2) td2 = new TextDecoder();
   if (!chpairsStd) {
     chpairsStd = new Uint16Array(4096);
     if (littleEndian) for (let i2 = 0; i2 < 64; i2++) for (let j2 = 0; j2 < 64; j2++) chpairsStd[i2 <<
-    6 | j2] = chStd[i2] | chStd[j2] << 8;
-    else for (let i2 = 0; i2 < 64; i2++) for (let j2 = 0; j2 < 64; j2++) chpairsStd[i2 << 6 | j2] = chStd[i2] <<
-    8 | chStd[j2];
+    6 | j2] = b64ChStd[i2] | b64ChStd[j2] << 8;
+    else for (let i2 = 0; i2 < 64; i2++) for (let j2 = 0; j2 < 64; j2++) chpairsStd[i2 << 6 | j2] = b64ChStd[i2] <<
+    8 | b64ChStd[j2];
     chpairsUrl = chpairsStd.slice();
     if (littleEndian) {
-      for (let i2 = 0; i2 < 64; i2++) for (let j2 = 62; j2 < 64; j2++) chpairsUrl[i2 << 6 | j2] = chUrl[i2] |
-      chUrl[j2] << 8;
-      for (let i2 = 62; i2 < 64; i2++) for (let j2 = 0; j2 < 62; j2++) chpairsUrl[i2 << 6 | j2] = chUrl[i2] |
-      chUrl[j2] << 8;
+      for (let i2 = 0; i2 < 64; i2++) for (let j2 = 62; j2 < 64; j2++) chpairsUrl[i2 << 6 | j2] = b64ChUrl[i2] |
+      b64ChUrl[j2] << 8;
+      for (let i2 = 62; i2 < 64; i2++) for (let j2 = 0; j2 < 62; j2++) chpairsUrl[i2 << 6 | j2] = b64ChUrl[i2] |
+      b64ChUrl[j2] << 8;
     } else {
-      for (let i2 = 0; i2 < 64; i2++) for (let j2 = 62; j2 < 64; j2++) chpairsUrl[i2 << 6 | j2] = chUrl[i2] <<
-      8 | chUrl[j2];
-      for (let i2 = 62; i2 < 64; i2++) for (let j2 = 0; j2 < 62; j2++) chpairsUrl[i2 << 6 | j2] = chUrl[i2] <<
-      8 | chUrl[j2];
+      for (let i2 = 0; i2 < 64; i2++) for (let j2 = 62; j2 < 64; j2++) chpairsUrl[i2 << 6 | j2] = b64ChUrl[i2] <<
+      8 | b64ChUrl[j2];
+      for (let i2 = 62; i2 < 64; i2++) for (let j2 = 0; j2 < 62; j2++) chpairsUrl[i2 << 6 | j2] = b64ChUrl[i2] <<
+      8 | b64ChUrl[j2];
     }
   }
-  const urlsafe = alphabet === "base64url", ch = urlsafe ? chUrl : chStd, chpairs = urlsafe ? chpairsUrl :
+  const urlsafe = alphabet === "base64url", ch = urlsafe ? b64ChUrl : b64ChStd, chpairs = urlsafe ? chpairsUrl :
   chpairsStd, inlen = d.length, last2 = inlen - 2, inints = inlen >>> 2, intlast3 = inints - 3, d32 = new Uint32Array(
   d.buffer, d.byteOffset, inints), outints = Math.ceil(inlen / 3), out = scratchArr || new Uint32Array(
   outints);
@@ -200,15 +345,15 @@ function _toBase64(d, { omitPadding, alphabet, scratchArr } = {}) {
     out[j++] = chpairs[b1 << 4 | b2 >>> 4] << (littleEndian ? 0 : 16) | chpairs[(b2 & 15) << 8 | b3] <<
     (littleEndian ? 16 : 0);
   }
-  if (i === inlen) return td.decode(out);
+  if (i === inlen) return td2.decode(out);
   b1 = d[i++];
   b2 = d[i++];
   out[j++] = chpairs[b1 << 4 | (b2 || 0) >>> 4] << (littleEndian ? 0 : 16) | // first 16 bits (no padding)
-  (b2 === void 0 ? chPad : ch[((b2 || 0) & 15) << 2]) << (littleEndian ? 16 : 8) | // next 8 bits
-  chPad << (littleEndian ? 24 : 0);
-  if (!omitPadding) return td.decode(out);
+  (b2 === void 0 ? b64ChPad : ch[((b2 || 0) & 15) << 2]) << (littleEndian ? 16 : 8) | // next 8 bits
+  b64ChPad << (littleEndian ? 24 : 0);
+  if (!omitPadding) return td2.decode(out);
   let out8 = new Uint8Array(out.buffer, 0, (outints << 2) - (b2 === void 0 ? 2 : 1));
-  return td.decode(out8);
+  return td2.decode(out8);
 }
 function _toBase64Chunked(d, options = {}) {
   const inBytes = d.length, outInts = Math.ceil(inBytes / 3), outChunkInts = chunkBytes >>> 2, chunksCount = Math.
@@ -228,13 +373,22 @@ function _toBase64Chunked(d, options = {}) {
 function toBase64(d, options = {}) {
   return typeof d.toBase64 === "function" ? d.toBase64(options) : _toBase64Chunked(d, options);
 }
+
+// src/fromBase64.ts
+var vAA = 65 << 8 | 65;
+var vzz = 122 << 8 | 122;
+var te2;
+var b64StdWordLookup;
+var b64UrlWordLookup;
+var b64StdByteLookup;
+var b64UrlByteLookup;
 function fromBase64(s, { alphabet, onInvalidInput, scratchArr, outArr } = {}) {
-  if (!te) te = new TextEncoder();
+  if (!te2) te2 = new TextEncoder();
   const lax = onInvalidInput === "skip", urlsafe = alphabet === "base64url";
   if (!urlsafe && !b64StdWordLookup) {
     b64StdWordLookup = new Uint16Array(vzz + 1);
     for (let l = 0; l < 64; l++) for (let r = 0; r < 64; r++) {
-      const cl = chStd[l], cr = chStd[r], vin = littleEndian ? cr << 8 | cl : cr | cl << 8, vout = l <<
+      const cl = b64ChStd[l], cr = b64ChStd[r], vin = littleEndian ? cr << 8 | cl : cr | cl << 8, vout = l <<
       6 | r;
       b64StdWordLookup[vin] = vout;
     }
@@ -242,26 +396,27 @@ function fromBase64(s, { alphabet, onInvalidInput, scratchArr, outArr } = {}) {
   if (urlsafe && !b64UrlWordLookup) {
     b64UrlWordLookup = new Uint16Array(vzz + 1);
     for (let l = 0; l < 64; l++) for (let r = 0; r < 64; r++) {
-      const cl = chUrl[l], cr = chUrl[r], vin = littleEndian ? cr << 8 | cl : cr | cl << 8, vout = l <<
+      const cl = b64ChUrl[l], cr = b64ChUrl[r], vin = littleEndian ? cr << 8 | cl : cr | cl << 8, vout = l <<
       6 | r;
       b64UrlWordLookup[vin] = vout;
     }
   }
   if (!b64StdByteLookup) {
     b64StdByteLookup = new Uint8Array(256).fill(128);
-    b64StdByteLookup[chPad] = b64StdByteLookup[9] = b64StdByteLookup[10] = b64StdByteLookup[13] = b64StdByteLookup[32] =
-    64;
+    b64StdByteLookup[b64ChPad] = b64StdByteLookup[9] = b64StdByteLookup[10] = b64StdByteLookup[13] =
+    b64StdByteLookup[32] = 64;
     b64UrlByteLookup = new Uint8Array(256).fill(128);
-    b64UrlByteLookup[chPad] = b64UrlByteLookup[9] = b64UrlByteLookup[10] = b64UrlByteLookup[13] = b64UrlByteLookup[32] =
-    64;
-    for (let i2 = 0; i2 < 64; i2++) b64StdByteLookup[chStd[i2]] = b64UrlByteLookup[chUrl[i2]] = i2;
+    b64UrlByteLookup[b64ChPad] = b64UrlByteLookup[9] = b64UrlByteLookup[10] = b64UrlByteLookup[13] =
+    b64UrlByteLookup[32] = 64;
+    for (let i2 = 0; i2 < 64; i2++) b64StdByteLookup[b64ChStd[i2]] = b64UrlByteLookup[b64ChUrl[i2]] =
+    i2;
   }
   const strlen = s.length, inIntsLen = Math.ceil(strlen / 4), inIntsLenPlus = inIntsLen + 1, fastIntsLen = inIntsLen -
   4, inInts = scratchArr || new Uint32Array(inIntsLenPlus), inBytes = new Uint8Array(inInts.buffer, 0,
   strlen), maxOutBytesLen = inIntsLen * 3, outBytes = outArr || new Uint8Array(maxOutBytesLen), outInts = new Uint32Array(
   outBytes.buffer, 0, outBytes.length >>> 2), b64WordLookup = urlsafe ? b64UrlWordLookup : b64StdWordLookup,
   b64ByteLookup = urlsafe ? b64UrlByteLookup : b64StdByteLookup;
-  te.encodeInto(s, inBytes);
+  te2.encodeInto(s, inBytes);
   let i = 0, j = 0, inInt, inL, inR, vL1, vR1, vL2, vR2, vL3, vR3, vL4, vR4;
   if (littleEndian) while (i < fastIntsLen) {
     inInt = inInts[i++];
@@ -431,154 +586,4 @@ function fromBase64(s, { alphabet, onInvalidInput, scratchArr, outArr } = {}) {
   for (let i2 = i0; i2 < strlen; i2++) if (b64ByteLookup[inBytes[i2]] < 64) validChars++;
   const truncateBytes = { 4: 0, 3: 1, 2: 2, 1: 2, 0: 3 }[validChars];
   return outBytes.subarray(0, j - truncateBytes);
-}
-
-// src/hex.ts
-var littleEndian2 = new Uint8Array(new Uint16Array([258]).buffer)[0] === 2;
-var hexCharsLower = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 97, 98, 99, 100, 101, 102];
-var hexCharsUpper = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 65, 66, 67, 68, 69, 70];
-var chunkBytes2 = 1008e3;
-var v00 = 48 << 8 | 48;
-var vff = 102 << 8 | 102;
-var td2;
-var te2;
-var hl;
-var ccl;
-var ccu;
-function _toHex(d, { alphabet, scratchArr } = {}) {
-  if (!td2) td2 = new TextDecoder();
-  if (!ccl) {
-    ccl = new Uint16Array(256);
-    ccu = new Uint16Array(256);
-    if (littleEndian2) for (let i2 = 0; i2 < 256; i2++) {
-      ccl[i2] = hexCharsLower[i2 & 15] << 8 | hexCharsLower[i2 >>> 4];
-      ccu[i2] = hexCharsUpper[i2 & 15] << 8 | hexCharsUpper[i2 >>> 4];
-    }
-    else for (let i2 = 0; i2 < 256; i2++) {
-      ccl[i2] = hexCharsLower[i2 & 15] | hexCharsLower[i2 >>> 4] << 8;
-      ccu[i2] = hexCharsUpper[i2 & 15] | hexCharsUpper[i2 >>> 4] << 8;
-    }
-  }
-  const len = d.length, last7 = len - 7, a = scratchArr || new Uint16Array(len), cc = alphabet === "\
-upper" ? ccu : ccl;
-  let i = 0;
-  while (i < last7) {
-    a[i] = cc[d[i++]];
-    a[i] = cc[d[i++]];
-    a[i] = cc[d[i++]];
-    a[i] = cc[d[i++]];
-    a[i] = cc[d[i++]];
-    a[i] = cc[d[i++]];
-    a[i] = cc[d[i++]];
-    a[i] = cc[d[i++]];
-  }
-  while (i < len) {
-    a[i] = cc[d[i++]];
-  }
-  const hex = td2.decode(a.subarray(0, len));
-  return hex;
-}
-function _toHexChunked(d, options = {}) {
-  let hex = "", len = d.length, chunkInts = chunkBytes2 >>> 1, chunks = Math.ceil(len / chunkInts), scratchArr = new Uint16Array(
-  chunks > 1 ? chunkInts : len);
-  for (let i = 0; i < chunks; i++) {
-    const start = i * chunkInts, end = start + chunkInts;
-    hex += _toHex(d.subarray(start, end), __spreadProps(__spreadValues({}, options), { scratchArr }));
-  }
-  return hex;
-}
-function toHex(d, options = {}) {
-  return options.alphabet !== "upper" && typeof d.toHex === "function" ? d.toHex() : _toHexChunked(d,
-  options);
-}
-function _fromHex(s, { onInvalidInput, scratchArr, outArr, indexOffset } = {}) {
-  if (!te2) te2 = new TextEncoder();
-  if (!hl) {
-    hl = new Uint8Array(vff + 1);
-    for (let l = 0; l < 22; l++) for (let r = 0; r < 22; r++) {
-      const cl = l + (l < 10 ? 48 : l < 16 ? 55 : 81), cr = r + (r < 10 ? 48 : r < 16 ? 55 : 81), vin = littleEndian2 ?
-      cr << 8 | cl : cr | cl << 8, vout = (l < 16 ? l : l - 6) << 4 | (r < 16 ? r : r - 6);
-      hl[vin] = vout;
-    }
-  }
-  const lax = onInvalidInput === "truncate", slen = s.length;
-  if (!lax && slen & 1) throw new Error("Hex input is an odd number of characters");
-  const bytelen = slen >>> 1, last7 = bytelen - 7, h16len = bytelen + 2, h16 = scratchArr || new Uint16Array(
-  h16len), h8 = new Uint8Array(h16.buffer), out = outArr || new Uint8Array(bytelen);
-  if (h16.length < h16len) throw new Error(`Wrong-sized scratch array supplied (was ${h16.length}, e\
-xpected at least ${h16len})`);
-  if (out.length != bytelen) throw new Error(`Wrong-sized output array supplied (was ${out.length}, \
-expected ${bytelen})`);
-  te2.encodeInto(s, h8);
-  let i = 0, ok = false;
-  e: {
-    let vin, vout;
-    while (i < last7) {
-      vin = h16[i];
-      vout = hl[vin];
-      if (!vout && vin !== v00) break e;
-      out[i++] = vout;
-      vin = h16[i];
-      vout = hl[vin];
-      if (!vout && vin !== v00) break e;
-      out[i++] = vout;
-      vin = h16[i];
-      vout = hl[vin];
-      if (!vout && vin !== v00) break e;
-      out[i++] = vout;
-      vin = h16[i];
-      vout = hl[vin];
-      if (!vout && vin !== v00) break e;
-      out[i++] = vout;
-      vin = h16[i];
-      vout = hl[vin];
-      if (!vout && vin !== v00) break e;
-      out[i++] = vout;
-      vin = h16[i];
-      vout = hl[vin];
-      if (!vout && vin !== v00) break e;
-      out[i++] = vout;
-      vin = h16[i];
-      vout = hl[vin];
-      if (!vout && vin !== v00) break e;
-      out[i++] = vout;
-      vin = h16[i];
-      vout = hl[vin];
-      if (!vout && vin !== v00) break e;
-      out[i++] = vout;
-    }
-    while (i < bytelen) {
-      vin = h16[i];
-      vout = hl[vin];
-      if (!vout && vin !== v00) break e;
-      out[i++] = vout;
-    }
-    ok = true;
-  }
-  if (!ok && !lax) throw new Error(`Invalid pair in hex input at index ${(indexOffset || 0) + i << 1}`);
-  return i < bytelen ? out.subarray(0, i) : out;
-}
-function _fromHexChunked(s, { onInvalidInput } = {}) {
-  const lax = onInvalidInput === "truncate", slen = s.length;
-  if (!lax && slen & 1) throw new Error("Hex input is an odd number of characters");
-  const byteLength = slen >>> 1, chunkInts = chunkBytes2 >>> 1, chunksCount = Math.ceil(byteLength /
-  chunkInts), scratchArr = new Uint16Array((chunksCount > 1 ? chunkInts : byteLength) + 2), outArr = new Uint8Array(
-  byteLength);
-  for (let i = 0; i < chunksCount; i++) {
-    const chunkStartByte = i * chunkInts, chunkEndByte = chunkStartByte + chunkInts, result = _fromHex(
-    s.slice(chunkStartByte << 1, chunkEndByte << 1), {
-      onInvalidInput,
-      scratchArr,
-      outArr: outArr.subarray(chunkStartByte, chunkEndByte),
-      indexOffset: chunkStartByte
-    });
-    if (lax && result.length < chunkEndByte - chunkStartByte) {
-      return outArr.subarray(0, chunkStartByte + result.length);
-    }
-  }
-  return outArr;
-}
-function fromHex(s, options = {}) {
-  return options.onInvalidInput !== "truncate" && typeof Uint8Array.fromHex === "function" ? Uint8Array.
-  fromHex(s) : _fromHexChunked(s, options);
 }

@@ -9,19 +9,15 @@
   "files": [
     "index.js",
     "index.d.ts",
-    "hex.d.ts",
-    "base64.d.ts",
     "index.mjs",
-    "index.d.mts",
-    "hex.d.mts",
-    "base64.d.mts"
+    "index.d.mts"
   ],
   "scripts": {
     "_bundleCJS": "esbuild src/index.ts --outdir=. --bundle --line-limit=100 --platform=neutral --target=es6 --format=cjs",
     "_bundleESM": "esbuild src/index.ts --outdir=. --bundle --line-limit=100 --platform=neutral --target=es6 --format=esm --out-extension:.js=.mjs",
-    "_makeTypes": "tsc src/index.ts --declaration --emitDeclarationOnly --outDir .",
-    "_copyTypes": "for f in *.d.ts; do cp -- $f ${f%.d.ts}.d.mts; done",
-    "build": "npm run _makeTypes && npm run _copyTypes && npm run _bundleESM && npm run _bundleCJS",
+    "_makeTypes": "dts-bundle-generator -o index.d.ts src/index.ts",
+    "_copyTypes": "cp index.d.ts index.d.mts",
+    "build": "tsc --noEmit && npm run _makeTypes && npm run _copyTypes && npm run _bundleESM && npm run _bundleCJS",
     "_testNode": "esbuild test.ts --bundle --platform=node --target=es6 --format=esm | node",
     "_testBun": "bun run test.ts",
     "test": "npm run build && echo '\n== Node ==\n' && npm run _testNode && echo '\n== Bun ==\n' && npm run _testBun"
@@ -39,6 +35,7 @@
   "devDependencies": {
     "@types/node": "^22.10.1",
     "buffer": "^6.0.3",
+    "dts-bundle-generator": "^9.5.1",
     "esbuild": "^0.24.0",
     "typescript": "^5.7.2"
   },
