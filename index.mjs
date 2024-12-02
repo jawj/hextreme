@@ -82,8 +82,8 @@ function toHex(d, options = {}) {
 }
 
 // src/fromHex.ts
-var v00 = 48 << 8 | 48;
-var vff = 102 << 8 | 102;
+var v00 = 12336;
+var vff = 26214;
 var hl;
 function _fromHex(s, { onInvalidInput, scratchArr, outArr, indexOffset } = {}) {
   if (!hl) {
@@ -272,8 +272,8 @@ function toBase64(d, options = {}) {
 }
 
 // src/fromBase64.ts
-var vAA = 65 << 8 | 65;
-var vzz = 122 << 8 | 122;
+var vAA = 16705;
+var vzz = 31354;
 var b64StdWordLookup;
 var b64UrlWordLookup;
 var b64StdByteLookup;

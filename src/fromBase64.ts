@@ -18,8 +18,8 @@ export interface _FromBase64Options extends FromBase64Options {
 }
 
 const
-  vAA = (65 << 8) | 65,    // signifies a zero out value
-  vzz = (122 << 8) | 122;  // vZZ is smaller, so not relevant
+  vAA = 16705,  // (65 << 8) | 65 -- signifies a zero out value
+  vzz = 31354;  // (122 << 8) | 122 -- (vZZ is smaller, so not relevant)
 
 let
   b64StdWordLookup: Uint16Array,

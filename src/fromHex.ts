@@ -15,8 +15,8 @@ export interface _FromHexOptions extends FromHexOptions {
 }
 
 const
-  v00 = (48 << 8) | 48,
-  vff = (102 << 8) | 102;  // vFF is smaller, so not relevant
+  v00 = 12336,  // (48 << 8) | 48,
+  vff = 26214;  // (102 << 8) | 102 (vFF is smaller, so not relevant)
 
 let hl: Uint8Array;    // hex lookup
 
