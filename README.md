@@ -10,7 +10,7 @@ The secret ingredients are:
 * Multi-byte reads, writes and lookups using `Uint16Array` and `Uint32Array`
 * A little bit of loop unrolling (which makes a real difference in Chrome/V8)
 
-No external dependencies. 4KB zipped. Exports ESM, CJS, and TypeScript types.
+No external dependencies. 4KB zipped. ESM and CJS exports, plus TypeScript types.
 
 
 ## Performance
@@ -19,7 +19,7 @@ The following benchmarks were run on an M3 Pro MacBook Pro, using 32 MiB of rand
 
 The headlines are that we are:
 
-* 5 – 27x **faster** than a representative JS approach ([feross/buffer](https://github.com/feross) shim package)
+* 5 – 27x **faster** than a representative JS implementation ([feross/buffer](https://github.com/feross) shim package)
 * 4 – 7x **faster** than Firefox's native methods (which is strange: Firefox can surely improve on this)
 * 6 – 17x **slower** than Safari's native methods
 
@@ -50,5 +50,58 @@ cf. feross/buffer.toString      282.28 ms        195.00 ms          524.10 ms
 This library                     41.69 ms         31.70 ms           64.10 ms
 cf. native fromBase64                   -        118.00 ms            3.70 ms
 cf. feross/buffer.from          206.83 ms        245.80 ms          276.70 ms
+```
+
+## Usage
+
+To install:
+
+```bash
+npm install hextreme
+```
+
+### Hex encoding
+
+`toHex(bytes: Uint8Array, { alphabet?: 'lower' | 'upper' } = {}): string`
+
+Encodes binary data to a hex string.
+
+The `alphabet` option defaults to `'lower'`, but may alternatively be set to `'upper'`.
+
+Examples:
+
+```javascript
+import { toHex } from 'hextreme';
+
+toHex(new Uint8Array([254, 237, 250, 206]));
+// 'feedface'
+
+toHex(new Uint8Array([254, 237, 250, 206]), { alphabet: 'upper' });
+// 'FEEDFACE'
+```
+
+### Hex decoding
+
+`fromHex(hex: string, { onInvalidInput?: 'throw' | 'truncate' } = {}): Uint8Array`
+
+Decodes a hex string (upper-, lower- or mixed-case) to binary data.
+
+The `onInvalidInput` option defaults to `'throw'`, in which case any non-hex character in the input causes an error to be thrown. This matches the behaviour of `toHex()` on a `Uint8Array` (where supported).
+
+`onInvalidInput` may otherwise be set to `'truncate'`, in which case decoding stops at the first non-hex character pair encountered. This matches the behaviour of `toString('hex')` on a Node `Buffer`.
+
+Examples:
+
+```javascript
+import { fromHex } from 'hextreme';
+
+fromHex('FEEDface');
+// Uint8Array(4) [ 254, 237, 250, 206 ]
+
+fromHex('FEEDfXce');
+// Uncaught Error: Invalid pair in hex input at index 4
+
+fromHex('FEEDfXce', { onInvalidInput: 'truncate' });
+// Uint8Array(2) [ 254, 237 ]
 ```
 
