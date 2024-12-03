@@ -6,21 +6,21 @@ Intended to be as fast as reasonably possible using only plain JavaScript.
 
 The secret ingredients are: 
 
-* Conversion between strings and arrays via `TextEncoder` and `TextDecoder`
+* Conversion between strings and typed arrays via `TextEncoder` and `TextDecoder`
 * Multi-byte reads, writes and lookups using `Uint16Array` and `Uint32Array`
 * A little bit of loop unrolling (which makes a real difference in Chrome/V8)
 
-No external dependencies. 4KB zipped. ESM and CJS exports, plus TypeScript types.
+No external dependencies. ESM and CJS exports, plus TypeScript types. 4KB zipped.
 
 
 ## Performance
 
 The following benchmarks were run on an M3 Pro MacBook Pro, using 32 MiB of random data, and taking the mean of 10 trials.
 
-The headlines are that we are:
+Across methods and browsers, the headlines are that we are:
 
-* 5 – 27x **faster** than a representative JS implementation ([feross/buffer](https://github.com/feross) shim package)
-* 4 – 7x **faster** than Firefox's native methods (which is strange: Firefox can surely improve on this)
+* 4 – 27x **faster** than a representative JS implementation: the [feross/buffer](https://github.com/feross) shim package
+* 4 – 7x **faster** than Firefox's native methods (surprising — Firefox can surely improve on this)
 * 6 – 17x **slower** than Safari's native methods
 
 ```
@@ -64,7 +64,7 @@ npm install hextreme
 
 `toHex(bytes: Uint8Array, { alphabet?: 'lower' | 'upper' } = {}): string`
 
-Encodes binary data to a hex string.
+Encodes binary data to a hex string. 
 
 The `alphabet` option defaults to `'lower'`, but may alternatively be set to `'upper'`.
 
@@ -144,7 +144,7 @@ The `onInvalidInput` option defaults to `'throw'`, in which case any non-base64,
 
 `onInvalidInput` may otherwise be set to `'skip'`, in which case any non-base64 characters are skipped and decoding continues. This matches the behaviour of `toString('base64')` on a Node `Buffer`.
 
-Note that decoding becomes substantially slower after whitespace and/or invalid characters have been encountered in the input string.
+_Note that decoding becomes substantially slower if whitespace or invalid characters are encountered in the input string._
 
 Examples:
 
