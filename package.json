@@ -1,7 +1,7 @@
 {
   "name": "hextreme",
   "version": "0.1.2",
-  "description": "Encode and decode hex and base64 with extreme speed",
+  "description": "Encode/decode hex and base64 at speed",
   "exports": {
     "require": "./index.js",
     "import": "./index.mjs"
@@ -23,12 +23,17 @@
     "test": "npm run build && echo '\n== Node ==\n' && npm run _testNode && echo '\n== Bun ==\n' && npm run _testBun"
   },
   "keywords": [
-    "toHex",
-    "toString('hex')",
     "hex",
+    "toHex",
+    "fromHex",
+    "base64",
+    "toBase64",
+    "fromBase64",
     "Uint8Array",
-    "TypedArray",
-    "ArrayBuffer"
+    "encode",
+    "decode",
+    "performance",
+    "speed"
   ],
   "author": "George MacKerron",
   "license": "MIT",
