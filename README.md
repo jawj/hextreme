@@ -166,3 +166,15 @@ fromBase64('hello/:+/worldA==');
 fromBase64('hello/:+/worldA==', { onInvalidInput: 'skip' });
 // Uint8Array(10) [ 133, 233, 101, 163, 255, 191, 194, 138, 229, 116 ]
 ```
+
+## Development
+
+The source is in `src`. To build: `npm run build`.
+
+To run tests: `npm run test`. To run a subset of tests on a big-endian platform (which has some different code paths), see [big-endian/README.md](big-endian/README.md).
+
+To run benchmarks: `npm run perfCli` (for Node and Bun) and `npm run perfBrowser`.
+
+## Licence
+
+Copyright (C) 2024 George MacKerron and released under the [MIT License](LICENSE).
