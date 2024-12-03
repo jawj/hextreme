@@ -105,3 +105,35 @@ fromHex('FEEDfXce', { onInvalidInput: 'truncate' });
 // Uint8Array(2) [ 254, 237 ]
 ```
 
+### Base64 encoding
+
+`toBase64(bytes: Uint8Array, { alphabet?: 'base64' | 'base64url', omitPadding?: boolean } = {}): string;`
+
+Encodes binary data to a base64 string.
+
+The `alphabet` option defaults to `'base64'`, but may alternatively be set to `'base64url'`, in which case the `+` and `/` characters are replaced with `-` and `_`.
+
+The `omitPadding` option defaults to `false`, so that the output string is padded to a multiple of 4 characters using the `=` character. It can be set to `true` to prevent padding being applied.
+
+Examples:
+
+```javascript
+import { toBase64 } from 'hextreme';
+
+const bytes = new Uint8Array([133, 233, 101, 163, 255, 191, 194, 138, 229, 116]);
+
+toBase64(bytes);
+// 'hello/+/worldA=='
+
+toBase64(bytes, { alphabet: 'base64url' });
+// 'hello_-_worldA=='
+
+toBase64(bytes, { alphabet: 'base64url', omitPadding: true });
+// 'hello_-_worldA'
+```
+
+### Base64 decoding
+
+`fromBase64(base64: string, { alphabet?: 'base64' | 'base64url', onInvalidInput?: 'throw' | 'skip' } = {}): Uint8Array;`
+
+Decodes a base64 string to binary data.
