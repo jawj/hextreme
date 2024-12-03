@@ -64,13 +64,13 @@ export function perf() {
   console.log(`cf. native toBase64                    ${benchmark(() => benchmarkArray.toBase64({ alphabet: 'base64url' }), iterations)}`);
   // @ts-ignore
   console.log(`cf. native Buffer.toString             ${benchmark(() => benchmarkBuffer.toString('base64url'), iterations)}`);
-  console.log(`cf. feross/buffer.toString:            ${benchmark(() => benchmarkBufferShim.toString('base64url'), iterations)}`);
+  console.log(`cf. feross/buffer.toString             ${benchmark(() => benchmarkBufferShim.toString('base64url'), iterations)}`);
   console.log();
 
   console.log('* Decode base64url\n')
   console.log(`_fromBase64                            ${benchmark(() => _fromBase64(benchmarkBase64Url, { alphabet: 'base64url', onInvalidInput: 'skip' }), iterations)}`);
   // @ts-ignore
-  console.log(`cf. native fromBase64                  ${benchmark(() => Uint8Array.fromBase64(benchmarkBase64Std, { alphabet: 'base64url' }), iterations)}`);
+  console.log(`cf. native fromBase64                  ${benchmark(() => Uint8Array.fromBase64(benchmarkBase64Url, { alphabet: 'base64url' }), iterations)}`);
   console.log(`cf. native Buffer.from                 ${benchmark(() => Buffer.from(benchmarkBase64Url, 'base64url'), iterations)}`);
   console.log(`cf. feross/buffer.from                 ${benchmark(() => BufferShim.from(benchmarkBase64Url, 'base64url'), iterations)}`);
   console.log();
@@ -87,7 +87,7 @@ export function perf() {
   console.log('* Decode hex\n')
   console.log(`_fromHexChunked                        ${benchmark(() => _fromHexChunked(benchmarkHex), iterations)}`);
   // @ts-ignore
-  console.log(`cf. native fromHex                     ${benchmark(() => Uint8Array.fromHex(benchmarkBase64Std), iterations)}`);
+  console.log(`cf. native fromHex                     ${benchmark(() => Uint8Array.fromHex(benchmarkHex), iterations)}`);
   console.log(`cf. native Buffer.from                 ${benchmark(() => Buffer.from(benchmarkHex, 'hex'), iterations)}`);
   console.log(`cf. feross/buffer.from                 ${benchmark(() => BufferShim.from(benchmarkHex, 'hex'), iterations)}`);
   console.log();
