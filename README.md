@@ -1,10 +1,17 @@
 # hextreme
 
-Hex and base64 string encoding and decoding for `Uint8Array` — like [`.toHex()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array/toHex)/[`.fromHex()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array/fromHex) and [`.toBase64()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array/toBase64)/[`.fromBase64()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array/fromBase64), which are not yet widely supported.
+Hex and base64 string encoding and decoding for `Uint8Array` — like native [`.toHex()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array/toHex)/[`.fromHex()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array/fromHex) and [`.toBase64()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array/toBase64)/[`.fromBase64()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array/fromBase64), which are not yet widely supported.
 
-An order of magnitude faster than most other libraries, and intended to be as fast as is reasonably possible using only plain JavaScript.
+Intended to be as fast as reasonably possible using only plain JavaScript.
 
-No external dependencies. 4KB zipped.
+The secret ingredients are: 
+
+* Conversion between strings and arrays via `TextEncoder` and `TextDecoder`
+* Multi-byte reads, writes and lookups using `Uint16Array` and `Uint32Array`
+* A little bit of loop unrolling (which makes a real difference in Chrome/V8)
+
+No external dependencies. 4KB zipped. Exports ESM, CJS, and TypeScript types.
+
 
 ## Performance
 
@@ -44,3 +51,4 @@ This library                     41.69 ms         31.70 ms           64.10 ms
 cf. native fromBase64                   -        118.00 ms            3.70 ms
 cf. feross/buffer.from          206.83 ms        245.80 ms          276.70 ms
 ```
+
