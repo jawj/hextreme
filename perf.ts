@@ -10,7 +10,9 @@ import {
 
 import bufferShimDefault from 'buffer/index.js';  // just 'buffer' imports Node native implementation
 
-export function perf() {
+const includeBase64Url = false;
+
+export function perf(log = console.log.bind(console)) {
   const
     BufferShim = bufferShimDefault.Buffer,
     length = 33554433,
@@ -27,8 +29,8 @@ export function perf() {
 
   let iterations = 10;
 
-  console.log(`Benchmarking ${(benchmarkArray.length / 2 ** 20).toFixed(1)} MiB random data, mean of ${iterations} iterations ...`);
-  console.log()
+  log(`Benchmarking ${(benchmarkArray.length / 2 ** 20).toFixed(1)} MiB random data, mean of ${iterations} iterations ...`);
+  log()
 
   function benchmark(fn: () => any, iterations: number) {
     try { fn() } catch (err: any) { return `      –` }
@@ -41,58 +43,60 @@ export function perf() {
     return out;
   }
 
-  console.log('* Encode base64\n')
-  console.log(`_toBase64Chunked                       ${benchmark(() => _toBase64Chunked(benchmarkArray), iterations)}`);
+  log('* Encode base64\n')
+  log(`This library                           ${benchmark(() => _toBase64Chunked(benchmarkArray), iterations)}`);
   // @ts-ignore
-  console.log(`cf. native toBase64                    ${benchmark(() => benchmarkArray.toBase64(), iterations)}`);
+  log(`cf. native toBase64                    ${benchmark(() => benchmarkArray.toBase64(), iterations)}`);
   // @ts-ignore
-  console.log(`cf. native Buffer.toString             ${benchmark(() => benchmarkBuffer.toString('base64'), iterations)}`);
-  console.log(`cf. feross/buffer.toString             ${benchmark(() => benchmarkBufferShim.toString('base64'), iterations)}`);
-  console.log();
+  log(`cf. native Buffer.toString             ${benchmark(() => benchmarkBuffer.toString('base64'), iterations)}`);
+  log(`cf. feross/buffer.toString             ${benchmark(() => benchmarkBufferShim.toString('base64'), iterations)}`);
+  log();
 
-  console.log('* Decode base64\n')
-  console.log(`_fromBase64                            ${benchmark(() => _fromBase64(benchmarkBase64Std), iterations)}`);
+  log('* Decode base64\n')
+  log(`This library                           ${benchmark(() => _fromBase64(benchmarkBase64Std), iterations)}`);
   // @ts-ignore
-  console.log(`cf. native fromBase64                  ${benchmark(() => Uint8Array.fromBase64(benchmarkBase64Std), iterations)}`);
-  console.log(`cf. native Buffer.from                 ${benchmark(() => Buffer.from(benchmarkBase64Std, 'base64'), iterations)}`);
-  console.log(`cf. feross/buffer.from                 ${benchmark(() => BufferShim.from(benchmarkBase64Std, 'base64'), iterations)}`);
-  console.log();
+  log(`cf. native fromBase64                  ${benchmark(() => Uint8Array.fromBase64(benchmarkBase64Std), iterations)}`);
+  log(`cf. native Buffer.from                 ${benchmark(() => Buffer.from(benchmarkBase64Std, 'base64'), iterations)}`);
+  log(`cf. feross/buffer.from                 ${benchmark(() => BufferShim.from(benchmarkBase64Std, 'base64'), iterations)}`);
+  log();
 
-  console.log('* Encode base64url\n')
-  console.log(`_toBase64Chunked                       ${benchmark(() => _toBase64Chunked(benchmarkArray, { alphabet: 'base64url', omitPadding: true }), iterations)}`);
-  // @ts-ignore
-  console.log(`cf. native toBase64                    ${benchmark(() => benchmarkArray.toBase64({ alphabet: 'base64url' }), iterations)}`);
-  // @ts-ignore
-  console.log(`cf. native Buffer.toString             ${benchmark(() => benchmarkBuffer.toString('base64url'), iterations)}`);
-  console.log(`cf. feross/buffer.toString             ${benchmark(() => benchmarkBufferShim.toString('base64url'), iterations)}`);
-  console.log();
+  if (includeBase64Url) {
+    log('* Encode base64url\n')
+    log(`This library                           ${benchmark(() => _toBase64Chunked(benchmarkArray, { alphabet: 'base64url', omitPadding: true }), iterations)}`);
+    // @ts-ignore
+    log(`cf. native toBase64                    ${benchmark(() => benchmarkArray.toBase64({ alphabet: 'base64url' }), iterations)}`);
+    // @ts-ignore
+    log(`cf. native Buffer.toString             ${benchmark(() => benchmarkBuffer.toString('base64url'), iterations)}`);
+    log(`cf. feross/buffer.toString             ${benchmark(() => benchmarkBufferShim.toString('base64url'), iterations)}`);
+    log();
 
-  console.log('* Decode base64url\n')
-  console.log(`_fromBase64                            ${benchmark(() => _fromBase64(benchmarkBase64Url, { alphabet: 'base64url', onInvalidInput: 'skip' }), iterations)}`);
-  // @ts-ignore
-  console.log(`cf. native fromBase64                  ${benchmark(() => Uint8Array.fromBase64(benchmarkBase64Url, { alphabet: 'base64url' }), iterations)}`);
-  console.log(`cf. native Buffer.from                 ${benchmark(() => Buffer.from(benchmarkBase64Url, 'base64url'), iterations)}`);
-  console.log(`cf. feross/buffer.from                 ${benchmark(() => BufferShim.from(benchmarkBase64Url, 'base64url'), iterations)}`);
-  console.log();
+    log('* Decode base64url\n')
+    log(`This library                           ${benchmark(() => _fromBase64(benchmarkBase64Url, { alphabet: 'base64url', onInvalidInput: 'skip' }), iterations)}`);
+    // @ts-ignore
+    log(`cf. native fromBase64                  ${benchmark(() => Uint8Array.fromBase64(benchmarkBase64Url, { alphabet: 'base64url' }), iterations)}`);
+    log(`cf. native Buffer.from                 ${benchmark(() => Buffer.from(benchmarkBase64Url, 'base64url'), iterations)}`);
+    log(`cf. feross/buffer.from                 ${benchmark(() => BufferShim.from(benchmarkBase64Url, 'base64url'), iterations)}`);
+    log();
+  }
 
-  console.log('* Encode hex\n')
-  console.log(`_toHexChunked                          ${benchmark(() => _toHexChunked(benchmarkArray), iterations)}`);
+  log('* Encode hex\n')
+  log(`This library                           ${benchmark(() => _toHexChunked(benchmarkArray), iterations)}`);
   // @ts-ignore
-  console.log(`cf. native toHex                       ${benchmark(() => benchmarkArray.toHex(), iterations)}`);
+  log(`cf. native toHex                       ${benchmark(() => benchmarkArray.toHex(), iterations)}`);
   // @ts-ignore
-  console.log(`cf. native Buffer.toString             ${benchmark(() => benchmarkBuffer.toString('hex'), iterations)}`);
-  console.log(`cf. feross/buffer.toString             ${benchmark(() => benchmarkBufferShim.toString('hex'), iterations)}`);
-  console.log();
+  log(`cf. native Buffer.toString             ${benchmark(() => benchmarkBuffer.toString('hex'), iterations)}`);
+  log(`cf. feross/buffer.toString             ${benchmark(() => benchmarkBufferShim.toString('hex'), iterations)}`);
+  log();
 
-  console.log('* Decode hex\n')
-  console.log(`_fromHexChunked                        ${benchmark(() => _fromHexChunked(benchmarkHex), iterations)}`);
+  log('* Decode hex\n')
+  log(`This library                           ${benchmark(() => _fromHexChunked(benchmarkHex), iterations)}`);
   // @ts-ignore
-  console.log(`cf. native fromHex                     ${benchmark(() => Uint8Array.fromHex(benchmarkHex), iterations)}`);
-  console.log(`cf. native Buffer.from                 ${benchmark(() => Buffer.from(benchmarkHex, 'hex'), iterations)}`);
-  console.log(`cf. feross/buffer.from                 ${benchmark(() => BufferShim.from(benchmarkHex, 'hex'), iterations)}`);
-  console.log();
+  log(`cf. native fromHex                     ${benchmark(() => Uint8Array.fromHex(benchmarkHex), iterations)}`);
+  log(`cf. native Buffer.from                 ${benchmark(() => Buffer.from(benchmarkHex, 'hex'), iterations)}`);
+  log(`cf. feross/buffer.from                 ${benchmark(() => BufferShim.from(benchmarkHex, 'hex'), iterations)}`);
+  log();
 
-  console.log('Done.');
+  log('Done.');
   return false;  // for browser use
 }
 

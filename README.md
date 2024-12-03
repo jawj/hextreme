@@ -8,58 +8,39 @@ No external dependencies. 4KB zipped.
 
 ## Performance
 
-As at November 2024 on an M3 Pro MacBook Pro, this implementation is about 2x **faster** than the native `.toHex()` in Firefox 133b7, and about 2.5x slower than the one in Safari Tech Preview 207. 
+The following benchmarks were run on an M3 Pro MacBook Pro, using 32 MiB of random data, and taking the mean of 10 trials.
 
-It's also about 2x slower than the native `.toString('hex')` in Node 22.11 and about 5x slower than the one in Bun 1.1.34.
+The headlines are that we are:
 
-It is many times faster than any standard approach using either string concatenation or `join()`.
-
-Performance tests can be seen at https://jsbench.me/evm3ejel2i/5.
-
-What we do is this:
-
-* If `.toHex()` is present on the object, we just call it.
-
-* Otherwise, we map one-byte source values to two-byte output (ASCII character) values in a `Uint16Array`, and then decode this to a string. We do this in roughly 1MB chunks to avoid huge memory allocations.
-
-We do some manual loop-unrolling, which makes very little difference in Firefox and Safari but speeds things up considerably in Chrome.
-
-A test run looks like this:
+* 5 - 27x **faster** than a representative JS approach ([feross/buffer](https://github.com/feross) shim package)
+* 4 - 7x **faster** than Firefox's native methods (which is strange: Firefox can surely improve on this)
+* 6 – 17x **slower** than Safari's native methods
 
 ```
-% npm run test
+                                   Chrome          Firefox             Safari
+                            131.0.6778.86            133.0   Tech Preview 207
 
-> hextreme@0.1.0 test
-> npm run testNode && npm run testBun
+* Encode hex
 
+This library                     34.19 ms         32.40 ms           25.10 ms
+cf. native toHex                        -        123.60 ms            4.30 ms
+cf. feross/buffer.toString      929.13 ms        213.70 ms          362.80 ms
 
-> hextreme@0.1.0 testNode
-> node test.mjs
+* Decode hex
 
-Generating random test data ...
-Converting to hex ...
-Checking results ...
-All tests passed :)
+This library                     64.87 ms         34.40 ms           90.50 ms
+cf. native fromHex                      -        232.40 ms            6.30 ms
+cf. feross/buffer.from          771.01 ms        549.20 ms         1306.10 ms
 
-Benchmarking 48.6 MiB ...
-Buffer.toString: 24.18 ms
-toHex: 49.65 ms
-_toHexUsingTextDecoder: 50.71 ms
-_toHexInChunksUsingTextDecoder: 50.61 ms
-_toHexUsingStringConcat: 2035.04 ms
+* Encode base64
 
-> hextreme@0.1.0 testBun
-> bun test.mjs
+This library                     17.16 ms         21.30 ms           40.90 ms
+cf. native toBase64                     -         84.10 ms            2.80 ms
+cf. feross/buffer.toString      282.28 ms        195.00 ms          524.10 ms
 
-Generating random test data ...
-Converting to hex ...
-Checking results ...
-All tests passed :)
+* Decode base64
 
-Benchmarking 48.6 MiB ...
-Buffer.toString: 5.84 ms
-toHex: 3.08 ms
-_toHexUsingTextDecoder: 27.54 ms
-_toHexInChunksUsingTextDecoder: 24.02 ms
-_toHexUsingStringConcat: 369.94 ms
+This library                     41.69 ms         31.70 ms           64.10 ms
+cf. native fromBase64                   -        118.00 ms            3.70 ms
+cf. feross/buffer.from          206.83 ms        245.80 ms          276.70 ms
 ```

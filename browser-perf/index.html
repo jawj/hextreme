@@ -2,6 +2,8 @@
   <p>Please open developer tools console, then <a href="#">start benchmarking</a>.</p>
   <script src="perf.js"></script>
   <script>
-    document.querySelector('a').addEventListener('click', perf);
+    document
+      .querySelector('a')
+      .addEventListener('click', () => perf(x => console.log('\t' + (x || '').replace(/  +/, '\t') + '\t')));
   </script>
 </body>

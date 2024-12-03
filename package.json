@@ -20,8 +20,8 @@
     "build": "tsc --noEmit && npm run _makeTypes && npm run _copyTypes && npm run _bundleESM && npm run _bundleCJS",
     "_perfNode": "esbuild perfCli.ts --bundle --platform=node --target=es2015 --format=esm | node",
     "_perfBun": "bun run perfCli.ts",
-    "perf": "npm run build && echo '\n== Node ==\n' && npm run _perfNode && echo '\n== Bun ==\n' && npm run _perfBun",
-    "browserPerf": "esbuild perf.ts --bundle --platform=browser --target=es2015 --format=iife --outfile=browser-perf/perf.js && open browser-perf/index.html",
+    "perfCli": "npm run build && echo '\n== Node ==\n' && npm run _perfNode && echo '\n== Bun ==\n' && npm run _perfBun",
+    "perfBrowser": "esbuild perf.ts --bundle --platform=browser --target=es2015 --format=iife --outfile=browser-perf/perf.js && open browser-perf/index.html",
     "test": "npm run build && bun run test.ts"
   },
   "keywords": [

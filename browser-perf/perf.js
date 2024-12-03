@@ -2240,13 +2240,14 @@
 
   // perf.ts
   var import_buffer = __toESM(require_buffer());
-  function perf() {
+  var includeBase64Url = false;
+  function perf(log = console.log.bind(console)) {
     const BufferShim = import_buffer.default.Buffer, length = 33554433, benchmarkArray = new Uint8Array(length);
     for (let i = 0; i < length; i++) benchmarkArray[i] = Math.random() * 256 >>> 0;
     const benchmarkBuffer = typeof Buffer !== "undefined" ? Buffer.from(benchmarkArray) : null, benchmarkBufferShim = BufferShim.from(benchmarkArray), benchmarkBase64Std = _toBase64Chunked(benchmarkArray), benchmarkBase64Url = _toBase64Chunked(benchmarkArray, { alphabet: "base64url" }), benchmarkHex = _toHexChunked(benchmarkArray);
     let iterations = 10;
-    console.log(`Benchmarking ${(benchmarkArray.length / __pow(2, 20)).toFixed(1)} MiB random data, mean of ${iterations} iterations ...`);
-    console.log();
+    log(`Benchmarking ${(benchmarkArray.length / __pow(2, 20)).toFixed(1)} MiB random data, mean of ${iterations} iterations ...`);
+    log();
     function benchmark(fn, iterations2) {
       try {
         fn();
@@ -2261,43 +2262,45 @@
       let out = `${" ".repeat(7 - s.length)}${s} ms`;
       return out;
     }
-    console.log("* Encode base64\n");
-    console.log(`_toBase64Chunked                       ${benchmark(() => _toBase64Chunked(benchmarkArray), iterations)}`);
-    console.log(`cf. native toBase64                    ${benchmark(() => benchmarkArray.toBase64(), iterations)}`);
-    console.log(`cf. native Buffer.toString             ${benchmark(() => benchmarkBuffer.toString("base64"), iterations)}`);
-    console.log(`cf. feross/buffer.toString             ${benchmark(() => benchmarkBufferShim.toString("base64"), iterations)}`);
-    console.log();
-    console.log("* Decode base64\n");
-    console.log(`_fromBase64                            ${benchmark(() => _fromBase64(benchmarkBase64Std), iterations)}`);
-    console.log(`cf. native fromBase64                  ${benchmark(() => Uint8Array.fromBase64(benchmarkBase64Std), iterations)}`);
-    console.log(`cf. native Buffer.from                 ${benchmark(() => Buffer.from(benchmarkBase64Std, "base64"), iterations)}`);
-    console.log(`cf. feross/buffer.from                 ${benchmark(() => BufferShim.from(benchmarkBase64Std, "base64"), iterations)}`);
-    console.log();
-    console.log("* Encode base64url\n");
-    console.log(`_toBase64Chunked                       ${benchmark(() => _toBase64Chunked(benchmarkArray, { alphabet: "base64url", omitPadding: true }), iterations)}`);
-    console.log(`cf. native toBase64                    ${benchmark(() => benchmarkArray.toBase64({ alphabet: "base64url" }), iterations)}`);
-    console.log(`cf. native Buffer.toString             ${benchmark(() => benchmarkBuffer.toString("base64url"), iterations)}`);
-    console.log(`cf. feross/buffer.toString:            ${benchmark(() => benchmarkBufferShim.toString("base64url"), iterations)}`);
-    console.log();
-    console.log("* Decode base64url\n");
-    console.log(`_fromBase64                            ${benchmark(() => _fromBase64(benchmarkBase64Url, { alphabet: "base64url", onInvalidInput: "skip" }), iterations)}`);
-    console.log(`cf. native fromBase64                  ${benchmark(() => Uint8Array.fromBase64(benchmarkBase64Url, { alphabet: "base64url" }), iterations)}`);
-    console.log(`cf. native Buffer.from                 ${benchmark(() => Buffer.from(benchmarkBase64Url, "base64url"), iterations)}`);
-    console.log(`cf. feross/buffer.from                 ${benchmark(() => BufferShim.from(benchmarkBase64Url, "base64url"), iterations)}`);
-    console.log();
-    console.log("* Encode hex\n");
-    console.log(`_toHexChunked                          ${benchmark(() => _toHexChunked(benchmarkArray), iterations)}`);
-    console.log(`cf. native toHex                       ${benchmark(() => benchmarkArray.toHex(), iterations)}`);
-    console.log(`cf. native Buffer.toString             ${benchmark(() => benchmarkBuffer.toString("hex"), iterations)}`);
-    console.log(`cf. feross/buffer.toString             ${benchmark(() => benchmarkBufferShim.toString("hex"), iterations)}`);
-    console.log();
-    console.log("* Decode hex\n");
-    console.log(`_fromHexChunked                        ${benchmark(() => _fromHexChunked(benchmarkHex), iterations)}`);
-    console.log(`cf. native fromHex                     ${benchmark(() => Uint8Array.fromHex(benchmarkHex), iterations)}`);
-    console.log(`cf. native Buffer.from                 ${benchmark(() => Buffer.from(benchmarkHex, "hex"), iterations)}`);
-    console.log(`cf. feross/buffer.from                 ${benchmark(() => BufferShim.from(benchmarkHex, "hex"), iterations)}`);
-    console.log();
-    console.log("Done.");
+    log("* Encode base64\n");
+    log(`_toBase64Chunked                       ${benchmark(() => _toBase64Chunked(benchmarkArray), iterations)}`);
+    log(`cf. native toBase64                    ${benchmark(() => benchmarkArray.toBase64(), iterations)}`);
+    log(`cf. native Buffer.toString             ${benchmark(() => benchmarkBuffer.toString("base64"), iterations)}`);
+    log(`cf. feross/buffer.toString             ${benchmark(() => benchmarkBufferShim.toString("base64"), iterations)}`);
+    log();
+    log("* Decode base64\n");
+    log(`_fromBase64                            ${benchmark(() => _fromBase64(benchmarkBase64Std), iterations)}`);
+    log(`cf. native fromBase64                  ${benchmark(() => Uint8Array.fromBase64(benchmarkBase64Std), iterations)}`);
+    log(`cf. native Buffer.from                 ${benchmark(() => Buffer.from(benchmarkBase64Std, "base64"), iterations)}`);
+    log(`cf. feross/buffer.from                 ${benchmark(() => BufferShim.from(benchmarkBase64Std, "base64"), iterations)}`);
+    log();
+    if (includeBase64Url) {
+      log("* Encode base64url\n");
+      log(`_toBase64Chunked                       ${benchmark(() => _toBase64Chunked(benchmarkArray, { alphabet: "base64url", omitPadding: true }), iterations)}`);
+      log(`cf. native toBase64                    ${benchmark(() => benchmarkArray.toBase64({ alphabet: "base64url" }), iterations)}`);
+      log(`cf. native Buffer.toString             ${benchmark(() => benchmarkBuffer.toString("base64url"), iterations)}`);
+      log(`cf. feross/buffer.toString             ${benchmark(() => benchmarkBufferShim.toString("base64url"), iterations)}`);
+      log();
+      log("* Decode base64url\n");
+      log(`_fromBase64                            ${benchmark(() => _fromBase64(benchmarkBase64Url, { alphabet: "base64url", onInvalidInput: "skip" }), iterations)}`);
+      log(`cf. native fromBase64                  ${benchmark(() => Uint8Array.fromBase64(benchmarkBase64Url, { alphabet: "base64url" }), iterations)}`);
+      log(`cf. native Buffer.from                 ${benchmark(() => Buffer.from(benchmarkBase64Url, "base64url"), iterations)}`);
+      log(`cf. feross/buffer.from                 ${benchmark(() => BufferShim.from(benchmarkBase64Url, "base64url"), iterations)}`);
+      log();
+    }
+    log("* Encode hex\n");
+    log(`_toHexChunked                          ${benchmark(() => _toHexChunked(benchmarkArray), iterations)}`);
+    log(`cf. native toHex                       ${benchmark(() => benchmarkArray.toHex(), iterations)}`);
+    log(`cf. native Buffer.toString             ${benchmark(() => benchmarkBuffer.toString("hex"), iterations)}`);
+    log(`cf. feross/buffer.toString             ${benchmark(() => benchmarkBufferShim.toString("hex"), iterations)}`);
+    log();
+    log("* Decode hex\n");
+    log(`_fromHexChunked                        ${benchmark(() => _fromHexChunked(benchmarkHex), iterations)}`);
+    log(`cf. native fromHex                     ${benchmark(() => Uint8Array.fromHex(benchmarkHex), iterations)}`);
+    log(`cf. native Buffer.from                 ${benchmark(() => Buffer.from(benchmarkHex, "hex"), iterations)}`);
+    log(`cf. feross/buffer.from                 ${benchmark(() => BufferShim.from(benchmarkHex, "hex"), iterations)}`);
+    log();
+    log("Done.");
     return false;
   }
   globalThis.perf = perf;
