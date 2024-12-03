@@ -136,4 +136,30 @@ toBase64(bytes, { alphabet: 'base64url', omitPadding: true });
 
 `fromBase64(base64: string, { alphabet?: 'base64' | 'base64url', onInvalidInput?: 'throw' | 'skip' } = {}): Uint8Array;`
 
-Decodes a base64 string to binary data.
+Decodes a base64 string to binary data. Whitespace in the input string (spaces, tabs, `\r` and `\n`) is ignored.
+
+The `alphabet` option defaults to `'base64'`, but may alternatively be set to `'base64url'`, in which case the `+` and `/` characters are replaced with `-` and `_`.
+
+The `onInvalidInput` option defaults to `'throw'`, in which case any non-base64, non-whitespace character in the input causes an error to be thrown. This matches the behaviour of `toBase64()` on a `Uint8Array` (where supported).
+
+`onInvalidInput` may otherwise be set to `'skip'`, in which case any non-base64 characters are skipped and decoding continues. This matches the behaviour of `toString('base64')` on a Node `Buffer`.
+
+Note that decoding becomes substantially slower after whitespace and/or invalid characters have been encountered in the input string.
+
+Examples:
+
+```javascript
+import { fromBase64 } from 'hextreme';
+
+fromBase64('hello/+/worldA==');
+// Uint8Array(10) [ 133, 233, 101, 163, 255, 191, 194, 138, 229, 116 ]
+
+fromBase64('hello_-_worldA==', { alphabet: 'base64url' });
+// Uint8Array(10) [ 133, 233, 101, 163, 255, 191, 194, 138, 229, 116 ]
+
+fromBase64('hello/:+/worldA==');
+// Uncaught Error: Invalid character in base64 at index 6
+
+fromBase64('hello/:+/worldA==', { onInvalidInput: 'skip' });
+// Uint8Array(10) [ 133, 233, 101, 163, 255, 191, 194, 138, 229, 116 ]
+```
