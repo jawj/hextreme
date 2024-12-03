@@ -8,9 +8,6 @@ import {
   _fromBase64,
 } from './src/index';
 
-import bufferShimDefault from 'buffer/index.js';  // just 'buffer' imports Node native implementation
-const BufferShim = bufferShimDefault.Buffer;
-
 function arrEq(arr1: Uint8Array, arr2: Uint8Array) {
   if (arr1.length !== arr2.length) return false;
   for (let i = 0, len = arr1.length; i < len; i++) if (arr1[i] !== arr2[i]) return false;
@@ -29,10 +26,8 @@ const
   }),
   benchmarkArray = arrays[arrays.length - 1],
   benchmarkBuffer = Buffer.from(benchmarkArray),
-  benchmarkBufferShim = BufferShim.from(benchmarkArray),
   benchmarkHex = benchmarkBuffer.toString('hex'),
-  benchmarkBase64Std = benchmarkBuffer.toString('base64'),
-  benchmarkBase64Url = benchmarkBuffer.toString('base64url');
+  benchmarkBase64Std = benchmarkBuffer.toString('base64');
 
 console.log('Generated\n');
 
@@ -230,7 +225,7 @@ function expectHexTrunc(hex: string) {
     localLax = _fromHexChunked(hex, { onInvalidInput: 'truncate' }),
     nodeLax = Buffer.from(hex, 'hex');
 
-    if (!arrEq(localLax, nodeLax)) throw new Error(`Mismatch: ${localLax} != ${nodeLax}`);
+  if (!arrEq(localLax, nodeLax)) throw new Error(`Mismatch: ${localLax} != ${nodeLax}`);
 }
 
 _fromHexChunked('');
@@ -249,58 +244,3 @@ expectHexTrunc(benchmarkHex + ' 123456789');
 
 console.log('Tests passed\n');
 console.log('✅ All tests passed\n');
-
-
-let iterations = 10;
-
-console.log(`Benchmarking ${(benchmarkArray.length / 2 ** 20).toFixed(1)} MiB random data, mean of ${iterations} iterations ...`);
-console.log()
-
-function benchmark(fn: () => any, iterations: number) {
-  const t0 = performance.now();
-  for (let i = 0; i < iterations; i++) fn();
-  const t1 = performance.now();
-  const t = (t1 - t0) / iterations;
-  const s = t.toFixed(2);
-  let out = `${' '.repeat(7 - s.length)}${s} ms`;
-  return out;
-}
-
-console.log('* Encode base64\n')
-console.log(`_toBase64Chunked                       ${benchmark(() => _toBase64Chunked(benchmarkArray), iterations)}`);
-console.log(`cf. native Buffer.toString             ${benchmark(() => benchmarkBuffer.toString('base64'), iterations)}`);
-console.log(`cf. feross/buffer.toString             ${benchmark(() => benchmarkBufferShim.toString('base64'), iterations)}`);
-console.log();
-
-console.log('* Decode base64\n')
-console.log(`_fromBase64                            ${benchmark(() => _fromBase64(benchmarkBase64Std), iterations)}`);
-console.log(`cf. native Buffer.from                 ${benchmark(() => Buffer.from(benchmarkBase64Std, 'base64'), iterations)}`);
-console.log(`cf. feross/buffer.from                 ${benchmark(() => BufferShim.from(benchmarkBase64Std, 'base64'), iterations)}`);
-console.log();
-
-console.log('* Encode base64url\n')
-console.log(`_toBase64Chunked                       ${benchmark(() => _toBase64Chunked(benchmarkArray, { alphabet: 'base64url', omitPadding: true }), iterations)}`);
-console.log(`cf. native Buffer toString             ${benchmark(() => benchmarkBuffer.toString('base64url'), iterations)}`);
-//console.log(`cf. feross/buffer toString: ${benchmark(() => benchmarkBufferShim.toString('base64url'), iterations)} ms`);
-console.log(`cf. feross/buffer toString    (not yet supported)`);
-console.log();
-
-console.log('* Decode base64url\n')
-console.log(`_fromBase64                            ${benchmark(() => _fromBase64(benchmarkBase64Url, { alphabet: 'base64url', onInvalidInput: 'skip' }), iterations)}`);
-console.log(`cf. native Buffer.from                 ${benchmark(() => Buffer.from(benchmarkBase64Url, 'base64url'), iterations)}`);
-//console.log(`cf. feross/buffer.from                 ${benchmark(() => BufferShim.from(benchmarkBase64Url, 'base64url'), iterations)}`);
-console.log(`cf. feross/buffer from        (not yet supported)`);
-console.log();
-
-console.log('* Encode hex\n')
-console.log(`_toHexChunked                          ${benchmark(() => _toHexChunked(benchmarkArray), iterations)}`);
-console.log(`cf. native Buffer toString             ${benchmark(() => benchmarkBuffer.toString('hex'), iterations)}`);
-console.log(`cf. feross/buffer toString             ${benchmark(() => benchmarkBufferShim.toString('hex'), iterations)}`);
-console.log();
-
-console.log('* Decode hex\n')
-console.log(`_fromHexChunked                        ${benchmark(() => _fromHexChunked(benchmarkHex), iterations)}`);
-console.log(`cf. native Buffer from                 ${benchmark(() => Buffer.from(benchmarkHex, 'hex'), iterations)}`);
-console.log(`cf. feross/buffer from                 ${benchmark(() => BufferShim.from(benchmarkHex, 'hex'), iterations)}`);
-console.log();
-

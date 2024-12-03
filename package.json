@@ -18,9 +18,11 @@
     "_makeTypes": "dts-bundle-generator -o index.d.ts src/index.ts",
     "_copyTypes": "cp index.d.ts index.d.mts",
     "build": "tsc --noEmit && npm run _makeTypes && npm run _copyTypes && npm run _bundleESM && npm run _bundleCJS",
-    "_testNode": "esbuild test.ts --bundle --platform=node --target=es2015 --format=esm | node",
-    "_testBun": "bun run test.ts",
-    "test": "npm run build && echo '\n== Node ==\n' && npm run _testNode && echo '\n== Bun ==\n' && npm run _testBun"
+    "_perfNode": "esbuild perfCli.ts --bundle --platform=node --target=es2015 --format=esm | node",
+    "_perfBun": "bun run perfCli.ts",
+    "perf": "npm run build && echo '\n== Node ==\n' && npm run _perfNode && echo '\n== Bun ==\n' && npm run _perfBun",
+    "browserPerf": "esbuild perf.ts --bundle --platform=browser --target=es2015 --format=iife --outfile=browser-perf/perf.js && open browser-perf/index.html",
+    "test": "npm run build && bun run test.ts"
   },
   "keywords": [
     "hex",
