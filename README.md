@@ -19,8 +19,8 @@ The following benchmarks were run on an M3 Pro MacBook Pro, using 32 MiB of rand
 
 The headlines are that we are:
 
-* 5 - 27x **faster** than a representative JS approach ([feross/buffer](https://github.com/feross) shim package)
-* 4 - 7x **faster** than Firefox's native methods (which is strange: Firefox can surely improve on this)
+* 5 – 27x **faster** than a representative JS approach ([feross/buffer](https://github.com/feross) shim package)
+* 4 – 7x **faster** than Firefox's native methods (which is strange: Firefox can surely improve on this)
 * 6 – 17x **slower** than Safari's native methods
 
 ```
