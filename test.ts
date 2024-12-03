@@ -1,18 +1,21 @@
 import {
-  toHex,
   _toHex,
   _toHexChunked,
-  fromHex,
   _fromHex,
   _fromHexChunked,
   _toBase64,
   _toBase64Chunked,
-  fromBase64,
+  _fromBase64,
 } from './src/index';
 
 import bufferShimDefault from 'buffer/index.js';  // just 'buffer' imports Node native implementation
-
 const BufferShim = bufferShimDefault.Buffer;
+
+function arrEq(arr1: Uint8Array, arr2: Uint8Array) {
+  if (arr1.length !== arr2.length) return false;
+  for (let i = 0, len = arr1.length; i < len; i++) if (arr1[i] !== arr2[i]) return false;
+  return true;
+}
 
 
 console.log('Generating random test data ...');
@@ -59,12 +62,9 @@ for (let i = 0; i < arrays.length; i++) {
   const
     data = arrays[i],
     base64 = rNodeBufferB64Std[i] + '\n'.repeat(i % 5),
-    dataAgain = fromBase64(base64);
+    dataAgain = _fromBase64(base64);
 
-  if (dataAgain.length !== data.length) throw new Error(`Length mismatch decoding '${base64}': ${data} != ${dataAgain}`);
-  for (let j = 0; j < data.length; j++) {
-    if (data[j] !== dataAgain[j]) throw new Error(`Value mismatch: ${data} != ${dataAgain}`);
-  }
+  if (!arrEq(data, dataAgain)) throw new Error(`Mismatch: ${data} != ${dataAgain}`);
 }
 
 console.log('Tests passed\n');
@@ -79,11 +79,7 @@ const
 console.log('Checking results ...');
 
 for (let i = 0; i < arrays.length; i++) {
-  if (rNodeBufferB64Url[i] !== rToBase64Url[i]) {
-    throw new Error(`base64url mismatch for array length ${lengths[i]}:
-  toString('base64url'): ${rNodeBufferB64Url[i]}
-  _toBase64Chunked: ${rToBase64Url[i]}`);
-  }
+  if (rNodeBufferB64Url[i] !== rToBase64Url[i]) throw new Error(`Mismatch: ${rNodeBufferB64Url[i]} != ${rToBase64Url[i]}`);
 }
 
 console.log('Tests passed\n');
@@ -95,13 +91,19 @@ for (let i = 0; i < arrays.length; i++) {
   const
     data = arrays[i],
     base64 = ' '.repeat(Math.floor(Math.random() * 16)) + rNodeBufferB64Url[i] + '\n'.repeat(i % 5),
-    dataAgain = fromBase64(base64, { alphabet: 'base64url' });
+    dataAgain = _fromBase64(base64, { alphabet: 'base64url' });
 
-  if (dataAgain.length !== data.length) throw new Error(`Length mismatch decoding '${base64}': ${data} != ${dataAgain}`);
-  for (let j = 0; j < data.length; j++) {
-    if (data[j] !== dataAgain[j]) throw new Error(`Value mismatch: ${data} != ${dataAgain}`);
-  }
+  if (!arrEq(data, dataAgain)) throw new Error(`Mismatch: ${data} != ${dataAgain}`);
 }
+
+console.log('Tests passed\n');
+
+
+console.log('Decoding base64 with unusual whitespace ...');
+
+if (!arrEq(_fromBase64(benchmarkBase64Std.split('').join(' ')), _fromBase64(benchmarkBase64Std))) throw new Error('Base 64 decoding error on whitespace between every character');
+if (!arrEq(_fromBase64(benchmarkBase64Std + '\n'.repeat(12345678)), _fromBase64(benchmarkBase64Std))) throw new Error('Base 64 decoding error on long whitespace after');
+if (!arrEq(_fromBase64('\n'.repeat(12345678) + benchmarkBase64Std), _fromBase64(benchmarkBase64Std))) throw new Error('Base 64 decoding error on long whitespace before');
 
 console.log('Tests passed\n');
 
@@ -111,7 +113,7 @@ console.log('Decoding base64 with invalid characters (strict) ...');
 function expectBase64Error(b64: string) {
   let err = null;
   try {
-    fromBase64(b64)
+    _fromBase64(b64)
   } catch (e) {
     err = e
   } finally {
@@ -120,10 +122,10 @@ function expectBase64Error(b64: string) {
   }
 }
 
-fromBase64('');
-fromBase64('AAA=');
-fromBase64('AA BB CC ++');
-fromBase64(' AAaa88ZZ00\n\n\n\n\n\nAAaa//ZZ00\t\tAAaaZZ0099  == ');
+_fromBase64('');
+_fromBase64('AAA=');
+_fromBase64('AA BB CC ++');
+_fromBase64(' AAaa88ZZ00\n\n\n\n\n\nAAaa//ZZ00\t\tAAaaZZ0099  == ');
 expectBase64Error('**********');
 expectBase64Error('AAaaZZ.aa');
 expectBase64Error('AAaaZZ00-');
@@ -131,6 +133,7 @@ expectBase64Error(' AAaa88ZZ00\nAAaa//ZZ00\t~AAaaZZ0099== ');
 expectBase64Error(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099== 😀');
 expectBase64Error(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099==  😀');
 expectBase64Error(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099==   😀');
+expectBase64Error('\n'.repeat(12345678) + '*');
 expectBase64Error(benchmarkBase64Std + ':::' + benchmarkBase64Std);
 
 console.log('Tests passed\n');
@@ -140,11 +143,10 @@ console.log('Decoding base64 with invalid characters (lax) ...');
 
 function expectBase64Skip(b64: string) {
   const
-    localLax = fromBase64(b64, { onInvalidInput: 'skip' }),
+    localLax = _fromBase64(b64, { onInvalidInput: 'skip' }),
     nodeLax = Buffer.from(b64, 'base64');
 
-  if (localLax.length !== nodeLax.length) throw new Error(`Lax base64 parsing results in different length to Node: ${_toBase64(localLax)} instead of ${_toBase64(nodeLax)}`);
-  for (let i = 0; i < localLax.length; i++) if (localLax[i] != nodeLax[i]) throw new Error(`Lax base64 parsing results in different result to Node: ${_toBase64(localLax)} instead of ${_toBase64(nodeLax)}`);
+  if (!arrEq(localLax, nodeLax)) throw new Error(`Mismatch: ${localLax} != ${nodeLax}`);
 }
 
 expectBase64Skip('');
@@ -165,24 +167,12 @@ console.log('Encoding as hex ...');
 
 const
   rNodeBuffer = arrays.map(arr => Buffer.from(arr).toString('hex')),
-  rToHex = arrays.map(arr => toHex(arr)),
-  rTextDecoder = arrays.map(arr => _toHex(arr)),
   rTextDecoderInChunks = arrays.map(arr => _toHexChunked(arr));
 
 console.log('Checking results ...');
 
 for (let i = 0; i < arrays.length; i++) {
-  if (
-    rNodeBuffer[i] !== rToHex[i] ||
-    rNodeBuffer[i] !== rTextDecoder[i] ||
-    rNodeBuffer[i] !== rTextDecoderInChunks[i]
-  ) {
-    throw new Error(`Hex mismatch for array length ${lengths[i]}:
-  toString('hex'): ${rNodeBuffer[i]}
-  toHex: ${rToHex[i]}
-  _toHex: ${rTextDecoder[i]}
-  _toHexChunked: ${rTextDecoderInChunks[i]}`);
-  }
+  if (rNodeBuffer[i] !== rTextDecoderInChunks[i]) throw new Error(`Mismatch: ${rTextDecoderInChunks[i]} != ${rNodeBuffer[i]}`);
 }
 
 console.log('Tests passed\n');
@@ -196,10 +186,7 @@ for (let i = 0; i < arrays.length; i++) {
     hex = rNodeBuffer[i],
     dataAgain = _fromHexChunked(hex);
 
-  if (dataAgain.length !== data.length) throw new Error(`Length mismatch`);
-  for (let j = 0; j < data.length; j++) {
-    if (data[j] !== dataAgain[j]) throw new Error(`Value mismatch: ${data} != ${dataAgain}`);
-  }
+  if (!arrEq(data, dataAgain)) throw new Error(`Mismatch: ${data} != ${dataAgain}`)
 }
 
 console.log('Tests passed\n');
@@ -219,8 +206,8 @@ function expectHexError(hex: string) {
   }
 }
 
-fromHex('');
-fromHex('00');
+_fromHexChunked('');
+_fromHexChunked('00');
 expectHexError('001');
 expectHexError('0123456789abcdef0g');
 expectHexError('0123456789xxabcdef');
@@ -243,12 +230,11 @@ function expectHexTrunc(hex: string) {
     localLax = _fromHexChunked(hex, { onInvalidInput: 'truncate' }),
     nodeLax = Buffer.from(hex, 'hex');
 
-  if (localLax.length !== nodeLax.length) throw new Error(`Lax hex parsing results in different length to Node: ${toHex(localLax)} instead of ${toHex(nodeLax)}`);
-  for (let i = 0; i < localLax.length; i++) if (localLax[i] != nodeLax[i]) throw new Error(`Lax hex parsing results in different result to Node: ${toHex(localLax)} instead of ${toHex(nodeLax)}`);
+    if (!arrEq(localLax, nodeLax)) throw new Error(`Mismatch: ${localLax} != ${nodeLax}`);
 }
 
-fromHex('');
-fromHex('00');
+_fromHexChunked('');
+_fromHexChunked('00');
 expectHexTrunc('001');
 expectHexTrunc('0123456789abcdef0g');
 expectHexTrunc('0123456789xxabcdef');
@@ -287,7 +273,7 @@ console.log(`cf. feross/buffer.toString             ${benchmark(() => benchmarkB
 console.log();
 
 console.log('* Decode base64\n')
-console.log(`fromBase64                             ${benchmark(() => fromBase64(benchmarkBase64Std), iterations)}`);
+console.log(`_fromBase64                            ${benchmark(() => _fromBase64(benchmarkBase64Std), iterations)}`);
 console.log(`cf. native Buffer.from                 ${benchmark(() => Buffer.from(benchmarkBase64Std, 'base64'), iterations)}`);
 console.log(`cf. feross/buffer.from                 ${benchmark(() => BufferShim.from(benchmarkBase64Std, 'base64'), iterations)}`);
 console.log();
@@ -300,22 +286,20 @@ console.log(`cf. feross/buffer toString    (not yet supported)`);
 console.log();
 
 console.log('* Decode base64url\n')
-console.log(`fromBase64                             ${benchmark(() => fromBase64(benchmarkBase64Url, { alphabet: 'base64url', onInvalidInput: 'skip' }), iterations)}`);
+console.log(`_fromBase64                            ${benchmark(() => _fromBase64(benchmarkBase64Url, { alphabet: 'base64url', onInvalidInput: 'skip' }), iterations)}`);
 console.log(`cf. native Buffer.from                 ${benchmark(() => Buffer.from(benchmarkBase64Url, 'base64url'), iterations)}`);
 //console.log(`cf. feross/buffer.from                 ${benchmark(() => BufferShim.from(benchmarkBase64Url, 'base64url'), iterations)}`);
 console.log(`cf. feross/buffer from        (not yet supported)`);
 console.log();
 
 console.log('* Encode hex\n')
-console.log(`toHex                                  ${benchmark(() => toHex(benchmarkArray), iterations)}`);
-console.log(`_toHex                                 ${benchmark(() => _toHex(benchmarkArray), iterations)}`);
 console.log(`_toHexChunked                          ${benchmark(() => _toHexChunked(benchmarkArray), iterations)}`);
 console.log(`cf. native Buffer toString             ${benchmark(() => benchmarkBuffer.toString('hex'), iterations)}`);
 console.log(`cf. feross/buffer toString             ${benchmark(() => benchmarkBufferShim.toString('hex'), iterations)}`);
 console.log();
 
 console.log('* Decode hex\n')
-console.log(`fromHex                                ${benchmark(() => fromHex(benchmarkHex), iterations)}`);
+console.log(`_fromHexChunked                        ${benchmark(() => _fromHexChunked(benchmarkHex), iterations)}`);
 console.log(`cf. native Buffer from                 ${benchmark(() => Buffer.from(benchmarkHex, 'hex'), iterations)}`);
 console.log(`cf. feross/buffer from                 ${benchmark(() => BufferShim.from(benchmarkHex, 'hex'), iterations)}`);
 console.log();

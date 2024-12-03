@@ -264,7 +264,7 @@ var b64StdWordLookup;
 var b64UrlWordLookup;
 var b64StdByteLookup;
 var b64UrlByteLookup;
-function fromBase64(s, { alphabet, onInvalidInput, scratchArr, outArr } = {}) {
+function _fromBase64(s, { alphabet, onInvalidInput } = {}) {
   const lax = onInvalidInput === "skip", urlsafe = alphabet === "base64url";
   if (!urlsafe && !b64StdWordLookup) {
     b64StdWordLookup = new Uint16Array(vzz + 1);
@@ -287,10 +287,10 @@ function fromBase64(s, { alphabet, onInvalidInput, scratchArr, outArr } = {}) {
     b64UrlByteLookup[b64ChPad] = b64UrlByteLookup[9] = b64UrlByteLookup[10] = b64UrlByteLookup[13] = b64UrlByteLookup[32] = 64;
     for (let i2 = 0; i2 < 64; i2++) b64StdByteLookup[b64ChStd[i2]] = b64UrlByteLookup[b64ChUrl[i2]] = i2;
   }
-  const strlen = s.length, inIntsLen = Math.ceil(strlen / 4), inIntsLenPlus = inIntsLen + 1, fastIntsLen = inIntsLen - 4, inInts = scratchArr ||
-  new Uint32Array(inIntsLenPlus), inBytes = new Uint8Array(inInts.buffer, 0, strlen), maxOutBytesLen = inIntsLen * 3, outBytes = outArr ||
-  new Uint8Array(maxOutBytesLen), outInts = new Uint32Array(outBytes.buffer, 0, outBytes.length >>> 2), b64WordLookup = urlsafe ? b64UrlWordLookup :
-  b64StdWordLookup, b64ByteLookup = urlsafe ? b64UrlByteLookup : b64StdByteLookup;
+  const strlen = s.length, inIntsLen = Math.ceil(strlen / 4), inIntsLenPlus = inIntsLen + 1, fastIntsLen = inIntsLen - 4, inInts = new Uint32Array(
+  inIntsLenPlus), inBytes = new Uint8Array(inInts.buffer, 0, strlen), maxOutBytesLen = inIntsLen * 3, outBytes = new Uint8Array(maxOutBytesLen),
+  outInts = new Uint32Array(outBytes.buffer, 0, outBytes.length >>> 2), b64WordLookup = urlsafe ? b64UrlWordLookup : b64StdWordLookup,
+  b64ByteLookup = urlsafe ? b64UrlByteLookup : b64StdByteLookup;
   te.encodeInto(s, inBytes);
   let i = 0, j = 0, inInt, inL, inR, vL1, vR1, vL2, vR2, vL3, vR3, vL4, vR4;
   if (littleEndian) while (i < fastIntsLen) {
@@ -409,7 +409,7 @@ function fromBase64(s, { alphabet, onInvalidInput, scratchArr, outArr } = {}) {
   }
   i <<= 2;
   j <<= 2;
-  let i0 = 0, ok = false, v1, v2, v3, v4;
+  let i0 = i, ok = false, v1, v2, v3, v4;
   e: {
     if (lax) while (i < strlen) {
       i0 = i;
@@ -459,7 +459,12 @@ function fromBase64(s, { alphabet, onInvalidInput, scratchArr, outArr } = {}) {
   const truncateBytes = { 4: 0, 3: 1, 2: 2, 1: 2, 0: 3 }[validChars];
   return outBytes.subarray(0, j - truncateBytes);
 }
+function fromBase64(s, options = {}) {
+  return options.onInvalidInput !== "skip" && typeof Uint8Array.fromBase64 === "function" ? Uint8Array.fromBase64(s) : _fromBase64(
+  s, options);
+}
 export {
+  _fromBase64,
   _fromHex,
   _fromHexChunked,
   _toBase64,

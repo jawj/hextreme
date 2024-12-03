@@ -35,10 +35,7 @@ export declare function toBase64(d: Uint8Array, options?: ToBase64Options): stri
 export interface FromBase64Options extends Base64Options {
 	onInvalidInput?: "throw" | "skip";
 }
-export interface _FromBase64Options extends FromBase64Options {
-	scratchArr?: Uint32Array;
-	outArr?: Uint8Array;
-}
-export declare function fromBase64(s: string, { alphabet, onInvalidInput, scratchArr, outArr }?: _FromBase64Options): Uint8Array<ArrayBuffer>;
+export declare function _fromBase64(s: string, { alphabet, onInvalidInput }?: FromBase64Options): Uint8Array<ArrayBuffer>;
+export declare function fromBase64(s: string, options?: FromBase64Options): any;
 
 export {};

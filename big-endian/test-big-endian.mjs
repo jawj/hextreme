@@ -1,8 +1,8 @@
 import {
   _fromHexChunked,
   _toHexChunked,
-  toBase64,
-  fromBase64,
+  _toBase64Chunked,
+  _fromBase64,
 } from '../index.mjs';
 
 // supporting code
@@ -11,7 +11,7 @@ import {
 TextEncoder.prototype.encodeInto = function (s, arr) {
   const newArr = this.encode(s);
   arr.set(newArr);
-  return {};  // should be { read, written }
+  return {};  // should really be { read, written }
 }
 
 function err(s) {  // qjs just quits on errors, so let's also log the message
@@ -78,7 +78,7 @@ console.log('Encoding as base64 ...');
 
 const
   goodBase64 = arrays.map(arr => basicToBase64(arr, true, false)),
-  testBase64 = arrays.map(arr => toBase64(arr));
+  testBase64 = arrays.map(arr => _toBase64Chunked(arr));
 
 console.log('Checking results ...');
 
@@ -95,7 +95,7 @@ for (let i = 0; i < arrays.length; i++) {
   const
     data = arrays[i],
     base64 = goodBase64[i],
-    dataAgain = fromBase64(base64);
+    dataAgain = _fromBase64(base64, { alphabet: 'base64' });
 
   if (dataAgain.length !== data.length) err(`Length mismatch decoding '${base64}': ${data} != ${dataAgain}`);
   for (let j = 0; j < data.length; j++) {
@@ -110,13 +110,59 @@ console.log('Encoding as base64url ...');
 
 const
   goodBase64Url = arrays.map(arr => basicToBase64(arr, false, true)),
-  testBase64Url = arrays.map(arr => toBase64(arr, { alphabet: 'base64url', omitPadding: true }));
+  testBase64Url = arrays.map(arr => _toBase64Chunked(arr, { alphabet: 'base64url', omitPadding: true }));
 
 console.log('Checking results ...');
 
 for (let i = 0; i < arrays.length; i++) {
   if (testBase64Url[i] !== goodBase64Url[i]) err(`base64 mismatch for array length ${lengths[i]}: '${testBase64Url[i]}' !== '${goodBase64Url[i]}'`);
 }
+
+console.log('Tests passed\n');
+
+
+console.log('Decoding back from base64url and checking results ...');
+
+for (let i = 0; i < arrays.length; i++) {
+  const
+    data = arrays[i],
+    base64 = goodBase64Url[i],
+    dataAgain = _fromBase64(base64, { alphabet: 'base64url' });
+
+  if (dataAgain.length !== data.length) err(`Length mismatch decoding '${base64}': ${data} != ${dataAgain}`);
+  for (let j = 0; j < data.length; j++) {
+    if (data[j] !== dataAgain[j]) err(`Value mismatch decoding '${base64}': ${data} != ${dataAgain}`);
+  }
+}
+
+console.log('Tests passed\n');
+
+
+console.log('Decoding base64 with invalid characters (strict) ...');
+
+function expectBase64Error(b64) {
+  let caughtErr = null;
+  try {
+    _fromBase64(b64)
+  } catch (e) {
+    caughtErr = e
+  } finally {
+    if (!caughtErr) err(`Should have caught error: ${b64}`);
+    else console.log(`As expected -- ${caughtErr}`);
+  }
+}
+
+_fromBase64('');
+_fromBase64('AAA=');
+_fromBase64('AA BB CC ++');
+_fromBase64(' AAaa88ZZ00\n\n\n\n\n\nAAaa//ZZ00\t\tAAaaZZ0099  == ');
+expectBase64Error('**********');
+expectBase64Error('AAaaZZ.aa');
+expectBase64Error('AAaaZZ00-');
+expectBase64Error(' AAaa88ZZ00\nAAaa//ZZ00\t~AAaaZZ0099== ');
+expectBase64Error(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099== 😀');
+expectBase64Error(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099==  😀');
+expectBase64Error(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099==   😀');
 
 console.log('Tests passed\n');
 

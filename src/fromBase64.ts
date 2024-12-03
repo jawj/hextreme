@@ -11,11 +11,6 @@ export interface FromBase64Options extends Base64Options {
   onInvalidInput?: 'throw' | 'skip';
 }
 
-export interface _FromBase64Options extends FromBase64Options {
-  scratchArr?: Uint32Array;
-  outArr?: Uint8Array;
-}
-
 const
   vAA = 16705,  // (65 << 8) | 65 -- signifies a zero out value
   vzz = 31354;  // (122 << 8) | 122 -- (vZZ is smaller, so not relevant)
@@ -29,7 +24,7 @@ let
 // there could in principle be any amount of whitespace between any two input characters, and 
 // that makes it surprisingly tricky to decode base64 in chunks; for now, therefore, we don't try
 
-export function fromBase64(s: string, { alphabet, onInvalidInput, scratchArr, outArr }: _FromBase64Options = {}) {
+export function _fromBase64(s: string, { alphabet, onInvalidInput }: FromBase64Options = {}) {
   const
     lax = onInvalidInput === 'skip',
     urlsafe = alphabet === 'base64url';
@@ -73,16 +68,13 @@ export function fromBase64(s: string, { alphabet, onInvalidInput, scratchArr, ou
     inIntsLen = Math.ceil(strlen / 4),
     inIntsLenPlus = inIntsLen + 1,  // `+ 1` allows an extra 4 bytes: enough space for a 4-byte UTF-8 char to be encoded even at the end, so we can detect any multi-byte char
     fastIntsLen = inIntsLen - 4,  // 4 bytes per Uint32, and we want to work in groups of 4, plus avoid the last 2 bytes (which may be padding)
-    inInts = scratchArr || new Uint32Array(inIntsLenPlus),
+    inInts = new Uint32Array(inIntsLenPlus),
     inBytes = new Uint8Array(inInts.buffer, 0, strlen),  // view onto same memory
     maxOutBytesLen = inIntsLen * 3,
-    outBytes = outArr || new Uint8Array(maxOutBytesLen),
+    outBytes = new Uint8Array(maxOutBytesLen),
     outInts = new Uint32Array(outBytes.buffer, 0, outBytes.length >>> 2),
     b64WordLookup = urlsafe ? b64UrlWordLookup : b64StdWordLookup,
     b64ByteLookup = urlsafe ? b64UrlByteLookup : b64StdByteLookup;
-
-  if (inInts.length < inIntsLenPlus) throw new Error(`Scratch array too small (expected at least ${inIntsLenPlus})`);
-  if (outBytes.length !== maxOutBytesLen) throw new Error(`Out array wrongly sized (expected ${maxOutBytesLen} bytes)`);
 
   // we don't need to explicitly check for multibyte characters (via `result.written > strlen`)
   // because any multi-byte character includes bytes that are outside the valid range
@@ -178,7 +170,7 @@ export function fromBase64(s: string, { alphabet, onInvalidInput, scratchArr, ou
     vR4 = b64WordLookup[inR];
     if (!vR4 && inR !== vAA) { i -= 4; break; }
 
-    outInts[j++] = vL1 << 20 | vR1 << 8 | vL2 >>> 4;  // this is so much nicer in big-endian
+    outInts[j++] = vL1 << 20 | vR1 << 8 | vL2 >>> 4;  // this is so much nicer in big-endian ...
     outInts[j++] = (vL2 & 15) << 28 | vR2 << 16 | vL3 << 4 | vR3 >>> 8;
     outInts[j++] = (vR3 & 255) << 24 | vL4 << 12 | vR4;
   }
@@ -188,7 +180,7 @@ export function fromBase64(s: string, { alphabet, onInvalidInput, scratchArr, ou
 
   // this is the slow loop, which in normal cases should only handle the last few bytes;
   // here we fall back to reading up to 4 bytes, one at a time, and handling any errors
-  // (unless we're in lax mode)
+  // (or simply ignoring them if we're in lax mode)
 
   let i0 = i, ok = false, v1, v2, v3, v4;
   e: {
@@ -231,4 +223,9 @@ export function fromBase64(s: string, { alphabet, onInvalidInput, scratchArr, ou
   const truncateBytes = { 4: 0, 3: 1, 2: 2, 1: 2, 0: 3 }[validChars];
 
   return outBytes.subarray(0, j - truncateBytes!);
+}
+
+export function fromBase64(s: string, options: FromBase64Options = {}) {
+  // @ts-expect-error TS doesn't know about fromHex
+  return (options.onInvalidInput !== 'skip' && typeof Uint8Array.fromBase64 === 'function') ? Uint8Array.fromBase64(s) : _fromBase64(s, options);
 }
