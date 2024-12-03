@@ -154,6 +154,9 @@ import { fromBase64 } from 'hextreme';
 fromBase64('hello/+/worldA==');
 // Uint8Array(10) [ 133, 233, 101, 163, 255, 191, 194, 138, 229, 116 ]
 
+fromBase64('hello/+/worldA');
+// Uint8Array(10) [ 133, 233, 101, 163, 255, 191, 194, 138, 229, 116 ]
+
 fromBase64('hello_-_worldA==', { alphabet: 'base64url' });
 // Uint8Array(10) [ 133, 233, 101, 163, 255, 191, 194, 138, 229, 116 ]
 
