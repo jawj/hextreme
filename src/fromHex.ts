@@ -93,7 +93,7 @@ export function _fromHexChunked(s: string, { onInvalidInput }: FromHexOptions = 
     byteLength = slen >>> 1,
     chunkInts = chunkBytes >>> 1,
     chunksCount = Math.ceil(byteLength / chunkInts),
-    scratchArr = new Uint16Array((chunksCount > 1 ? chunkInts : byteLength) + 2),
+    scratchArr = new Uint16Array((chunksCount > 1 ? chunkInts : byteLength) + 2),  // + 2 allows for a multi-byte character to be decoded (and thus detected) at the end
     outArr = new Uint8Array(byteLength);
 
   for (let i = 0; i < chunksCount; i++) {

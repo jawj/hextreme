@@ -1,6 +1,5 @@
 import {
   littleEndian,
-  chunkBytes,
   b64ChStd as chStd,
   b64ChUrl as chUrl,
   b64ChPad as chPad,
@@ -26,6 +25,9 @@ let
   b64UrlWordLookup: Uint16Array,
   b64StdByteLookup: Uint8Array,
   b64UrlByteLookup: Uint8Array;
+
+// there could in principle be any amount of whitespace between any two input characters, and 
+// that makes it surprisingly tricky to decode base64 in chunks; for now, therefore, we don't try
 
 export function fromBase64(s: string, { alphabet, onInvalidInput, scratchArr, outArr }: _FromBase64Options = {}) {
   const
@@ -79,10 +81,14 @@ export function fromBase64(s: string, { alphabet, onInvalidInput, scratchArr, ou
     b64WordLookup = urlsafe ? b64UrlWordLookup : b64StdWordLookup,
     b64ByteLookup = urlsafe ? b64UrlByteLookup : b64StdByteLookup;
 
+  if (inInts.length < inIntsLenPlus) throw new Error(`Scratch array too small (expected at least ${inIntsLenPlus})`);
+  if (outBytes.length !== maxOutBytesLen) throw new Error(`Out array wrongly sized (expected ${maxOutBytesLen} bytes)`);
+
   // we don't need to explicitly check for multibyte characters (via `result.written > strlen`)
   // because any multi-byte character includes bytes that are outside the valid range
-  te.encodeInto(s, inBytes);
   
+  te.encodeInto(s, inBytes);
+
   // while we can, read 4x uint32 (16 bytes) + write 3x uint32 (12 bytes);
   // if we encounter anything that's not a valid base64 character -- even whitespace --
   // we back up to the start of the iteration and bail out, letting the slow loop handle the rest
@@ -182,13 +188,13 @@ export function fromBase64(s: string, { alphabet, onInvalidInput, scratchArr, ou
 
   // this is the slow loop, which in normal cases should only handle the last few bytes;
   // here we fall back to reading up to 4 bytes, one at a time, and handling any errors
-  // (if we're not in lax mode)
+  // (unless we're in lax mode)
 
-  let i0 = 0, ok = false, v1, v2, v3, v4;
+  let i0 = i, ok = false, v1, v2, v3, v4;
   e: {
     if (lax) while (i < strlen) {
       i0 = i;
-      do { v1 = b64ByteLookup[inBytes[i++]] } while (v1 > 63);
+      do { v1 = b64ByteLookup[inBytes[i++]] } while (v1 > 63);  // skip past whitespace and invalid
       do { v2 = b64ByteLookup[inBytes[i++]] } while (v2 > 63);
       do { v3 = b64ByteLookup[inBytes[i++]] } while (v3 > 63);
       do { v4 = b64ByteLookup[inBytes[i++]] } while (v4 > 63);
@@ -199,7 +205,7 @@ export function fromBase64(s: string, { alphabet, onInvalidInput, scratchArr, ou
     }
     else while (i < strlen) {
       i0 = i;
-      do { v1 = b64ByteLookup[inBytes[i++]] } while (v1 === 64);
+      do { v1 = b64ByteLookup[inBytes[i++]] } while (v1 === 64);  // skip past whitespace only
       if (v1 === 128) break e;
       do { v2 = b64ByteLookup[inBytes[i++]] } while (v2 === 64);
       if (v2 === 128) break e;
@@ -217,11 +223,12 @@ export function fromBase64(s: string, { alphabet, onInvalidInput, scratchArr, ou
 
   if (!ok) throw new Error(`Invalid character in base64 at index ${i - 1}`);
 
-  // if input string included padding and/or whitespace, it will need truncating
+  // if input string included padding and/or whitespace, it will need truncating:
   // we need to count how many valid input characters (0 – 4) there are after i0
 
   let validChars = 0;
   for (let i = i0; i < strlen; i++) if (b64ByteLookup[inBytes[i]] < 64) validChars++;
   const truncateBytes = { 4: 0, 3: 1, 2: 2, 1: 2, 0: 3 }[validChars];
+
   return outBytes.subarray(0, j - truncateBytes!);
 }
