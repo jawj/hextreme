@@ -1,6 +1,6 @@
 {
   "name": "hextreme",
-  "version": "0.1.2",
+  "version": "1.0",
   "description": "Encode/decode hex and base64 at speed",
   "exports": {
     "require": "./index.js",
@@ -15,9 +15,8 @@
   "scripts": {
     "_bundleCJS": "esbuild src/index.ts --outdir=. --bundle --line-limit=130 --platform=neutral --target=es6 --format=cjs",
     "_bundleESM": "esbuild src/index.ts --outdir=. --bundle --line-limit=130 --platform=neutral --target=es6 --format=esm --out-extension:.js=.mjs",
-    "_makeTypes": "dts-bundle-generator -o index.d.ts src/index.ts",
-    "_copyTypes": "cp index.d.ts index.d.mts",
-    "build": "tsc --noEmit && npm run _makeTypes && npm run _copyTypes && npm run _bundleESM && npm run _bundleCJS",
+    "_makeTypes": "dts-bundle-generator -o index.d.ts src/index.ts && cp index.d.ts index.d.mts",
+    "build": "tsc --noEmit && npm run _makeTypes && npm run _bundleESM && npm run _bundleCJS",
     "_perfNode": "esbuild perfCli.ts --bundle --platform=node --target=es2015 --format=esm | node",
     "_perfBun": "bun run perfCli.ts",
     "perfCli": "npm run build && echo '\n== Node ==\n' && npm run _perfNode && echo '\n== Bun ==\n' && npm run _perfBun",
