@@ -2039,7 +2039,6 @@
   }
 
   // src/fromBase64.ts
-  var vAA = 16705;
   var vzz = 31354;
   var stdWordLookup;
   var urlWordLookup;
@@ -2077,7 +2076,7 @@
       inR = inInt >>> 16;
       vL1 = wordLookup[inL];
       vR1 = wordLookup[inR];
-      if (!((vL1 || inL === vAA) && (vR1 || inR === vAA))) {
+      if (!((vL1 || inL === 16705) && (vR1 || inR === 16705))) {
         i -= 1;
         break;
       }
@@ -2086,7 +2085,7 @@
       inR = inInt >>> 16;
       vL2 = wordLookup[inL];
       vR2 = wordLookup[inR];
-      if (!((vL2 || inL === vAA) && (vR2 || inR === vAA))) {
+      if (!((vL2 || inL === 16705) && (vR2 || inR === 16705))) {
         i -= 2;
         break;
       }
@@ -2095,7 +2094,7 @@
       inR = inInt >>> 16;
       vL3 = wordLookup[inL];
       vR3 = wordLookup[inR];
-      if (!((vL3 || inL === vAA) && (vR3 || inR === vAA))) {
+      if (!((vL3 || inL === 16705) && (vR3 || inR === 16705))) {
         i -= 3;
         break;
       }
@@ -2104,13 +2103,13 @@
       inR = inInt >>> 16;
       vL4 = wordLookup[inL];
       vR4 = wordLookup[inR];
-      if (!((vL4 || inL === vAA) && (vR4 || inR === vAA))) {
+      if (!((vL4 || inL === 16705) && (vR4 || inR === 16705))) {
         i -= 4;
         break;
       }
-      outInts[j++] = vL1 >>> 4 | ((vL1 << 4 | vR1 >>> 8) & 255) << 8 | (vR1 & 255) << 16 | vL2 >>> 4 << 24;
-      outInts[j++] = (vL2 << 4 | vR2 >>> 8) & 255 | (vR2 & 255) << 8 | vL3 >>> 4 << 16 | ((vL3 << 4 | vR3 >>> 8) & 255) << 24;
-      outInts[j++] = vR3 & 255 | vL4 >>> 4 << 8 | ((vL4 << 4 | vR4 >>> 8) & 255) << 16 | (vR4 & 255) << 24;
+      outInts[j++] = vL1 << 20 | vR1 << 8 | vL2 >>> 4;
+      outInts[j++] = (vL2 & 15) << 28 | vR2 << 16 | vL3 << 4 | vR3 >>> 8;
+      outInts[j++] = (vR3 & 255) << 24 | vL4 << 12 | vR4;
     }
     else while (i < fastIntsLen) {
       inInt = inInts[i++];
@@ -2118,7 +2117,7 @@
       inR = inInt & 65535;
       vL1 = wordLookup[inL];
       vR1 = wordLookup[inR];
-      if (!((vL1 || inL === vAA) && (vR1 || inR === vAA))) {
+      if (!((vL1 || inL === 16705) && (vR1 || inR === 16705))) {
         i -= 1;
         break;
       }
@@ -2127,7 +2126,7 @@
       inR = inInt & 65535;
       vL2 = wordLookup[inL];
       vR2 = wordLookup[inR];
-      if (!((vL2 || inL === vAA) && (vR2 || inR === vAA))) {
+      if (!((vL2 || inL === 16705) && (vR2 || inR === 16705))) {
         i -= 2;
         break;
       }
@@ -2136,7 +2135,7 @@
       inR = inInt & 65535;
       vL3 = wordLookup[inL];
       vR3 = wordLookup[inR];
-      if (!((vL3 || inL === vAA) && (vR3 || inR === vAA))) {
+      if (!((vL3 || inL === 16705) && (vR3 || inR === 16705))) {
         i -= 3;
         break;
       }
@@ -2145,13 +2144,19 @@
       inR = inInt & 65535;
       vL4 = wordLookup[inL];
       vR4 = wordLookup[inR];
-      if (!((vL4 || inL === vAA) && (vR4 || inR === vAA))) {
+      if (!((vL4 || inL === 16705) && (vR4 || inR === 16705))) {
         i -= 4;
         break;
       }
       outInts[j++] = vL1 << 20 | vR1 << 8 | vL2 >>> 4;
       outInts[j++] = (vL2 & 15) << 28 | vR2 << 16 | vL3 << 4 | vR3 >>> 8;
       outInts[j++] = (vR3 & 255) << 24 | vL4 << 12 | vR4;
+    }
+    if (littleEndian) {
+      const v = new Uint32Array(outInts.buffer, 0, j);
+      v.reverse();
+      const w = new Uint8Array(outInts.buffer, 0, j << 2);
+      w.reverse();
     }
     i <<= 2;
     j <<= 2;

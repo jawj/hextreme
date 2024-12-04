@@ -12,7 +12,7 @@ export interface FromBase64Options extends Base64Options {
 }
 
 const
-  vAA = 16705,  // (65 << 8) | 65 -- signifies a zero out value
+  // v00 = 16705,  // (65 << 8) | 65 -- signifies a zero out value: we now use this directly in the source below
   vzz = 31354;  // (122 << 8) | 122 -- (vZZ is smaller, so not relevant)
 
 let
@@ -78,7 +78,7 @@ export function _fromBase64(s: string, { alphabet, onInvalidInput }: FromBase64O
 
   // we don't need to explicitly check for multibyte characters (via `result.written > strlen`)
   // because any multi-byte character includes bytes that are outside the valid range
-  
+
   te.encodeInto(s, inBytes);
 
   // while we can, read 4x uint32 (16 bytes) + write 3x uint32 (12 bytes);
@@ -93,46 +93,44 @@ export function _fromBase64(s: string, { alphabet, onInvalidInput }: FromBase64O
     inR = inInt >>> 16;
     vL1 = wordLookup[inL];
     vR1 = wordLookup[inR];
-    if (!((vL1 || inL === vAA) && (vR1 || inR === vAA))) { i -= 1; break; }
+    if (!((vL1 || inL === 16705) && (vR1 || inR === 16705))) { i -= 1; break; }
 
     inInt = inInts[i++];
     inL = inInt & 65535;
     inR = inInt >>> 16;
     vL2 = wordLookup[inL];
     vR2 = wordLookup[inR];
-    if (!((vL2 || inL === vAA) && (vR2 || inR === vAA))) { i -= 2; break; }
+    if (!((vL2 || inL === 16705) && (vR2 || inR === 16705))) { i -= 2; break; }
 
     inInt = inInts[i++];
     inL = inInt & 65535;
     inR = inInt >>> 16;
     vL3 = wordLookup[inL];
     vR3 = wordLookup[inR];
-    if (!((vL3 || inL === vAA) && (vR3 || inR === vAA))) { i -= 3; break; }
+    if (!((vL3 || inL === 16705) && (vR3 || inR === 16705))) { i -= 3; break; }
 
     inInt = inInts[i++];
     inL = inInt & 65535;
     inR = inInt >>> 16;
     vL4 = wordLookup[inL];
     vR4 = wordLookup[inR];
-    if (!((vL4 || inL === vAA) && (vR4 || inR === vAA))) { i -= 4; break; }
+    if (!((vL4 || inL === 16705) && (vR4 || inR === 16705))) { i -= 4; break; }
 
     outInts[j++] =
-      vL1 >>> 4 |
-      ((vL1 << 4 | vR1 >>> 8) & 255) << 8 |
-      (vR1 & 255) << 16 |
-      (vL2 >>> 4) << 24;
+      vL1 >>> 4 | (vL1 & 15) << 12 |
+      vR1 & 65280 | (vR1 & 255) << 16 |
+      (vL2 & 4080) << 20;
 
     outInts[j++] =
-      ((vL2 << 4 | vR2 >>> 8) & 255) |
-      (vR2 & 255) << 8 |
-      (vL3 >>> 4) << 16 |
-      ((vL3 << 4 | vR3 >>> 8) & 255) << 24;
+      (vL2 & 15) << 4 |
+      (vR2 & 65280) >>> 8 | (vR2 & 255) << 8 |
+      (vL3 & 4080) << 12 | (vL3 & 15) << 28 |
+      (vR3 & 65280) << 16;
 
     outInts[j++] =
       vR3 & 255 |
-      (vL4 >>> 4) << 8 |
-      ((vL4 << 4 | vR4 >>> 8) & 255) << 16 |
-      (vR4 & 255) << 24;
+      (vL4 & 4080) << 4 | (vL4 & 15) << 20 |
+      (vR4 & 3840) << 8 | vR4 << 24;
   }
   else while (i < fastIntsLen) {
     inInt = inInts[i++];
@@ -140,28 +138,28 @@ export function _fromBase64(s: string, { alphabet, onInvalidInput }: FromBase64O
     inR = inInt & 65535;
     vL1 = wordLookup[inL];
     vR1 = wordLookup[inR];
-    if (!((vL1 || inL === vAA) && (vR1 || inR === vAA))) { i -= 1; break; }
+    if (!((vL1 || inL === 16705) && (vR1 || inR === 16705))) { i -= 1; break; }
 
     inInt = inInts[i++];
     inL = inInt >>> 16;
     inR = inInt & 65535;
     vL2 = wordLookup[inL];
     vR2 = wordLookup[inR];
-    if (!((vL2 || inL === vAA) && (vR2 || inR === vAA))) { i -= 2; break; }
+    if (!((vL2 || inL === 16705) && (vR2 || inR === 16705))) { i -= 2; break; }
 
     inInt = inInts[i++];
     inL = inInt >>> 16;
     inR = inInt & 65535;
     vL3 = wordLookup[inL];
     vR3 = wordLookup[inR];
-    if (!((vL3 || inL === vAA) && (vR3 || inR === vAA))) { i -= 3; break; }
+    if (!((vL3 || inL === 16705) && (vR3 || inR === 16705))) { i -= 3; break; }
 
     inInt = inInts[i++];
     inL = inInt >>> 16;
     inR = inInt & 65535;
     vL4 = wordLookup[inL];
     vR4 = wordLookup[inR];
-    if (!((vL4 || inL === vAA) && (vR4 || inR === vAA))) { i -= 4; break; }
+    if (!((vL4 || inL === 16705) && (vR4 || inR === 16705))) { i -= 4; break; }
 
     outInts[j++] = vL1 << 20 | vR1 << 8 | vL2 >>> 4;  // this is so much nicer in big-endian ...
     outInts[j++] = (vL2 & 15) << 28 | vR2 << 16 | vL3 << 4 | vR3 >>> 8;
