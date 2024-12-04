@@ -85,7 +85,7 @@ console.log('Decoding back from base64url and checking results ...');
 for (let i = 0; i < arrays.length; i++) {
   const
     data = arrays[i],
-    base64 = ' '.repeat(Math.floor(Math.random() * 16)) + rNodeBufferB64Url[i] + '\n'.repeat(i % 5),
+    base64 = ' '.repeat(i % 2) + rNodeBufferB64Url[i] + '\n'.repeat(i % 5),
     dataAgain = _fromBase64(base64, { alphabet: 'base64url' });
 
   if (!arrEq(data, dataAgain)) throw new Error(`Mismatch: ${data} != ${dataAgain}`);

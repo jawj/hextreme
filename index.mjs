@@ -296,53 +296,37 @@ function _fromBase64(s, { alphabet, onInvalidInput } = {}) {
   if (littleEndian) while (i < fastIntsLen) {
     inInt = inInts[i++];
     inL = inInt & 65535;
+    inR = inInt >>> 16;
     vL1 = wordLookup[inL];
-    if (!vL1 && inL !== vAA) {
-      i -= 1;
-      break;
-    }
-    inR = inInt >>> 16;
     vR1 = wordLookup[inR];
-    if (!vR1 && inR !== vAA) {
+    if (!((vL1 || inL === vAA) && (vR1 || inR === vAA))) {
       i -= 1;
       break;
     }
     inInt = inInts[i++];
     inL = inInt & 65535;
+    inR = inInt >>> 16;
     vL2 = wordLookup[inL];
-    if (!vL2 && inL !== vAA) {
-      i -= 2;
-      break;
-    }
-    inR = inInt >>> 16;
     vR2 = wordLookup[inR];
-    if (!vR2 && inR !== vAA) {
+    if (!((vL2 || inL === vAA) && (vR2 || inR === vAA))) {
       i -= 2;
       break;
     }
     inInt = inInts[i++];
     inL = inInt & 65535;
-    vL3 = wordLookup[inL];
-    if (!vL3 && inL !== vAA) {
-      i -= 3;
-      break;
-    }
     inR = inInt >>> 16;
+    vL3 = wordLookup[inL];
     vR3 = wordLookup[inR];
-    if (!vR3 && inR !== vAA) {
+    if (!((vL3 || inL === vAA) && (vR3 || inR === vAA))) {
       i -= 3;
       break;
     }
     inInt = inInts[i++];
     inL = inInt & 65535;
-    vL4 = wordLookup[inL];
-    if (!vL4 && inL !== vAA) {
-      i -= 4;
-      break;
-    }
     inR = inInt >>> 16;
+    vL4 = wordLookup[inL];
     vR4 = wordLookup[inR];
-    if (!vR4 && inR !== vAA) {
+    if (!((vL4 || inL === vAA) && (vR4 || inR === vAA))) {
       i -= 4;
       break;
     }
@@ -353,14 +337,10 @@ function _fromBase64(s, { alphabet, onInvalidInput } = {}) {
   else while (i < fastIntsLen) {
     inInt = inInts[i++];
     inL = inInt >>> 16;
-    vL1 = wordLookup[inL];
-    if (!vL1 && inL !== vAA) {
-      i -= 1;
-      break;
-    }
     inR = inInt & 65535;
+    vL1 = wordLookup[inL];
     vR1 = wordLookup[inR];
-    if (!vR1 && inR !== vAA) {
+    if (!((vL1 || inL === vAA) && (vR1 || inR === vAA))) {
       i -= 1;
       break;
     }

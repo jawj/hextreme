@@ -5,6 +5,9 @@ import {
   _fromBase64,
 } from '../index.mjs';
 
+const littleEndian = new Uint8Array((new Uint16Array([0x0102]).buffer))[0] === 0x02;
+console.log(`\n*** System is: ${littleEndian ? 'little-endian' : 'big-endian'} ***\n`);
+
 // supporting code
 
 // this is a highly incomplete shim, but it works here
