@@ -14,6 +14,19 @@ function arrEq(arr1: Uint8Array, arr2: Uint8Array) {
   return true;
 }
 
+function assertArrEq(arr1: Uint8Array, arr2: Uint8Array, context = 'no context') {
+  if (!arrEq(arr1, arr2)) throw new Error(`Array mismatch: ${arr1.join()} != ${arr2.join()} (${context})`);
+}
+
+function assertStrEq(str1: string, str2: string) {
+  if (str1 === str2) return;
+  const commonLength = Math.min(str1.length, str2.length);
+  let i;
+  for (i = 0; i < commonLength; i ++) if (str1.charAt(i) !== str2.charAt(i)) break;
+  const ext1 = str1.length < 200 ? str1 : str1.slice(0, 100) + ' ... ' + str1.slice(-100);
+  const ext2 = str2.length < 200 ? str2 : str2.slice(0, 100) + ' ... ' + str2.slice(-100);
+  throw new Error(`String mismatch: lengths ${str1.length} and ${str2.length}, first difference at index ${i}, '${ext1}' != '${ext2}'`);
+}
 
 console.log('Generating random test data ...');
 
@@ -59,7 +72,7 @@ for (let i = 0; i < arrays.length; i++) {
     base64 = rNodeBufferB64Std[i] + '\n'.repeat(i % 5),
     dataAgain = _fromBase64(base64);
 
-  if (!arrEq(data, dataAgain)) throw new Error(`Mismatch: ${data} != ${dataAgain}`);
+  assertArrEq(data, dataAgain);
 }
 
 console.log('Tests passed\n');
@@ -88,7 +101,7 @@ for (let i = 0; i < arrays.length; i++) {
     base64 = ' '.repeat(i % 2) + rNodeBufferB64Url[i] + '\n'.repeat(i % 5),
     dataAgain = _fromBase64(base64, { alphabet: 'base64url' });
 
-  if (!arrEq(data, dataAgain)) throw new Error(`Mismatch: ${data} != ${dataAgain}`);
+  assertArrEq(data, dataAgain);
 }
 
 console.log('Tests passed\n');
@@ -96,9 +109,9 @@ console.log('Tests passed\n');
 
 console.log('Decoding base64 with unusual whitespace ...');
 
-if (!arrEq(_fromBase64(benchmarkBase64Std.split('').join(' ')), _fromBase64(benchmarkBase64Std))) throw new Error('Base 64 decoding error on whitespace between every character');
-if (!arrEq(_fromBase64(benchmarkBase64Std + '\n'.repeat(12345678)), _fromBase64(benchmarkBase64Std))) throw new Error('Base 64 decoding error on long whitespace after');
-if (!arrEq(_fromBase64('\n'.repeat(12345678) + benchmarkBase64Std), _fromBase64(benchmarkBase64Std))) throw new Error('Base 64 decoding error on long whitespace before');
+assertArrEq(_fromBase64(benchmarkBase64Std.split('').join(' ')), _fromBase64(benchmarkBase64Std));
+assertArrEq(_fromBase64(benchmarkBase64Std + '\n'.repeat(12345678)), _fromBase64(benchmarkBase64Std));
+assertArrEq(_fromBase64('\n'.repeat(12345678) + benchmarkBase64Std), _fromBase64(benchmarkBase64Std));
 
 console.log('Tests passed\n');
 
@@ -141,7 +154,7 @@ function expectBase64Skip(b64: string) {
     localLax = _fromBase64(b64, { onInvalidInput: 'skip' }),
     nodeLax = Buffer.from(b64, 'base64');
 
-  if (!arrEq(localLax, nodeLax)) throw new Error(`Mismatch: ${localLax} != ${nodeLax}`);
+  assertArrEq(localLax, nodeLax, b64);
 }
 
 expectBase64Skip('');
@@ -150,9 +163,11 @@ expectBase64Skip('AAaaZZ.aa');
 expectBase64Skip('AAaaZZ00-');
 expectBase64Skip(' AAaa88ZZ00\nAAaa//ZZ00\t~AAaaZZ0099== ');
 expectBase64Skip(' AA``aa88ZZ(00)\nAA|aa//ZZ00\t~AAaaZZ0099== "');
+expectBase64Skip(' AAaa88ZZ00\nAAaa/😀/ZZ00\tAAaaZZ0099== ');
 expectBase64Skip(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099== 😀');
 expectBase64Skip(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099==  😀');
 expectBase64Skip(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099==   😀');
+expectBase64Skip(' AAaa88ZZ00\nAAaa/=/ZZ00\tAAaaZZ0099~==');
 expectBase64Skip(benchmarkBase64Std + ':::' + benchmarkBase64Std);
 
 console.log('Tests passed\n');
@@ -166,9 +181,7 @@ const
 
 console.log('Checking results ...');
 
-for (let i = 0; i < arrays.length; i++) {
-  if (rNodeBuffer[i] !== rTextDecoderInChunks[i]) throw new Error(`Mismatch: ${rTextDecoderInChunks[i]} != ${rNodeBuffer[i]}`);
-}
+for (let i = 0; i < arrays.length; i++) assertStrEq(rNodeBuffer[i], rTextDecoderInChunks[i]);
 
 console.log('Tests passed\n');
 
@@ -181,7 +194,7 @@ for (let i = 0; i < arrays.length; i++) {
     hex = rNodeBuffer[i],
     dataAgain = _fromHexChunked(hex);
 
-  if (!arrEq(data, dataAgain)) throw new Error(`Mismatch: ${data} != ${dataAgain}`)
+  assertArrEq(data, dataAgain);
 }
 
 console.log('Tests passed\n');
@@ -225,7 +238,7 @@ function expectHexTrunc(hex: string) {
     localLax = _fromHexChunked(hex, { onInvalidInput: 'truncate' }),
     nodeLax = Buffer.from(hex, 'hex');
 
-  if (!arrEq(localLax, nodeLax)) throw new Error(`Mismatch: ${localLax} != ${nodeLax}`);
+  assertArrEq(localLax, nodeLax);
 }
 
 _fromHexChunked('');

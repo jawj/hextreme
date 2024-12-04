@@ -18,7 +18,7 @@ let
   ccl: Uint16Array,  // char codes, lower case
   ccu: Uint16Array;
 
-export function _toHex(d: Uint8Array | number[], { alphabet, scratchArr }: _ToHexOptions = {}) {
+export function _toHex(d8: Uint8Array, { alphabet, scratchArr }: _ToHexOptions = {}) {
   if (!ccl) {
     ccl = new Uint16Array(256);
     ccu = new Uint16Array(256);
@@ -33,28 +33,31 @@ export function _toHex(d: Uint8Array | number[], { alphabet, scratchArr }: _ToHe
   }
 
   const
-    len = d.length,
-    last7 = len - 7,
-    a = scratchArr || new Uint16Array(len),
+    len = d8.length,
+    halfLen = len >>> 1,
+    quarterLen = len >>> 2,
+    out16 = scratchArr || new Uint16Array(len),
+    d32 = new Uint32Array(d8.buffer, d8.byteOffset, quarterLen),
+    out32 = new Uint32Array(out16.buffer, out16.byteOffset, halfLen),
     cc = alphabet === 'upper' ? ccu : ccl;
 
-  let i = 0;
-
-  while (i < last7) {  // loop unrolling helps quite a bit in V8
-    a[i] = cc[d[i++]];
-    a[i] = cc[d[i++]];
-    a[i] = cc[d[i++]];
-    a[i] = cc[d[i++]]; // 4
-    a[i] = cc[d[i++]];
-    a[i] = cc[d[i++]];
-    a[i] = cc[d[i++]];
-    a[i] = cc[d[i++]]; // 8
+  let i = 0, j = 0, v, v1, v2;
+  while (i < quarterLen) {  // loop unrolling helps quite a bit in V8
+    v = d32[i++];
+    v1 = cc[v & 255];
+    v2 = cc[(v >>> 8) & 255];
+    out32[j++] = v2 << 16 | v1;
+    v1 = cc[(v >>> 16) & 255];
+    v2 = cc[v >>> 24];
+    out32[j++] = v2 << 16 | v1;
   }
+  
+  i <<= 2;  // uint32 addressing to uint8 addressing
   while (i < len) {
-    a[i] = cc[d[i++]];
+    out16[i] = cc[d8[i++]];
   }
 
-  const hex = td.decode(a.subarray(0, len));
+  const hex = td.decode(out16.subarray(0, len));
   return hex;
 }
 
@@ -62,14 +65,14 @@ export function _toHexChunked(d: Uint8Array, options: ToHexOptions = {}) {
   let
     hex = '',
     len = d.length,
-    chunkInts = chunkBytes >>> 1,
-    chunks = Math.ceil(len / chunkInts),
-    scratchArr = new Uint16Array(chunks > 1 ? chunkInts : len);
+    chunkWords = chunkBytes >>> 1,
+    chunks = Math.ceil(len / chunkWords),
+    scratchArr = new Uint16Array(chunks > 1 ? chunkWords : len);
 
   for (let i = 0; i < chunks; i++) {
     const
-      start = i * chunkInts,
-      end = start + chunkInts;  // subarray has no problem going past the end of the array
+      start = i * chunkWords,
+      end = start + chunkWords;  // subarray has no problem going past the end of the array
 
     hex += _toHex(d.subarray(start, end), { ...options, scratchArr });
   }

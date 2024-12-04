@@ -6,7 +6,7 @@ export interface ToHexOptions {
 export interface _ToHexOptions extends ToHexOptions {
 	scratchArr?: Uint16Array;
 }
-export declare function _toHex(d: Uint8Array | number[], { alphabet, scratchArr }?: _ToHexOptions): string;
+export declare function _toHex(d8: Uint8Array, { alphabet, scratchArr }?: _ToHexOptions): string;
 export declare function _toHexChunked(d: Uint8Array, options?: ToHexOptions): string;
 export declare function toHex(d: Uint8Array, options?: ToHexOptions): string;
 export interface FromHexOptions {

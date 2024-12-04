@@ -68,7 +68,7 @@ b64ChUrl[63] = 95;
 // src/toHex.ts
 var ccl;
 var ccu;
-function _toHex(d, { alphabet, scratchArr } = {}) {
+function _toHex(d8, { alphabet, scratchArr } = {}) {
   if (!ccl) {
     ccl = new Uint16Array(256);
     ccu = new Uint16Array(256);
@@ -81,29 +81,38 @@ function _toHex(d, { alphabet, scratchArr } = {}) {
       ccu[i2] = hexCharsUpper[i2 & 15] | hexCharsUpper[i2 >>> 4] << 8;
     }
   }
-  const len = d.length, last7 = len - 7, a = scratchArr || new Uint16Array(len), cc = alphabet === "upper" ? ccu : ccl;
-  let i = 0;
-  while (i < last7) {
-    a[i] = cc[d[i++]];
-    a[i] = cc[d[i++]];
-    a[i] = cc[d[i++]];
-    a[i] = cc[d[i++]];
-    a[i] = cc[d[i++]];
-    a[i] = cc[d[i++]];
-    a[i] = cc[d[i++]];
-    a[i] = cc[d[i++]];
+  const len = d8.length, halfLen = len >>> 1, quarterLen = len >>> 2, out16 = scratchArr || new Uint16Array(len), d32 = new Uint32Array(
+  d8.buffer, d8.byteOffset, quarterLen), last1 = quarterLen - 1, out32 = new Uint32Array(out16.buffer, out16.byteOffset, halfLen),
+  cc = alphabet === "upper" ? ccu : ccl;
+  let i = 0, j = 0, v, v1, v2;
+  while (i < last1) {
+    v = d32[i++];
+    v1 = cc[v & 255];
+    v2 = cc[v >>> 8 & 255];
+    out32[j++] = v2 << 16 | v1;
+    v1 = cc[v >>> 16 & 255];
+    v2 = cc[v >>> 24];
+    out32[j++] = v2 << 16 | v1;
+    v = d32[i++];
+    v1 = cc[v & 255];
+    v2 = cc[v >>> 8 & 255];
+    out32[j++] = v2 << 16 | v1;
+    v1 = cc[v >>> 16 & 255];
+    v2 = cc[v >>> 24];
+    out32[j++] = v2 << 16 | v1;
   }
+  i <<= 2;
   while (i < len) {
-    a[i] = cc[d[i++]];
+    out16[i] = cc[d8[i++]];
   }
-  const hex = td.decode(a.subarray(0, len));
+  const hex = td.decode(out16.subarray(0, len));
   return hex;
 }
 function _toHexChunked(d, options = {}) {
-  let hex = "", len = d.length, chunkInts = chunkBytes >>> 1, chunks = Math.ceil(len / chunkInts), scratchArr = new Uint16Array(chunks >
-  1 ? chunkInts : len);
+  let hex = "", len = d.length, chunkWords = chunkBytes >>> 1, chunks = Math.ceil(len / chunkWords), scratchArr = new Uint16Array(
+  chunks > 1 ? chunkWords : len);
   for (let i = 0; i < chunks; i++) {
-    const start = i * chunkInts, end = start + chunkInts;
+    const start = i * chunkWords, end = start + chunkWords;
     hex += _toHex(d.subarray(start, end), __spreadProps(__spreadValues({}, options), { scratchArr }));
   }
   return hex;
@@ -313,10 +322,12 @@ function _fromBase64(s, { alphabet, onInvalidInput } = {}) {
     }
   }
   if (!stdByteLookup) {
-    stdByteLookup = new Uint8Array(256).fill(128);
-    stdByteLookup[b64ChPad] = stdByteLookup[9] = stdByteLookup[10] = stdByteLookup[13] = stdByteLookup[32] = 64;
-    urlByteLookup = new Uint8Array(256).fill(128);
-    urlByteLookup[b64ChPad] = urlByteLookup[9] = urlByteLookup[10] = urlByteLookup[13] = urlByteLookup[32] = 64;
+    stdByteLookup = new Uint8Array(256).fill(66);
+    stdByteLookup[9] = stdByteLookup[10] = stdByteLookup[13] = stdByteLookup[32] = 64;
+    stdByteLookup[b64ChPad] = 65;
+    urlByteLookup = new Uint8Array(256).fill(66);
+    urlByteLookup[b64ChPad] = 65;
+    urlByteLookup[9] = urlByteLookup[10] = urlByteLookup[13] = urlByteLookup[32] = 64;
     for (let i2 = 0; i2 < 64; i2++) stdByteLookup[b64ChStd[i2]] = urlByteLookup[b64ChUrl[i2]] = i2;
   }
   const strlen = s.length, inIntsLen = Math.ceil(strlen / 4), inIntsLenPlus = inIntsLen + 1, fastIntsLen = inIntsLen - 4, inInts = new Uint32Array(
@@ -412,22 +423,24 @@ function _fromBase64(s, { alphabet, onInvalidInput } = {}) {
   j <<= 2;
   let i0 = i, ok = false;
   e: {
-    if (lax) while (i < strlen) {
+    if (lax) {
+      f: while (i < strlen) {
+        i0 = i;
+        while ((vL1 = byteLookup[inBytes[i++]]) > 63) if (vL1 === 65) ok = true;
+        while ((vL2 = byteLookup[inBytes[i++]]) > 63) if (vL2 === 65) ok = true;
+        while ((vL3 = byteLookup[inBytes[i++]]) > 63) if (vL3 === 65) ok = true;
+        while ((vL4 = byteLookup[inBytes[i++]]) > 63) if (vL4 === 65) ok = true;
+        outBytes[j++] = vL1 << 2 | vL2 >>> 4;
+        outBytes[j++] = (vL2 << 4 | vL3 >>> 2) & 255;
+        outBytes[j++] = (vL3 << 6 | vL4) & 255;
+        if (ok) break;
+      }
+    } else while (i < strlen) {
       i0 = i;
-      while ((vL1 = byteLookup[inBytes[i++]]) > 63) ;
-      while ((vL2 = byteLookup[inBytes[i++]]) > 63) ;
-      while ((vL3 = byteLookup[inBytes[i++]]) > 63) ;
-      while ((vL4 = byteLookup[inBytes[i++]]) > 63) ;
-      outBytes[j++] = vL1 << 2 | vL2 >>> 4;
-      outBytes[j++] = (vL2 << 4 | vL3 >>> 2) & 255;
-      outBytes[j++] = (vL3 << 6 | vL4) & 255;
-    }
-    else while (i < strlen) {
-      i0 = i;
-      while ((vL1 = byteLookup[inBytes[i++]]) > 63) if (vL1 === 128) break e;
-      while ((vL2 = byteLookup[inBytes[i++]]) > 63) if (vL2 === 128) break e;
-      while ((vL3 = byteLookup[inBytes[i++]]) > 63) if (vL3 === 128) break e;
-      while ((vL4 = byteLookup[inBytes[i++]]) > 63) if (vL4 === 128) break e;
+      while ((vL1 = byteLookup[inBytes[i++]]) > 63) if (vL1 === 66) break e;
+      while ((vL2 = byteLookup[inBytes[i++]]) > 63) if (vL2 === 66) break e;
+      while ((vL3 = byteLookup[inBytes[i++]]) > 63) if (vL3 === 66) break e;
+      while ((vL4 = byteLookup[inBytes[i++]]) > 63) if (vL4 === 66) break e;
       outBytes[j++] = vL1 << 2 | vL2 >>> 4;
       outBytes[j++] = (vL2 << 4 | vL3 >>> 2) & 255;
       outBytes[j++] = (vL3 << 6 | vL4) & 255;
@@ -436,7 +449,11 @@ function _fromBase64(s, { alphabet, onInvalidInput } = {}) {
   }
   if (!ok) throw new Error(`Invalid character in base64 at index ${i - 1}`);
   let validChars = 0;
-  for (i = i0; i < strlen; i++) if (byteLookup[inBytes[i]] < 64) validChars++;
+  for (i = i0; i < strlen; i++) {
+    const v = byteLookup[inBytes[i]];
+    if (v < 64) validChars++;
+    if (v === 65) break;
+  }
   const truncateBytes = { 4: 0, 3: 1, 2: 2, 1: 2, 0: 3 }[validChars];
   return outBytes.subarray(0, j - truncateBytes);
 }
