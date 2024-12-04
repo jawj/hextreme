@@ -83,7 +83,8 @@ export function _fromBase64(s: string, { alphabet, onInvalidInput }: FromBase64O
 
   // while we can, read 4x uint32 (16 bytes) + write 3x uint32 (12 bytes);
   // if we encounter anything that's not a valid base64 character -- even whitespace --
-  // we back up to the start of the iteration and bail out, letting the slow loop handle the rest
+  // then we can no longer rely on 4-byte alignment, so we back up to the start of this 
+  // iteration and bail out, letting the slow loop handle the rest
 
   let i = 0, j = 0, inInt, inL, inR, vL1, vR1, vL2, vR2, vL3, vR3, vL4, vR4;
   if (littleEndian) while (i < fastIntsLen) {  // 
@@ -174,27 +175,27 @@ export function _fromBase64(s: string, { alphabet, onInvalidInput }: FromBase64O
   // here we fall back to reading up to 4 bytes, one at a time, and handling any errors
   // (or simply ignoring them if we're in lax mode)
 
-  let i0 = i, ok = false, v1, v2, v3, v4;
+  let i0 = i, ok = false;
   e: {
     if (lax) while (i < strlen) {
       i0 = i;
-      while ((v1 = byteLookup[inBytes[i++]]) > 63);  // skip past whitespace and invalid
-      while ((v2 = byteLookup[inBytes[i++]]) > 63);
-      while ((v3 = byteLookup[inBytes[i++]]) > 63);
-      while ((v4 = byteLookup[inBytes[i++]]) > 63);
-      outBytes[j++] = v1 << 2 | v2 >>> 4;
-      outBytes[j++] = (v2 << 4 | v3 >>> 2) & 255;
-      outBytes[j++] = (v3 << 6 | v4) & 255;
+      while ((vL1 = byteLookup[inBytes[i++]]) > 63);  // skip past whitespace and invalid
+      while ((vL2 = byteLookup[inBytes[i++]]) > 63);
+      while ((vL3 = byteLookup[inBytes[i++]]) > 63);
+      while ((vL4 = byteLookup[inBytes[i++]]) > 63);
+      outBytes[j++] = vL1 << 2 | vL2 >>> 4;
+      outBytes[j++] = (vL2 << 4 | vL3 >>> 2) & 255;
+      outBytes[j++] = (vL3 << 6 | vL4) & 255;
     }
     else while (i < strlen) {
       i0 = i;
-      while ((v1 = byteLookup[inBytes[i++]]) > 63) if (v1 === 128) break e;  // skip past whitespace, break on invalid
-      while ((v2 = byteLookup[inBytes[i++]]) > 63) if (v2 === 128) break e;
-      while ((v3 = byteLookup[inBytes[i++]]) > 63) if (v3 === 128) break e;
-      while ((v4 = byteLookup[inBytes[i++]]) > 63) if (v4 === 128) break e;
-      outBytes[j++] = v1 << 2 | v2 >>> 4;
-      outBytes[j++] = (v2 << 4 | v3 >>> 2) & 255;
-      outBytes[j++] = (v3 << 6 | v4) & 255;
+      while ((vL1 = byteLookup[inBytes[i++]]) > 63) if (vL1 === 128) break e;  // skip past whitespace, break on invalid
+      while ((vL2 = byteLookup[inBytes[i++]]) > 63) if (vL2 === 128) break e;
+      while ((vL3 = byteLookup[inBytes[i++]]) > 63) if (vL3 === 128) break e;
+      while ((vL4 = byteLookup[inBytes[i++]]) > 63) if (vL4 === 128) break e;
+      outBytes[j++] = vL1 << 2 | vL2 >>> 4;
+      outBytes[j++] = (vL2 << 4 | vL3 >>> 2) & 255;
+      outBytes[j++] = (vL3 << 6 | vL4) & 255;
     }
     ok = true;
   }
@@ -205,7 +206,7 @@ export function _fromBase64(s: string, { alphabet, onInvalidInput }: FromBase64O
   // we need to count how many valid input characters (0 – 4) there are after i0
 
   let validChars = 0;
-  for (let i = i0; i < strlen; i++) if (byteLookup[inBytes[i]] < 64) validChars++;
+  for (i = i0; i < strlen; i++) if (byteLookup[inBytes[i]] < 64) validChars++;
   const truncateBytes = { 4: 0, 3: 1, 2: 2, 1: 2, 0: 3 }[validChars];
 
   return outBytes.subarray(0, j - truncateBytes!);

@@ -379,40 +379,28 @@ function _fromBase64(s, { alphabet, onInvalidInput } = {}) {
     }
     inInt = inInts[i++];
     inL = inInt >>> 16;
+    inR = inInt & 65535;
     vL2 = wordLookup[inL];
-    if (!vL2 && inL !== vAA) {
-      i -= 2;
-      break;
-    }
-    inR = inInt & 65535;
     vR2 = wordLookup[inR];
-    if (!vR2 && inR !== vAA) {
+    if (!((vL2 || inL === vAA) && (vR2 || inR === vAA))) {
       i -= 2;
       break;
     }
     inInt = inInts[i++];
     inL = inInt >>> 16;
-    vL3 = wordLookup[inL];
-    if (!vL3 && inL !== vAA) {
-      i -= 3;
-      break;
-    }
     inR = inInt & 65535;
+    vL3 = wordLookup[inL];
     vR3 = wordLookup[inR];
-    if (!vR3 && inR !== vAA) {
+    if (!((vL3 || inL === vAA) && (vR3 || inR === vAA))) {
       i -= 3;
       break;
     }
     inInt = inInts[i++];
     inL = inInt >>> 16;
-    vL4 = wordLookup[inL];
-    if (!vL4 && inL !== vAA) {
-      i -= 4;
-      break;
-    }
     inR = inInt & 65535;
+    vL4 = wordLookup[inL];
     vR4 = wordLookup[inR];
-    if (!vR4 && inR !== vAA) {
+    if (!((vL4 || inL === vAA) && (vR4 || inR === vAA))) {
       i -= 4;
       break;
     }
@@ -422,33 +410,33 @@ function _fromBase64(s, { alphabet, onInvalidInput } = {}) {
   }
   i <<= 2;
   j <<= 2;
-  let i0 = i, ok = false, v1, v2, v3, v4;
+  let i0 = i, ok = false;
   e: {
     if (lax) while (i < strlen) {
       i0 = i;
-      while ((v1 = byteLookup[inBytes[i++]]) > 63) ;
-      while ((v2 = byteLookup[inBytes[i++]]) > 63) ;
-      while ((v3 = byteLookup[inBytes[i++]]) > 63) ;
-      while ((v4 = byteLookup[inBytes[i++]]) > 63) ;
-      outBytes[j++] = v1 << 2 | v2 >>> 4;
-      outBytes[j++] = (v2 << 4 | v3 >>> 2) & 255;
-      outBytes[j++] = (v3 << 6 | v4) & 255;
+      while ((vL1 = byteLookup[inBytes[i++]]) > 63) ;
+      while ((vL2 = byteLookup[inBytes[i++]]) > 63) ;
+      while ((vL3 = byteLookup[inBytes[i++]]) > 63) ;
+      while ((vL4 = byteLookup[inBytes[i++]]) > 63) ;
+      outBytes[j++] = vL1 << 2 | vL2 >>> 4;
+      outBytes[j++] = (vL2 << 4 | vL3 >>> 2) & 255;
+      outBytes[j++] = (vL3 << 6 | vL4) & 255;
     }
     else while (i < strlen) {
       i0 = i;
-      while ((v1 = byteLookup[inBytes[i++]]) > 63) if (v1 === 128) break e;
-      while ((v2 = byteLookup[inBytes[i++]]) > 63) if (v2 === 128) break e;
-      while ((v3 = byteLookup[inBytes[i++]]) > 63) if (v3 === 128) break e;
-      while ((v4 = byteLookup[inBytes[i++]]) > 63) if (v4 === 128) break e;
-      outBytes[j++] = v1 << 2 | v2 >>> 4;
-      outBytes[j++] = (v2 << 4 | v3 >>> 2) & 255;
-      outBytes[j++] = (v3 << 6 | v4) & 255;
+      while ((vL1 = byteLookup[inBytes[i++]]) > 63) if (vL1 === 128) break e;
+      while ((vL2 = byteLookup[inBytes[i++]]) > 63) if (vL2 === 128) break e;
+      while ((vL3 = byteLookup[inBytes[i++]]) > 63) if (vL3 === 128) break e;
+      while ((vL4 = byteLookup[inBytes[i++]]) > 63) if (vL4 === 128) break e;
+      outBytes[j++] = vL1 << 2 | vL2 >>> 4;
+      outBytes[j++] = (vL2 << 4 | vL3 >>> 2) & 255;
+      outBytes[j++] = (vL3 << 6 | vL4) & 255;
     }
     ok = true;
   }
   if (!ok) throw new Error(`Invalid character in base64 at index ${i - 1}`);
   let validChars = 0;
-  for (let i2 = i0; i2 < strlen; i2++) if (byteLookup[inBytes[i2]] < 64) validChars++;
+  for (i = i0; i < strlen; i++) if (byteLookup[inBytes[i]] < 64) validChars++;
   const truncateBytes = { 4: 0, 3: 1, 2: 2, 1: 2, 0: 3 }[validChars];
   return outBytes.subarray(0, j - truncateBytes);
 }

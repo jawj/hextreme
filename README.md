@@ -29,27 +29,27 @@ On this machine, across methods and browsers, the headlines are that we are:
 
 * Encode hex
 
-This library                     34.19 ms         32.40 ms           25.10 ms
+This library                     30.60 ms         32.40 ms           25.10 ms
 cf. native toHex                        -        123.60 ms            4.30 ms
-cf. feross/buffer.toString      929.13 ms        213.70 ms          362.80 ms
+cf. feross/buffer.toString      816.42 ms        213.70 ms          362.80 ms
 
 * Decode hex
 
-This library                     64.87 ms         34.40 ms           90.50 ms
-cf. native fromHex                      -        232.40 ms            6.30 ms
-cf. feross/buffer.from          771.01 ms        549.20 ms         1306.10 ms
+This library                     60.22 ms         32.60 ms           90.50 ms
+cf. native fromHex                      -        229.40 ms            6.30 ms
+cf. feross/buffer.from          757.89 ms        546.60 ms         1306.10 ms
 
 * Encode base64
 
-This library                     17.16 ms         21.30 ms           40.90 ms
-cf. native toBase64                     -         84.10 ms            2.80 ms
-cf. feross/buffer.toString      282.28 ms        195.00 ms          524.10 ms
+This library                     16.86 ms         20.90 ms           40.90 ms
+cf. native toBase64                     -         84.00 ms            2.80 ms
+cf. feross/buffer.toString      275.85 ms        203.80 ms          524.10 ms
 
 * Decode base64
 
-This library                     41.69 ms         31.70 ms           64.10 ms
-cf. native fromBase64                   -        118.00 ms            3.70 ms
-cf. feross/buffer.from          206.83 ms        245.80 ms          276.70 ms
+This library                     39.51 ms         30.60 ms           64.10 ms
+cf. native fromBase64                   -        116.20 ms            3.70 ms
+cf. feross/buffer.from          200.30 ms        247.10 ms          276.70 ms
 ```
 
 ## Usage
