@@ -53,11 +53,11 @@ export function _toHex(d8: Uint8Array, { alphabet, scratchArr }: _ToHexOptions =
   }
   else while (i < quarterLen) {
     v = d32[i++];
-    v1 = cc[(v >>> 8) & 255];
-    v2 = cc[v & 255];
-    out32[j++] = v2 | v1 << 16;
     v1 = cc[v >>> 24];
     v2 = cc[(v >>> 16) & 255];
+    out32[j++] = v2 | v1 << 16;
+    v1 = cc[(v >>> 8) & 255];
+    v2 = cc[v & 255];
     out32[j++] = v2 | v1 << 16;
   }
   
