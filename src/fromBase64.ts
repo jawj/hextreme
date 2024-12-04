@@ -16,10 +16,10 @@ const
   vzz = 31354;  // (122 << 8) | 122 -- (vZZ is smaller, so not relevant)
 
 let
-  b64StdWordLookup: Uint16Array,
-  b64UrlWordLookup: Uint16Array,
-  b64StdByteLookup: Uint8Array,
-  b64UrlByteLookup: Uint8Array;
+  stdWordLookup: Uint16Array,
+  urlWordLookup: Uint16Array,
+  stdByteLookup: Uint8Array,
+  urlByteLookup: Uint8Array;
 
 // there could in principle be any amount of whitespace between any two input characters, and 
 // that makes it surprisingly tricky to decode base64 in chunks; for now, therefore, we don't try
@@ -29,8 +29,8 @@ export function _fromBase64(s: string, { alphabet, onInvalidInput }: FromBase64O
     lax = onInvalidInput === 'skip',
     urlsafe = alphabet === 'base64url';
 
-  if (!urlsafe && !b64StdWordLookup) {
-    b64StdWordLookup = new Uint16Array(vzz + 1);  // takes ~62KB of memory
+  if (!urlsafe && !stdWordLookup) {
+    stdWordLookup = new Uint16Array(vzz + 1);  // takes ~62KB of memory
     for (let l = 0; l < 64; l++) for (let r = 0; r < 64; r++) {
       const
         cl = chStd[l],
@@ -38,12 +38,12 @@ export function _fromBase64(s: string, { alphabet, onInvalidInput }: FromBase64O
         vin = littleEndian ? (cr << 8) | cl : cr | (cl << 8),
         vout = l << 6 | r;
 
-      b64StdWordLookup[vin] = vout;
+      stdWordLookup[vin] = vout;
     }
   }
 
-  if (urlsafe && !b64UrlWordLookup) {
-    b64UrlWordLookup = new Uint16Array(vzz + 1);  // takes ~62KB of memory
+  if (urlsafe && !urlWordLookup) {
+    urlWordLookup = new Uint16Array(vzz + 1);  // takes ~62KB of memory
     for (let l = 0; l < 64; l++) for (let r = 0; r < 64; r++) {
       const
         cl = chUrl[l],
@@ -51,16 +51,16 @@ export function _fromBase64(s: string, { alphabet, onInvalidInput }: FromBase64O
         vin = littleEndian ? (cr << 8) | cl : cr | (cl << 8),
         vout = l << 6 | r;
 
-      b64UrlWordLookup[vin] = vout;
+      urlWordLookup[vin] = vout;
     }
   }
 
-  if (!b64StdByteLookup) {
-    b64StdByteLookup = new Uint8Array(256).fill(128);  // 128 means: invalid character
-    b64StdByteLookup[chPad] = b64StdByteLookup[9] = b64StdByteLookup[10] = b64StdByteLookup[13] = b64StdByteLookup[32] = 64;  // 64 means: whitespace or padding
-    b64UrlByteLookup = new Uint8Array(256).fill(128);
-    b64UrlByteLookup[chPad] = b64UrlByteLookup[9] = b64UrlByteLookup[10] = b64UrlByteLookup[13] = b64UrlByteLookup[32] = 64;
-    for (let i = 0; i < 64; i++) b64StdByteLookup[chStd[i]] = b64UrlByteLookup[chUrl[i]] = i;  // 6-bit values mean themselves
+  if (!stdByteLookup) {
+    stdByteLookup = new Uint8Array(256).fill(128);  // 128 means: invalid character
+    stdByteLookup[chPad] = stdByteLookup[9] = stdByteLookup[10] = stdByteLookup[13] = stdByteLookup[32] = 64;  // 64 means: whitespace or padding
+    urlByteLookup = new Uint8Array(256).fill(128);
+    urlByteLookup[chPad] = urlByteLookup[9] = urlByteLookup[10] = urlByteLookup[13] = urlByteLookup[32] = 64;
+    for (let i = 0; i < 64; i++) stdByteLookup[chStd[i]] = urlByteLookup[chUrl[i]] = i;  // 6-bit values mean themselves
   }
 
   const
@@ -73,8 +73,8 @@ export function _fromBase64(s: string, { alphabet, onInvalidInput }: FromBase64O
     maxOutBytesLen = inIntsLen * 3,
     outBytes = new Uint8Array(maxOutBytesLen),
     outInts = new Uint32Array(outBytes.buffer, 0, outBytes.length >>> 2),
-    b64WordLookup = urlsafe ? b64UrlWordLookup : b64StdWordLookup,
-    b64ByteLookup = urlsafe ? b64UrlByteLookup : b64StdByteLookup;
+    wordLookup = urlsafe ? urlWordLookup : stdWordLookup,
+    byteLookup = urlsafe ? urlByteLookup : stdByteLookup;
 
   // we don't need to explicitly check for multibyte characters (via `result.written > strlen`)
   // because any multi-byte character includes bytes that are outside the valid range
@@ -89,34 +89,34 @@ export function _fromBase64(s: string, { alphabet, onInvalidInput }: FromBase64O
   if (littleEndian) while (i < fastIntsLen) {  // 
     inInt = inInts[i++];
     inL = inInt & 65535;
-    vL1 = b64WordLookup[inL];
+    vL1 = wordLookup[inL];
     if (!vL1 && inL !== vAA) { i -= 1; break; }
     inR = inInt >>> 16;
-    vR1 = b64WordLookup[inR];
+    vR1 = wordLookup[inR];
     if (!vR1 && inR !== vAA) { i -= 1; break; }
 
     inInt = inInts[i++];
     inL = inInt & 65535;
-    vL2 = b64WordLookup[inL];
+    vL2 = wordLookup[inL];
     if (!vL2 && inL !== vAA) { i -= 2; break; }
     inR = inInt >>> 16;
-    vR2 = b64WordLookup[inR];
+    vR2 = wordLookup[inR];
     if (!vR2 && inR !== vAA) { i -= 2; break; }
 
     inInt = inInts[i++];
     inL = inInt & 65535;
-    vL3 = b64WordLookup[inL];
+    vL3 = wordLookup[inL];
     if (!vL3 && inL !== vAA) { i -= 3; break; }
     inR = inInt >>> 16;
-    vR3 = b64WordLookup[inR];
+    vR3 = wordLookup[inR];
     if (!vR3 && inR !== vAA) { i -= 3; break; }
 
     inInt = inInts[i++];
     inL = inInt & 65535;
-    vL4 = b64WordLookup[inL];
+    vL4 = wordLookup[inL];
     if (!vL4 && inL !== vAA) { i -= 4; break; }
     inR = inInt >>> 16;
-    vR4 = b64WordLookup[inR];
+    vR4 = wordLookup[inR];
     if (!vR4 && inR !== vAA) { i -= 4; break; }
 
     outInts[j++] =
@@ -140,34 +140,34 @@ export function _fromBase64(s: string, { alphabet, onInvalidInput }: FromBase64O
   else while (i < fastIntsLen) {
     inInt = inInts[i++];
     inL = inInt >>> 16;
-    vL1 = b64WordLookup[inL];
+    vL1 = wordLookup[inL];
     if (!vL1 && inL !== vAA) { i -= 1; break; }
     inR = inInt & 65535;
-    vR1 = b64WordLookup[inR];
+    vR1 = wordLookup[inR];
     if (!vR1 && inR !== vAA) { i -= 1; break; }
 
     inInt = inInts[i++];
     inL = inInt >>> 16;
-    vL2 = b64WordLookup[inL];
+    vL2 = wordLookup[inL];
     if (!vL2 && inL !== vAA) { i -= 2; break; }
     inR = inInt & 65535;
-    vR2 = b64WordLookup[inR];
+    vR2 = wordLookup[inR];
     if (!vR2 && inR !== vAA) { i -= 2; break; }
 
     inInt = inInts[i++];
     inL = inInt >>> 16;
-    vL3 = b64WordLookup[inL];
+    vL3 = wordLookup[inL];
     if (!vL3 && inL !== vAA) { i -= 3; break; }
     inR = inInt & 65535;
-    vR3 = b64WordLookup[inR];
+    vR3 = wordLookup[inR];
     if (!vR3 && inR !== vAA) { i -= 3; break; }
 
     inInt = inInts[i++];
     inL = inInt >>> 16;
-    vL4 = b64WordLookup[inL];
+    vL4 = wordLookup[inL];
     if (!vL4 && inL !== vAA) { i -= 4; break; }
     inR = inInt & 65535;
-    vR4 = b64WordLookup[inR];
+    vR4 = wordLookup[inR];
     if (!vR4 && inR !== vAA) { i -= 4; break; }
 
     outInts[j++] = vL1 << 20 | vR1 << 8 | vL2 >>> 4;  // this is so much nicer in big-endian ...
@@ -186,26 +186,20 @@ export function _fromBase64(s: string, { alphabet, onInvalidInput }: FromBase64O
   e: {
     if (lax) while (i < strlen) {
       i0 = i;
-      do { v1 = b64ByteLookup[inBytes[i++]] } while (v1 > 63);  // skip past whitespace and invalid
-      do { v2 = b64ByteLookup[inBytes[i++]] } while (v2 > 63);
-      do { v3 = b64ByteLookup[inBytes[i++]] } while (v3 > 63);
-      do { v4 = b64ByteLookup[inBytes[i++]] } while (v4 > 63);
-
+      while ((v1 = byteLookup[inBytes[i++]]) > 63);  // skip past whitespace and invalid
+      while ((v2 = byteLookup[inBytes[i++]]) > 63);
+      while ((v3 = byteLookup[inBytes[i++]]) > 63);
+      while ((v4 = byteLookup[inBytes[i++]]) > 63);
       outBytes[j++] = v1 << 2 | v2 >>> 4;
       outBytes[j++] = (v2 << 4 | v3 >>> 2) & 255;
       outBytes[j++] = (v3 << 6 | v4) & 255;
     }
     else while (i < strlen) {
       i0 = i;
-      do { v1 = b64ByteLookup[inBytes[i++]] } while (v1 === 64);  // skip past whitespace only
-      if (v1 === 128) break e;
-      do { v2 = b64ByteLookup[inBytes[i++]] } while (v2 === 64);
-      if (v2 === 128) break e;
-      do { v3 = b64ByteLookup[inBytes[i++]] } while (v3 === 64);
-      if (v3 === 128) break e;
-      do { v4 = b64ByteLookup[inBytes[i++]] } while (v4 === 64);
-      if (v4 === 128) break e;
-
+      while ((v1 = byteLookup[inBytes[i++]]) > 63) if (v1 === 128) break e;  // skip past whitespace, break on invalid
+      while ((v2 = byteLookup[inBytes[i++]]) > 63) if (v2 === 128) break e;
+      while ((v3 = byteLookup[inBytes[i++]]) > 63) if (v3 === 128) break e;
+      while ((v4 = byteLookup[inBytes[i++]]) > 63) if (v4 === 128) break e;
       outBytes[j++] = v1 << 2 | v2 >>> 4;
       outBytes[j++] = (v2 << 4 | v3 >>> 2) & 255;
       outBytes[j++] = (v3 << 6 | v4) & 255;
@@ -219,7 +213,7 @@ export function _fromBase64(s: string, { alphabet, onInvalidInput }: FromBase64O
   // we need to count how many valid input characters (0 – 4) there are after i0
 
   let validChars = 0;
-  for (let i = i0; i < strlen; i++) if (b64ByteLookup[inBytes[i]] < 64) validChars++;
+  for (let i = i0; i < strlen; i++) if (byteLookup[inBytes[i]] < 64) validChars++;
   const truncateBytes = { 4: 0, 3: 1, 2: 2, 1: 2, 0: 3 }[validChars];
 
   return outBytes.subarray(0, j - truncateBytes!);

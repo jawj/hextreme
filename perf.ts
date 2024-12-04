@@ -60,6 +60,15 @@ export function perf(log = console.log.bind(console)) {
   log(`cf. feross/buffer.from                 ${benchmark(() => BufferShim.from(benchmarkBase64Std, 'base64'), iterations)}`);
   log();
 
+  log('* Decode base64 with whitespace\n')
+  log(`This library (strict)                  ${benchmark(() => _fromBase64(' ' + benchmarkBase64Std, { onInvalidInput: 'throw' }), iterations)}`);
+  log(`This library (lax)                     ${benchmark(() => _fromBase64(' ' + benchmarkBase64Std, { onInvalidInput: 'skip' }), iterations)}`);
+  // @ts-ignore
+  log(`cf. native fromBase64                  ${benchmark(() => Uint8Array.fromBase64(' ' + benchmarkBase64Std), iterations)}`);
+  log(`cf. native Buffer.from                 ${benchmark(() => Buffer.from(' ' + benchmarkBase64Std, 'base64'), iterations)}`);
+  log(`cf. feross/buffer.from                 ${benchmark(() => BufferShim.from(' ' + benchmarkBase64Std, 'base64'), iterations)}`);
+  log();
+
   if (includeBase64Url) {
     log('* Encode base64url\n')
     log(`This library                           ${benchmark(() => _toBase64Chunked(benchmarkArray, { alphabet: 'base64url', omitPadding: true }), iterations)}`);
