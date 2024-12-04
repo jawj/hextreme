@@ -129,7 +129,7 @@ console.log('Decoding back from base64url and checking results ...');
 for (let i = 0; i < arrays.length; i++) {
   const
     data = arrays[i],
-    base64 = goodBase64Url[i],
+    base64 = ' '.repeat(i % 3) + goodBase64Url[i],
     dataAgain = _fromBase64(base64, { alphabet: 'base64url' });
 
   if (dataAgain.length !== data.length) err(`Length mismatch decoding '${base64}': ${data} != ${dataAgain}`);
@@ -230,3 +230,4 @@ expectError('00ff😀');
 expectError('123456==00');
 
 console.log('Tests passed\n');
+console.log('✅ All tests passed\n');
