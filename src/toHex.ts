@@ -42,7 +42,7 @@ export function _toHex(d8: Uint8Array, { alphabet, scratchArr }: _ToHexOptions =
     cc = alphabet === 'upper' ? ccu : ccl;
 
   let i = 0, j = 0, v, v1, v2;
-  while (i < quarterLen) {  // loop unrolling helps quite a bit in V8
+  if (littleEndian) while (i < quarterLen) {
     v = d32[i++];
     v1 = cc[v & 255];
     v2 = cc[(v >>> 8) & 255];
@@ -50,6 +50,15 @@ export function _toHex(d8: Uint8Array, { alphabet, scratchArr }: _ToHexOptions =
     v1 = cc[(v >>> 16) & 255];
     v2 = cc[v >>> 24];
     out32[j++] = v2 << 16 | v1;
+  }
+  else while (i < quarterLen) {
+    v = d32[i++];
+    v1 = cc[(v >>> 8) & 255];
+    v2 = cc[v & 255];
+    out32[j++] = v2 | v1 << 16;
+    v1 = cc[v >>> 24];
+    v2 = cc[(v >>> 16) & 255];
+    out32[j++] = v2 | v1 << 16;
   }
   
   i <<= 2;  // uint32 addressing to uint8 addressing
