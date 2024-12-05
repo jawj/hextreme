@@ -82,10 +82,10 @@ function _toHex(d8, { alphabet, scratchArr } = {}) {
     }
   }
   const len = d8.length, halfLen = len >>> 1, quarterLen = len >>> 2, out16 = scratchArr || new Uint16Array(len), d32 = new Uint32Array(
-  d8.buffer, d8.byteOffset, quarterLen), last1 = quarterLen - 1, out32 = new Uint32Array(out16.buffer, out16.byteOffset, halfLen),
-  cc = alphabet === "upper" ? ccu : ccl;
+  d8.buffer, d8.byteOffset, quarterLen), out32 = new Uint32Array(out16.buffer, out16.byteOffset, halfLen), cc = alphabet === "uppe\
+r" ? ccu : ccl;
   let i = 0, j = 0, v, v1, v2;
-  while (i < last1) {
+  if (littleEndian) while (i < quarterLen) {
     v = d32[i++];
     v1 = cc[v & 255];
     v2 = cc[v >>> 8 & 255];
@@ -93,13 +93,15 @@ function _toHex(d8, { alphabet, scratchArr } = {}) {
     v1 = cc[v >>> 16 & 255];
     v2 = cc[v >>> 24];
     out32[j++] = v2 << 16 | v1;
+  }
+  else while (i < quarterLen) {
     v = d32[i++];
-    v1 = cc[v & 255];
-    v2 = cc[v >>> 8 & 255];
-    out32[j++] = v2 << 16 | v1;
-    v1 = cc[v >>> 16 & 255];
-    v2 = cc[v >>> 24];
-    out32[j++] = v2 << 16 | v1;
+    v1 = cc[v >>> 24];
+    v2 = cc[v >>> 16 & 255];
+    out32[j++] = v1 << 16 | v2;
+    v1 = cc[v >>> 8 & 255];
+    v2 = cc[v & 255];
+    out32[j++] = v1 << 16 | v2;
   }
   i <<= 2;
   while (i < len) {

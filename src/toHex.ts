@@ -55,10 +55,10 @@ export function _toHex(d8: Uint8Array, { alphabet, scratchArr }: _ToHexOptions =
     v = d32[i++];
     v1 = cc[v >>> 24];
     v2 = cc[(v >>> 16) & 255];
-    out32[j++] = v2 | v1 << 16;
+    out32[j++] = v1 << 16 | v2;
     v1 = cc[(v >>> 8) & 255];
     v2 = cc[v & 255];
-    out32[j++] = v2 | v1 << 16;
+    out32[j++] = v1 << 16 | v2;
   }
   
   i <<= 2;  // uint32 addressing to uint8 addressing
