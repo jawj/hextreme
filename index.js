@@ -84,29 +84,19 @@ function _toHex(d8, { alphabet, scratchArr } = {}) {
   const len = d8.length, halfLen = len >>> 1, quarterLen = len >>> 2, out16 = scratchArr || new Uint16Array(len), d32 = new Uint32Array(
   d8.buffer, d8.byteOffset, quarterLen), out32 = new Uint32Array(out16.buffer, out16.byteOffset, halfLen), cc = alphabet === "uppe\
 r" ? ccu : ccl;
-  let i = 0, j = 0, v, v1, v2;
+  let i = 0, j = 0, v;
   if (littleEndian) while (i < quarterLen) {
     v = d32[i++];
-    v1 = cc[v & 255];
-    v2 = cc[v >>> 8 & 255];
-    out32[j++] = v2 << 16 | v1;
-    v1 = cc[v >>> 16 & 255];
-    v2 = cc[v >>> 24];
-    out32[j++] = v2 << 16 | v1;
+    out32[j++] = cc[v >>> 8 & 255] << 16 | cc[v & 255];
+    out32[j++] = cc[v >>> 24] << 16 | cc[v >>> 16 & 255];
   }
   else while (i < quarterLen) {
     v = d32[i++];
-    v1 = cc[v >>> 24];
-    v2 = cc[v >>> 16 & 255];
-    out32[j++] = v1 << 16 | v2;
-    v1 = cc[v >>> 8 & 255];
-    v2 = cc[v & 255];
-    out32[j++] = v1 << 16 | v2;
+    out32[j++] = cc[v >>> 24] << 16 | cc[v >>> 16 & 255];
+    out32[j++] = cc[v >>> 8 & 255] << 16 | cc[v & 255];
   }
   i <<= 2;
-  while (i < len) {
-    out16[i] = cc[d8[i++]];
-  }
+  while (i < len) out16[i] = cc[d8[i++]];
   const hex = td.decode(out16.subarray(0, len));
   return hex;
 }
@@ -124,7 +114,6 @@ function toHex(d, options = {}) {
 }
 
 // src/fromHex.ts
-var v00 = 12336;
 var vff = 26214;
 var hl;
 function _fromHex(s, { onInvalidInput, scratchArr, outArr, indexOffset } = {}) {
@@ -139,7 +128,7 @@ function _fromHex(s, { onInvalidInput, scratchArr, outArr, indexOffset } = {}) {
   const lax = onInvalidInput === "truncate", slen = s.length;
   if (!lax && slen & 1) throw new Error("Hex input is an odd number of characters");
   const bytelen = slen >>> 1, last7 = bytelen - 7, h16len = bytelen + 2, h16 = scratchArr || new Uint16Array(h16len), h8 = new Uint8Array(
-  h16.buffer), out = outArr || new Uint8Array(bytelen);
+  h16.buffer, h16.byteOffset), out = outArr || new Uint8Array(bytelen);
   if (h16.length < h16len) throw new Error(`Wrong-sized scratch array supplied (was ${h16.length}, expected at least ${h16len})`);
   if (out.length != bytelen) throw new Error(`Wrong-sized output array supplied (was ${out.length}, expected ${bytelen})`);
   te.encodeInto(s, h8);
@@ -149,41 +138,41 @@ function _fromHex(s, { onInvalidInput, scratchArr, outArr, indexOffset } = {}) {
     while (i < last7) {
       vin = h16[i];
       vout = hl[vin];
-      if (!vout && vin !== v00) break e;
+      if (!vout && vin !== 12336) break e;
       out[i++] = vout;
       vin = h16[i];
       vout = hl[vin];
-      if (!vout && vin !== v00) break e;
+      if (!vout && vin !== 12336) break e;
       out[i++] = vout;
       vin = h16[i];
       vout = hl[vin];
-      if (!vout && vin !== v00) break e;
+      if (!vout && vin !== 12336) break e;
       out[i++] = vout;
       vin = h16[i];
       vout = hl[vin];
-      if (!vout && vin !== v00) break e;
+      if (!vout && vin !== 12336) break e;
       out[i++] = vout;
       vin = h16[i];
       vout = hl[vin];
-      if (!vout && vin !== v00) break e;
+      if (!vout && vin !== 12336) break e;
       out[i++] = vout;
       vin = h16[i];
       vout = hl[vin];
-      if (!vout && vin !== v00) break e;
+      if (!vout && vin !== 12336) break e;
       out[i++] = vout;
       vin = h16[i];
       vout = hl[vin];
-      if (!vout && vin !== v00) break e;
+      if (!vout && vin !== 12336) break e;
       out[i++] = vout;
       vin = h16[i];
       vout = hl[vin];
-      if (!vout && vin !== v00) break e;
+      if (!vout && vin !== 12336) break e;
       out[i++] = vout;
     }
     while (i < bytelen) {
       vin = h16[i];
       vout = hl[vin];
-      if (!vout && vin !== v00) break e;
+      if (!vout && vin !== 12336) break e;
       out[i++] = vout;
     }
     ok = true;

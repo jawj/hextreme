@@ -15,7 +15,7 @@ export interface _FromHexOptions extends FromHexOptions {
 }
 
 const
-  v00 = 12336,  // (48 << 8) | 48,
+  // v00 = 12336,  // (48 << 8) | 48 -- now used directly in the source
   vff = 26214;  // (102 << 8) | 102 (vFF is smaller, so not relevant)
 
 let hl: Uint8Array;    // hex lookup
@@ -48,7 +48,7 @@ export function _fromHex(s: string, { onInvalidInput, scratchArr, outArr, indexO
     last7 = bytelen - 7,
     h16len = bytelen + 2,  // `+ 2` allows an extra 4 bytes: enough space for a 4-byte UTF-8 char to be encoded even at the end, so we can detect any multi-byte char
     h16 = scratchArr || new Uint16Array(h16len),
-    h8 = new Uint8Array(h16.buffer),  // view onto same memory
+    h8 = new Uint8Array(h16.buffer, h16.byteOffset),  // view onto same memory
     out = outArr || new Uint8Array(bytelen);
 
   if (h16.length < h16len) throw new Error(`Wrong-sized scratch array supplied (was ${h16.length}, expected at least ${h16len})`);
@@ -62,17 +62,17 @@ export function _fromHex(s: string, { onInvalidInput, scratchArr, outArr, indexO
   e: {
     let vin, vout;
     while (i < last7) {  // a bit of loop unrolling helps performance in V8
-      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break e; out[i++] = vout;
-      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break e; out[i++] = vout;
-      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break e; out[i++] = vout;
-      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break e; out[i++] = vout;
-      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break e; out[i++] = vout;
-      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break e; out[i++] = vout;
-      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break e; out[i++] = vout;
-      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break e; out[i++] = vout;
+      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== 12336) break e; out[i++] = vout;
+      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== 12336) break e; out[i++] = vout;
+      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== 12336) break e; out[i++] = vout;
+      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== 12336) break e; out[i++] = vout;
+      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== 12336) break e; out[i++] = vout;
+      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== 12336) break e; out[i++] = vout;
+      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== 12336) break e; out[i++] = vout;
+      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== 12336) break e; out[i++] = vout;
     }
     while (i < bytelen) {
-      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== v00) break e; out[i++] = vout;
+      vin = h16[i]; vout = hl[vin]; if (!vout && vin !== 12336) break e; out[i++] = vout;
     }
     ok = true;
   }

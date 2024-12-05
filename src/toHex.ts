@@ -41,30 +41,22 @@ export function _toHex(d8: Uint8Array, { alphabet, scratchArr }: _ToHexOptions =
     out32 = new Uint32Array(out16.buffer, out16.byteOffset, halfLen),
     cc = alphabet === 'upper' ? ccu : ccl;
 
-  let i = 0, j = 0, v, v1, v2;
+  // read 4 bytes (1x uint32) and write 8 bytes (2x uint32) at a time
+  let i = 0, j = 0, v;
   if (littleEndian) while (i < quarterLen) {
     v = d32[i++];
-    v1 = cc[v & 255];
-    v2 = cc[(v >>> 8) & 255];
-    out32[j++] = v2 << 16 | v1;
-    v1 = cc[(v >>> 16) & 255];
-    v2 = cc[v >>> 24];
-    out32[j++] = v2 << 16 | v1;
+    out32[j++] = cc[(v >>> 8) & 255] << 16 | cc[v & 255];
+    out32[j++] = cc[v >>> 24] << 16 | cc[(v >>> 16) & 255];
   }
   else while (i < quarterLen) {
     v = d32[i++];
-    v1 = cc[v >>> 24];
-    v2 = cc[(v >>> 16) & 255];
-    out32[j++] = v1 << 16 | v2;
-    v1 = cc[(v >>> 8) & 255];
-    v2 = cc[v & 255];
-    out32[j++] = v1 << 16 | v2;
+    out32[j++] = cc[v >>> 24] << 16 | cc[(v >>> 16) & 255];
+    out32[j++] = cc[(v >>> 8) & 255] << 16 | cc[v & 255];
   }
   
+  // deal with up to 3 remaining bytes
   i <<= 2;  // uint32 addressing to uint8 addressing
-  while (i < len) {
-    out16[i] = cc[d8[i++]];
-  }
+  while (i < len) out16[i] = cc[d8[i++]];
 
   const hex = td.decode(out16.subarray(0, len));
   return hex;
