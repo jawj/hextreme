@@ -429,12 +429,17 @@ function _fromBase64(s, { alphabet, onInvalidInput } = {}) {
     } else while (i < strlen) {
       i0 = i;
       while ((vL1 = byteLookup[inBytes[i++]]) > 63) if (vL1 === 66) break e;
+      else if (vL1 === 65) ok = true;
       while ((vL2 = byteLookup[inBytes[i++]]) > 63) if (vL2 === 66) break e;
+      else if (vL2 === 65) ok = true;
       while ((vL3 = byteLookup[inBytes[i++]]) > 63) if (vL3 === 66) break e;
+      else if (vL3 === 65) ok = true;
       while ((vL4 = byteLookup[inBytes[i++]]) > 63) if (vL4 === 66) break e;
+      else if (vL4 === 65) ok = true;
       outBytes[j++] = vL1 << 2 | vL2 >>> 4;
       outBytes[j++] = (vL2 << 4 | vL3 >>> 2) & 255;
       outBytes[j++] = (vL3 << 6 | vL4) & 255;
+      if (ok) break;
     }
     ok = true;
   }
@@ -444,6 +449,10 @@ function _fromBase64(s, { alphabet, onInvalidInput } = {}) {
     const v = byteLookup[inBytes[i]];
     if (v < 64) validChars++;
     if (v === 65) break;
+  }
+  if (!lax) for (i = i0; i < strlen; i++) {
+    const v = byteLookup[inBytes[i]];
+    if (v > 65) throw new Error(`Invalid character in base64 after padding`);
   }
   const truncateBytes = { 4: 0, 3: 1, 2: 2, 1: 2, 0: 3 }[validChars];
   return outBytes.subarray(0, j - truncateBytes);

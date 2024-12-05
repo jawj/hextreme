@@ -26,7 +26,7 @@ function assertStrEq(str1: string, str2: string) {
   if (str1 === str2) return;
   const commonLength = Math.min(str1.length, str2.length);
   let i;
-  for (i = 0; i < commonLength; i ++) if (str1.charAt(i) !== str2.charAt(i)) break;
+  for (i = 0; i < commonLength; i++) if (str1.charAt(i) !== str2.charAt(i)) break;
   const ext1 = str1.length < 200 ? str1 : str1.slice(0, 100) + ' ... ' + str1.slice(-100);
   const ext2 = str2.length < 200 ? str2 : str2.slice(0, 100) + ' ... ' + str2.slice(-100);
   throw new Error(`String mismatch: lengths ${str1.length} and ${str2.length}, first difference at index ${i}, '${ext1}' != '${ext2}'`);
@@ -133,6 +133,11 @@ console.log('equals in = the middle');
 assertArrEq(_fromBase64(equalsMiddle), Buffer.from(equalsMiddle, 'base64'));
 assertArrEq(_fromBase64(equalsMiddle, { onInvalidInput: 'skip' }), Buffer.from(equalsMiddle, 'base64'));
 
+const equalsMiddle2 = benchmarkBase64Std.slice(0, 400_000 - 2) + '==' + benchmarkBase64Std.slice(400_000 - 2);
+console.log('equals in == the middle');
+assertArrEq(_fromBase64(equalsMiddle2), Buffer.from(equalsMiddle2, 'base64'));
+assertArrEq(_fromBase64(equalsMiddle2, { onInvalidInput: 'skip' }), Buffer.from(equalsMiddle2, 'base64'));
+
 console.log('Tests passed\n');
 
 
@@ -154,10 +159,16 @@ _fromBase64('');
 _fromBase64('AAA=');
 _fromBase64('AA BB CC ++');
 _fromBase64(' AAaa88ZZ00\n\n\n\n\n\nAAaa//ZZ00\t\tAAaaZZ0099  == ');
+_fromBase64(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099==😀', { onInvalidInput: 'skip' });
 expectBase64Error('**********');
 expectBase64Error('AAaaZZ.aa');
 expectBase64Error('AAaaZZ00-');
 expectBase64Error(' AAaa88ZZ00\nAAaa//ZZ00\t~AAaaZZ0099== ');
+expectBase64Error(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099😀');
+expectBase64Error(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099 😀');
+expectBase64Error(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099  😀');
+expectBase64Error(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099   😀');
+expectBase64Error(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099==😀');
 expectBase64Error(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099== 😀');
 expectBase64Error(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099==  😀');
 expectBase64Error(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099==   😀');
