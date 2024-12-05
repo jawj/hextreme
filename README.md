@@ -19,9 +19,9 @@ The following benchmarks were run on an M3 Pro MacBook Pro, using 32 MiB of rand
 
 On this machine, across methods and browsers, the headlines are that we are:
 
-* 4 – 27x **faster** than a representative JS implementation: the [feross/buffer](https://github.com/feross) shim package
+* 4 – 32x **faster** than a representative JS implementation: the [feross/buffer](https://github.com/feross) shim package
 * 4 – 7x **faster** than Firefox's native methods (surprising — Firefox can surely improve on this)
-* 6 – 17x **slower** than Safari's native methods
+* 7 – 17x **slower** than Safari's native methods
 
 ```
                                    Chrome          Firefox             Safari
@@ -29,9 +29,9 @@ On this machine, across methods and browsers, the headlines are that we are:
 
 * Encode hex
 
-This library                     30.60 ms         32.40 ms           25.10 ms
-cf. native toHex                        -        123.60 ms            4.30 ms
-cf. feross/buffer.toString      816.42 ms        213.70 ms          362.80 ms
+This library                     23.04 ms         26.20 ms           42.70 ms
+cf. native toHex                        -        126.20 ms            6.00 ms
+cf. feross/buffer.toString      740.12 ms        209.50 ms          360.40 ms
 
 * Decode hex
 
