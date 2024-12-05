@@ -15,7 +15,11 @@ function arrEq(arr1: Uint8Array, arr2: Uint8Array) {
 }
 
 function assertArrEq(arr1: Uint8Array, arr2: Uint8Array, context = 'no context') {
-  if (!arrEq(arr1, arr2)) throw new Error(`Array mismatch: ${arr1.join()} != ${arr2.join()} (${context})`);
+  if (!arrEq(arr1, arr2)) {
+    const ext1 = arr1.length < 100 ? arr1.join() : arr1.slice(0, 50).join() + ' ... ' + arr1.slice(-50).join();
+    const ext2 = arr2.length < 100 ? arr2.join() : arr2.slice(0, 50).join() + ' ... ' + arr2.slice(-50).join();
+    throw new Error(`Array mismatch: lengths ${arr1.length} and ${arr2.length}, ${ext1} != ${ext2} (${context})`);
+  }
 }
 
 function assertStrEq(str1: string, str2: string) {
@@ -107,11 +111,27 @@ for (let i = 0; i < arrays.length; i++) {
 console.log('Tests passed\n');
 
 
-console.log('Decoding base64 with unusual whitespace ...');
+console.log('Decoding base64 with unusual whitespace or padding ...');
 
-assertArrEq(_fromBase64(benchmarkBase64Std.split('').join(' ')), _fromBase64(benchmarkBase64Std));
-assertArrEq(_fromBase64(benchmarkBase64Std + '\n'.repeat(12345678)), _fromBase64(benchmarkBase64Std));
-assertArrEq(_fromBase64('\n'.repeat(12345678) + benchmarkBase64Std), _fromBase64(benchmarkBase64Std));
+const spaced = benchmarkBase64Std.split('').join(' ');
+console.log('s p a c e d   o u t');
+assertArrEq(_fromBase64(spaced), Buffer.from(spaced, 'base64'));
+assertArrEq(_fromBase64(spaced, { onInvalidInput: 'skip' }), Buffer.from(spaced, 'base64'));
+
+const spaceFirst = '\n'.repeat(12345678) + benchmarkBase64Std;
+console.log('     lots of space first');
+assertArrEq(_fromBase64(spaceFirst), Buffer.from(spaceFirst, 'base64'));
+assertArrEq(_fromBase64(spaceFirst, { onInvalidInput: 'skip' }), Buffer.from(spaceFirst, 'base64'));
+
+const spaceLast = benchmarkBase64Std + '\n'.repeat(12345678);
+console.log('lots of space after     ');
+assertArrEq(_fromBase64(spaceLast), Buffer.from(spaceLast, 'base64'));
+assertArrEq(_fromBase64(spaceLast, { onInvalidInput: 'skip' }), Buffer.from(spaceLast, 'base64'));
+
+const equalsMiddle = benchmarkBase64Std.slice(0, 400_000 - 1) + '=' + benchmarkBase64Std.slice(400_000 - 1);
+console.log('equals in = the middle');
+assertArrEq(_fromBase64(equalsMiddle), Buffer.from(equalsMiddle, 'base64'));
+assertArrEq(_fromBase64(equalsMiddle, { onInvalidInput: 'skip' }), Buffer.from(equalsMiddle, 'base64'));
 
 console.log('Tests passed\n');
 
