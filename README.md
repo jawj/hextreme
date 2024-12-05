@@ -2,15 +2,13 @@
 
 Hex and base64 string encoding and decoding for `Uint8Array` — like native [`.toHex()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array/toHex)/[`.fromHex()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array/fromHex) and [`.toBase64()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array/toBase64)/[`.fromBase64()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array/fromBase64), which are not yet widely supported.
 
-Intended to be as fast as reasonably possible using only plain JavaScript.
+Intended to be as fast as reasonably possible using only plain JavaScript. The secret ingredients are: 
 
-The secret ingredients are: 
+* Conversion between strings and typed arrays via `TextEncoder`, `TextDecoder`
+* Multi-byte reads, writes and lookups using `Uint16Array`, `Uint32Array`
+* A little bit of loop unrolling (which can make a difference in Chrome/V8)
 
-* Conversion between strings and typed arrays via `TextEncoder` and `TextDecoder`
-* Multi-byte reads, writes and lookups using `Uint16Array` and `Uint32Array`
-* A little bit of loop unrolling (which makes a real difference in Chrome/V8)
-
-No external dependencies. ESM and CJS exports, plus TypeScript types. 4KB zipped.
+Comprehensive tests. No external dependencies. ESM and CJS exports, plus TypeScript types. 4KB zipped.
 
 
 ## Performance
@@ -142,7 +140,7 @@ The `alphabet` option defaults to `'base64'`, but may alternatively be set to `'
 
 The `onInvalidInput` option defaults to `'throw'`, in which case any non-base64, non-whitespace character in the input causes an error to be thrown. This matches the behaviour of `toBase64()` on a `Uint8Array` (where supported).
 
-`onInvalidInput` may otherwise be set to `'skip'`, in which case any non-base64 characters are skipped and decoding continues. This matches the behaviour of `toString('base64')` on a Node `Buffer`.
+`onInvalidInput` may otherwise be set to `'skip'`, in which case any non-base64 characters are skipped and decoding continues (apart from `=`, which ends decoding). This matches the behaviour of `toString('base64')` on a Node `Buffer`.
 
 _Note that decoding becomes substantially slower if whitespace or invalid characters are encountered in the input string._
 
