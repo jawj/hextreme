@@ -1,0 +1,1 @@
+1.0.1 / 10 Dec 2024: Added `base64any` as a possible value for the `alphabet` option to `fromBase64()`.

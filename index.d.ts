@@ -32,7 +32,8 @@ export interface _ToBase64Options extends ToBase64Options {
 export declare function _toBase64(d: Uint8Array, { omitPadding, alphabet, scratchArr }?: _ToBase64Options): string;
 export declare function _toBase64Chunked(d: Uint8Array, options?: ToBase64Options): string;
 export declare function toBase64(d: Uint8Array, options?: ToBase64Options): string;
-export interface FromBase64Options extends Base64Options {
+export interface FromBase64Options {
+	alphabet?: Base64Options["alphabet"] | "base64any";
 	onInvalidInput?: "throw" | "skip";
 }
 export declare function _fromBase64(s: string, { alphabet, onInvalidInput }?: FromBase64Options): Uint8Array<ArrayBuffer>;

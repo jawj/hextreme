@@ -74,9 +74,11 @@ for (let i = 0; i < arrays.length; i++) {
   const
     data = arrays[i],
     base64 = rNodeBufferB64Std[i] + '\n'.repeat(i % 5),
-    dataAgain = _fromBase64(base64);
+    dataAgain = _fromBase64(base64),
+    dataAgain2 = _fromBase64(base64, { alphabet: 'base64any' });
 
   assertArrEq(data, dataAgain);
+  assertArrEq(data, dataAgain2);
 }
 
 console.log('Tests passed\n');
@@ -103,9 +105,11 @@ for (let i = 0; i < arrays.length; i++) {
   const
     data = arrays[i],
     base64 = ' '.repeat(i % 2) + rNodeBufferB64Url[i] + '\n'.repeat(i % 5),
-    dataAgain = _fromBase64(base64, { alphabet: 'base64url' });
+    dataAgain = _fromBase64(base64, { alphabet: 'base64url' }),
+    dataAgain2 = _fromBase64(base64, { alphabet: 'base64any' });
 
   assertArrEq(data, dataAgain);
+  assertArrEq(data, dataAgain2);
 }
 
 console.log('Tests passed\n');

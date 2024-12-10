@@ -105,11 +105,11 @@ fromHex('FEEDfXce', { onInvalidInput: 'truncate' });
 
 ### Base64 encoding
 
-`toBase64(bytes: Uint8Array, { alphabet?: 'base64' | 'base64url', omitPadding?: boolean } = {}): string;`
+`toBase64(bytes: Uint8Array, { alphabet?: 'base64' | 'base64url' | 'base64any', omitPadding?: boolean } = {}): string;`
 
 Encodes binary data to a base64 string.
 
-The `alphabet` option defaults to `'base64'`, but may alternatively be set to `'base64url'`, in which case the `+` and `/` characters are replaced with `-` and `_`.
+The `alphabet` option defaults to `'base64'`. It may alternatively be set to `'base64url'`, in which case the `+` and `/` characters are replaced with `-` and `_`, or `'base64any'`, in which case both of these alternatives are recognised.
 
 The `omitPadding` option defaults to `false`, so that the output string is padded to a multiple of 4 characters using the `=` character. It can be set to `true` to prevent padding being applied.
 

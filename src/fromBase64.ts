@@ -7,7 +7,8 @@ import {
   type Base64Options
 } from './common';
 
-export interface FromBase64Options extends Base64Options {
+export interface FromBase64Options {
+  alphabet?: Base64Options['alphabet'] | 'base64any';
   onInvalidInput?: 'throw' | 'skip';
 }
 
@@ -18,18 +19,19 @@ const
 let
   stdWordLookup: Uint16Array,
   urlWordLookup: Uint16Array,
+  anyWordLookup: Uint16Array,
   stdByteLookup: Uint8Array,
-  urlByteLookup: Uint8Array;
+  urlByteLookup: Uint8Array,
+  anyByteLookup: Uint8Array;
+
 
 // there could in principle be any amount of whitespace between any two input characters, and 
 // that makes it surprisingly tricky to decode base64 in chunks; for now, therefore, we don't try
 
 export function _fromBase64(s: string, { alphabet, onInvalidInput }: FromBase64Options = {}) {
-  const
-    lax = onInvalidInput === 'skip',
-    urlsafe = alphabet === 'base64url';
+  const lax = onInvalidInput === 'skip';
 
-  if (!urlsafe && !stdWordLookup) {
+  if (alphabet !== 'base64url' && alphabet !== 'base64any' && !stdWordLookup) {
     stdWordLookup = new Uint16Array(vzz + 1);  // takes ~62KB of memory
     for (let l = 0; l < 64; l++) for (let r = 0; r < 64; r++) {
       const
@@ -42,7 +44,7 @@ export function _fromBase64(s: string, { alphabet, onInvalidInput }: FromBase64O
     }
   }
 
-  if (urlsafe && !urlWordLookup) {
+  if (alphabet === 'base64url' && !urlWordLookup) {
     urlWordLookup = new Uint16Array(vzz + 1);  // takes ~62KB of memory
     for (let l = 0; l < 64; l++) for (let r = 0; r < 64; r++) {
       const
@@ -55,14 +57,46 @@ export function _fromBase64(s: string, { alphabet, onInvalidInput }: FromBase64O
     }
   }
 
+  if (alphabet === 'base64any' && !anyWordLookup) {
+    anyWordLookup = new Uint16Array(vzz + 1);  // takes ~62KB of memory
+    for (let l = 0; l < 64; l++) for (let r = 0; r < 64; r++) {
+      const
+        cl = chStd[l],
+        cr = chStd[r],
+        vin = littleEndian ? (cr << 8) | cl : cr | (cl << 8),
+        vout = l << 6 | r;
+
+      anyWordLookup[vin] = vout;
+
+      if (l > 61 || r > 61) {
+        const
+          cl = chUrl[l],
+          cr = chUrl[r],
+          vin = littleEndian ? (cr << 8) | cl : cr | (cl << 8);
+
+        anyWordLookup[vin] = vout;
+      }
+    }
+  }
+
   if (!stdByteLookup) {
     stdByteLookup = new Uint8Array(256).fill(66);  // 66 means: invalid character
-    stdByteLookup[9] = stdByteLookup[10] = stdByteLookup[13] = stdByteLookup[32] = 64;  // 64 means: whitespace
-    stdByteLookup[chPad] = 65;  // 65 means: padding
     urlByteLookup = new Uint8Array(256).fill(66);
-    urlByteLookup[chPad] = 65;
-    urlByteLookup[9] = urlByteLookup[10] = urlByteLookup[13] = urlByteLookup[32] = 64;
-    for (let i = 0; i < 64; i++) stdByteLookup[chStd[i]] = urlByteLookup[chUrl[i]] = i;  // 6-bit values mean themselves
+    anyByteLookup = new Uint8Array(256).fill(66);
+
+    stdByteLookup[chPad] = urlByteLookup[chPad] = anyByteLookup[chPad] = 65;  // 65 means: padding
+
+    stdByteLookup[9] = stdByteLookup[10] = stdByteLookup[13] = stdByteLookup[32] =  // tab, \r, \n, space
+      urlByteLookup[9] = urlByteLookup[10] = urlByteLookup[13] = urlByteLookup[32] =
+      anyByteLookup[9] = anyByteLookup[10] = anyByteLookup[13] = anyByteLookup[32] = 64;  // 64 means: whitespace
+
+    for (let i = 0; i < 64; i++) {
+      const 
+        chStdI = chStd[i],
+        chUrlI = chUrl[i];
+
+      stdByteLookup[chStdI] = urlByteLookup[chUrlI] = anyByteLookup[chStdI] = anyByteLookup[chUrlI] = i;  // 6-bit values mean themselves
+    }
   }
 
   const
@@ -75,8 +109,8 @@ export function _fromBase64(s: string, { alphabet, onInvalidInput }: FromBase64O
     maxOutBytesLen = inIntsLen * 3,
     outBytes = new Uint8Array(maxOutBytesLen),
     outInts = new Uint32Array(outBytes.buffer, 0, outBytes.length >>> 2),
-    wordLookup = urlsafe ? urlWordLookup : stdWordLookup,
-    byteLookup = urlsafe ? urlByteLookup : stdByteLookup;
+    wordLookup = alphabet === 'base64url' ? urlWordLookup : alphabet === 'base64any' ? anyWordLookup : stdWordLookup,
+    byteLookup = alphabet === 'base64url' ? urlByteLookup : alphabet === 'base64any' ? anyByteLookup : stdByteLookup;
 
   // we don't need to explicitly check for multibyte characters (via `result.written > strlen`)
   // because any multi-byte character includes bytes that are outside the valid range

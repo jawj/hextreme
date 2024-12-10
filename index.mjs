@@ -261,37 +261,55 @@ function toBase64(d, options = {}) {
 var vzz = 31354;
 var stdWordLookup;
 var urlWordLookup;
+var anyWordLookup;
 var stdByteLookup;
 var urlByteLookup;
+var anyByteLookup;
 function _fromBase64(s, { alphabet, onInvalidInput } = {}) {
-  const lax = onInvalidInput === "skip", urlsafe = alphabet === "base64url";
-  if (!urlsafe && !stdWordLookup) {
+  const lax = onInvalidInput === "skip";
+  if (alphabet !== "base64url" && alphabet !== "base64any" && !stdWordLookup) {
     stdWordLookup = new Uint16Array(vzz + 1);
     for (let l = 0; l < 64; l++) for (let r = 0; r < 64; r++) {
       const cl = b64ChStd[l], cr = b64ChStd[r], vin = littleEndian ? cr << 8 | cl : cr | cl << 8, vout = l << 6 | r;
       stdWordLookup[vin] = vout;
     }
   }
-  if (urlsafe && !urlWordLookup) {
+  if (alphabet === "base64url" && !urlWordLookup) {
     urlWordLookup = new Uint16Array(vzz + 1);
     for (let l = 0; l < 64; l++) for (let r = 0; r < 64; r++) {
       const cl = b64ChUrl[l], cr = b64ChUrl[r], vin = littleEndian ? cr << 8 | cl : cr | cl << 8, vout = l << 6 | r;
       urlWordLookup[vin] = vout;
     }
   }
+  if (alphabet === "base64any" && !anyWordLookup) {
+    anyWordLookup = new Uint16Array(vzz + 1);
+    for (let l = 0; l < 64; l++) for (let r = 0; r < 64; r++) {
+      const cl = b64ChStd[l], cr = b64ChStd[r], vin = littleEndian ? cr << 8 | cl : cr | cl << 8, vout = l << 6 | r;
+      anyWordLookup[vin] = vout;
+      if (l > 61 || r > 61) {
+        const cl2 = b64ChUrl[l], cr2 = b64ChUrl[r], vin2 = littleEndian ? cr2 << 8 | cl2 : cr2 | cl2 << 8;
+        anyWordLookup[vin2] = vout;
+      }
+    }
+  }
   if (!stdByteLookup) {
     stdByteLookup = new Uint8Array(256).fill(66);
-    stdByteLookup[9] = stdByteLookup[10] = stdByteLookup[13] = stdByteLookup[32] = 64;
-    stdByteLookup[b64ChPad] = 65;
     urlByteLookup = new Uint8Array(256).fill(66);
-    urlByteLookup[b64ChPad] = 65;
-    urlByteLookup[9] = urlByteLookup[10] = urlByteLookup[13] = urlByteLookup[32] = 64;
-    for (let i2 = 0; i2 < 64; i2++) stdByteLookup[b64ChStd[i2]] = urlByteLookup[b64ChUrl[i2]] = i2;
+    anyByteLookup = new Uint8Array(256).fill(66);
+    stdByteLookup[b64ChPad] = urlByteLookup[b64ChPad] = anyByteLookup[b64ChPad] = 65;
+    stdByteLookup[9] = stdByteLookup[10] = stdByteLookup[13] = stdByteLookup[32] = // tab, \r, \n, space
+    urlByteLookup[9] = urlByteLookup[10] = urlByteLookup[13] = urlByteLookup[32] = anyByteLookup[9] = anyByteLookup[10] = anyByteLookup[13] =
+    anyByteLookup[32] = 64;
+    for (let i2 = 0; i2 < 64; i2++) {
+      const chStdI = b64ChStd[i2], chUrlI = b64ChUrl[i2];
+      stdByteLookup[chStdI] = urlByteLookup[chUrlI] = anyByteLookup[chStdI] = anyByteLookup[chUrlI] = i2;
+    }
   }
   const strlen = s.length, inIntsLen = Math.ceil(strlen / 4), inIntsLenPlus = inIntsLen + 1, fastIntsLen = inIntsLen - 4, inInts = new Uint32Array(
   inIntsLenPlus), inBytes = new Uint8Array(inInts.buffer, 0, strlen), maxOutBytesLen = inIntsLen * 3, outBytes = new Uint8Array(maxOutBytesLen),
-  outInts = new Uint32Array(outBytes.buffer, 0, outBytes.length >>> 2), wordLookup = urlsafe ? urlWordLookup : stdWordLookup, byteLookup = urlsafe ?
-  urlByteLookup : stdByteLookup;
+  outInts = new Uint32Array(outBytes.buffer, 0, outBytes.length >>> 2), wordLookup = alphabet === "base64url" ? urlWordLookup : alphabet ===
+  "base64any" ? anyWordLookup : stdWordLookup, byteLookup = alphabet === "base64url" ? urlByteLookup : alphabet === "base64any" ? anyByteLookup :
+  stdByteLookup;
   te.encodeInto(s, inBytes);
   let i = 0, j = 0, inInt, inL, inR, vL1, vR1, vL2, vR2, vL3, vR3, vL4, vR4;
   if (littleEndian) while (i < fastIntsLen) {
