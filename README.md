@@ -105,7 +105,7 @@ fromHex('FEEDfXce', { onInvalidInput: 'truncate' });
 
 ### Base64 encoding
 
-`toBase64(bytes: Uint8Array, { alphabet?: 'base64' | 'base64url' | 'base64any', omitPadding?: boolean } = {}): string;`
+`toBase64(bytes: Uint8Array, { alphabet?: 'base64' | 'base64url', omitPadding?: boolean } = {}): string;`
 
 Encodes binary data to a base64 string.
 
@@ -132,7 +132,7 @@ toBase64(bytes, { alphabet: 'base64url', omitPadding: true });
 
 ### Base64 decoding
 
-`fromBase64(base64: string, { alphabet?: 'base64' | 'base64url', onInvalidInput?: 'throw' | 'skip' } = {}): Uint8Array;`
+`fromBase64(base64: string, { alphabet?: 'base64' | 'base64url' | 'base64any', onInvalidInput?: 'throw' | 'skip' } = {}): Uint8Array;`
 
 Decodes a base64 string to binary data. Whitespace in the input string (spaces, tabs, `\r` and `\n`) is ignored.
 
