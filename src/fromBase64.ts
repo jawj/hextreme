@@ -205,8 +205,8 @@ export function _fromBase64(s: string, { alphabet, onInvalidInput }: FromBase64O
   if (i === inBytesLen) return outBytes;
 
   // this is the slow loop, which ideally only handles the last few bytes;
-  // here we fall back to reading up to 4 bytes, one at a time, and handling
-  // any errors (or simply ignoring them if we're in lax mode)
+  // here we fall back to reading up to 4 VALID bytes, one at a time, and 
+  // handling any errors (or simply ignoring them if we're in lax mode)
 
   let i0 = i, ok = false;
   e: {

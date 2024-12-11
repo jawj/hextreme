@@ -17,37 +17,37 @@ The following benchmarks were run on an M3 Pro MacBook Pro, using 32 MiB of rand
 
 On this machine, across methods and browsers, the headlines are that we are:
 
-* 4 – 32x **faster** than a representative JS implementation: the [feross/buffer](https://github.com/feross) shim package
-* 4 – 7x **faster** than Firefox's native methods (surprising — Firefox can surely improve on this)
-* 7 – 17x **slower** than Safari's native methods
+* 4 – 36x **faster** than a representative JS implementation: the [feross/buffer](https://github.com/feross) shim package
+* 3 – 7x **faster** than Firefox's native methods (surprising — Firefox can surely improve on this)
+* 5 – 16x **slower** than Safari's native methods
 
 ```
                                    Chrome          Firefox             Safari
-                            131.0.6778.86            133.0   Tech Preview 207
+                            131.0.6778.86            133.0   Tech Preview 209
 
 * Encode hex
 
-This library                     23.04 ms         26.20 ms           42.70 ms
-cf. native toHex                        -        126.20 ms: x5        6.00 ms: /7                                                                         
-cf. feross/buffer.toString      740.12 ms: x32   209.50 ms: x8      360.40 ms: x8                      
+This library                     22.59 ms         26.20 ms           44.10 ms
+cf. native toHex                        -        126.20 ms: x5        5.80 ms: /8                                                          
+cf. feross/buffer.toString      813.48 ms: x36   209.50 ms: x8      368.70 ms: x8
 
 * Decode hex
 
-This library                     60.22 ms         32.60 ms           90.50 ms
-cf. native fromHex                      -        229.40 ms: x7        6.30 ms: /14
-cf. feross/buffer.from          757.89 ms: x13   546.60 ms: x17    1306.10 ms: x14
+This library                     60.22 ms         32.60 ms           92.40 ms
+cf. native fromHex                      -        229.40 ms: x7        5.80 ms: /16
+cf. feross/buffer.from          757.89 ms: x13   546.60 ms: x17    1371.60 ms: x15
 
 * Encode base64
 
-This library                     16.86 ms         20.90 ms           40.90 ms
-cf. native toBase64                     -         84.00 ms: x4        2.80 ms: /15
-cf. feross/buffer.toString      275.85 ms: x16   203.80 ms: x10     524.10 ms: x13
+This library                     16.86 ms         20.90 ms           42.60 ms
+cf. native toBase64                     -         84.00 ms: x4        3.60 ms: /12
+cf. feross/buffer.toString      275.85 ms: x16   203.80 ms: x10     550.30 ms: x13
 
 * Decode base64
 
-This library                     39.51 ms         30.60 ms           64.10 ms
-cf. native fromBase64                   -        116.20 ms: x4        3.70 ms: /17
-cf. feross/buffer.from          200.30 ms: x5    247.10 ms: x8      276.70 ms: x4
+This library                     52.02 ms         36.60 ms           23.90 ms
+cf. native fromBase64                   -        123.00 ms: x3        4.60 ms: /5
+cf. feross/buffer.from          200.80 ms: x4    248.10 ms: x7      281.70 ms: x12
 ```
 
 ## Usage
