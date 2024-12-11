@@ -193,6 +193,13 @@ function expectBase64Skip(b64: string) {
 }
 
 expectBase64Skip('');
+expectBase64Skip('K');
+expectBase64Skip('K=');
+expectBase64Skip('K==');
+expectBase64Skip('K===');
+expectBase64Skip('Kg');
+expectBase64Skip('Kg=');
+expectBase64Skip('Kg==');
 expectBase64Skip('**********');
 expectBase64Skip('AAaaZZ.aa');
 expectBase64Skip('AAaaZZ00-');

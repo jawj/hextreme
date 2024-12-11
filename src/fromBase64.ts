@@ -251,7 +251,7 @@ export function _fromBase64(s: string, { alphabet, onInvalidInput }: FromBase64O
     if (v > 65) throw new Error(`Invalid character in base64 after padding`);
   }
 
-  const truncateBytes = { 4: 0, 3: 1, 2: 2, 1: 2, 0: 3 }[validChars];
+  const truncateBytes = { 4: 0, 3: 1, 2: 2, 1: 3, 0: 3 }[validChars];
   return outBytes.subarray(0, j - truncateBytes!);
 }
 
