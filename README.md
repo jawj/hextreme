@@ -109,7 +109,7 @@ fromHex('FEEDfXce', { onInvalidInput: 'truncate' });
 
 Encodes binary data to a base64 string.
 
-The `alphabet` option defaults to `'base64'`. It may alternatively be set to `'base64url'`, in which case the `+` and `/` characters are replaced with `-` and `_`, or `'base64any'`, in which case both of these alternatives are recognised.
+The `alphabet` option defaults to `'base64'`. It may alternatively be set to `'base64url'`, in which case the `+` and `/` characters are replaced with `-` and `_`.
 
 The `omitPadding` option defaults to `false`, so that the output string is padded to a multiple of 4 characters using the `=` character. It can be set to `true` to prevent padding being applied.
 
@@ -136,13 +136,13 @@ toBase64(bytes, { alphabet: 'base64url', omitPadding: true });
 
 Decodes a base64 string to binary data. Whitespace in the input string (spaces, tabs, `\r` and `\n`) is ignored.
 
-The `alphabet` option defaults to `'base64'`, but may alternatively be set to `'base64url'`, in which case the `+` and `/` characters are replaced with `-` and `_`.
+The `alphabet` option defaults to `'base64'`, but may alternatively be set to `'base64url'`, in which case `-` and `_` are expected instead of `+` and `/`, or `'base64any'`, in which case both alternatives are recognised.
 
-The `onInvalidInput` option defaults to `'throw'`, in which case any non-base64, non-whitespace character in the input causes an error to be thrown. This matches the behaviour of `toBase64()` on a `Uint8Array` (where supported).
+The `onInvalidInput` option defaults to `'throw'`, in which case any non-base64, non-whitespace character in the input causes an error to be thrown. This matches the behaviour of `toBase64()` on a `Uint8Array` (where available).
 
 `onInvalidInput` may otherwise be set to `'skip'`, in which case any non-base64 characters are skipped and decoding continues (apart from `=`, which ends decoding). This matches the behaviour of `toString('base64')` on a Node `Buffer`.
 
-_Note that decoding becomes substantially slower if whitespace or invalid characters are encountered in the input string._
+_Note that decoding becomes roughly 2x slower if whitespace or invalid characters are encountered in the input string._
 
 Examples:
 
@@ -156,6 +156,9 @@ fromBase64('hello/+/worldA');
 // Uint8Array(10) [ 133, 233, 101, 163, 255, 191, 194, 138, 229, 116 ]
 
 fromBase64('hello_-_worldA==', { alphabet: 'base64url' });
+// Uint8Array(10) [ 133, 233, 101, 163, 255, 191, 194, 138, 229, 116 ]
+
+fromBase64('hello_+_worldA==', { alphabet: 'base64any' });
 // Uint8Array(10) [ 133, 233, 101, 163, 255, 191, 194, 138, 229, 116 ]
 
 fromBase64('hello/:+/worldA==');
