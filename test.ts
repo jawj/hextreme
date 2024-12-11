@@ -200,10 +200,30 @@ expectBase64Skip(' AAaa88ZZ00\nAAaa//ZZ00\t~AAaaZZ0099== ');
 expectBase64Skip(' AA``aa88ZZ(00)\nAA|aa//ZZ00\t~AAaaZZ0099== "');
 expectBase64Skip(' AAaa88ZZ00\nAAaa/😀/ZZ00\tAAaaZZ0099== ');
 expectBase64Skip(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099== 😀');
-expectBase64Skip(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099==  😀');
-expectBase64Skip(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099==   😀');
-expectBase64Skip(' AAaa88ZZ00\nAAaa/=/ZZ00\tAAaaZZ0099~==');
+expectBase64Skip(' AAaa88ZZ00 \nAAaa//ZZ00\tAAaaZZ0099==  😀');
+expectBase64Skip(' AAaa88ZZ00\nAAaa//ZZ00 \tAAaaZZ0099==   😀');
+expectBase64Skip(' AAaa88ZZ00\nAAaa//ZZ00 \tAAaaZZ0099==   😀');
+expectBase64Skip(' 😀😀😀😀😀😀😀😀😀😀ZZ');
 expectBase64Skip(benchmarkBase64Std + ':::' + benchmarkBase64Std);
+
+const
+  b64NoBad = Buffer.from(
+    'Man is distinguished, not only by his reason, but by this ' +
+    'singular passion from other animals, which is a lust ' +
+    'of the mind, that by a perseverance of delight in the ' +
+    'continued and indefatigable generation of knowledge, ' +
+    'exceeds the short vehemence of any carnal pleasure.',
+    'utf-8'
+  ).toString('base64'),
+  b64WithBad =
+    b64NoBad.slice(0, 60) + ' \x80' +
+    b64NoBad.slice(60, 120) + ' \xff' +
+    b64NoBad.slice(120, 180) + ' \x00' +
+    b64NoBad.slice(180, 240) + ' \x98' +
+    b64NoBad.slice(240, 300) + '\x03' +
+    b64NoBad.slice(300, 360);
+
+expectBase64Skip(b64WithBad);
 
 console.log('Tests passed\n');
 

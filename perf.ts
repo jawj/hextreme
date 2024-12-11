@@ -10,8 +10,6 @@ import {
 
 import bufferShimDefault from 'buffer/index.js';  // just 'buffer' imports Node native implementation
 
-const includeBase64Url = false;
-
 export function perf(log = console.log.bind(console)) {
   const
     BufferShim = bufferShimDefault.Buffer,
@@ -24,7 +22,6 @@ export function perf(log = console.log.bind(console)) {
     benchmarkBuffer = typeof Buffer !== 'undefined' ? Buffer.from(benchmarkArray) : null,
     benchmarkBufferShim = BufferShim.from(benchmarkArray),
     benchmarkBase64Std = _toBase64Chunked(benchmarkArray),
-    benchmarkBase64Url = _toBase64Chunked(benchmarkArray, { alphabet: 'base64url' }),
     benchmarkHex = _toHexChunked(benchmarkArray);
 
   let iterations = 10;
@@ -68,25 +65,6 @@ export function perf(log = console.log.bind(console)) {
   log(`cf. native Buffer.from                 ${benchmark(() => Buffer.from(' ' + benchmarkBase64Std, 'base64'), iterations)}`);
   log(`cf. feross/buffer.from                 ${benchmark(() => BufferShim.from(' ' + benchmarkBase64Std, 'base64'), iterations)}`);
   log();
-
-  if (includeBase64Url) {
-    log('* Encode base64url\n')
-    log(`This library                           ${benchmark(() => _toBase64Chunked(benchmarkArray, { alphabet: 'base64url', omitPadding: true }), iterations)}`);
-    // @ts-ignore
-    log(`cf. native toBase64                    ${benchmark(() => benchmarkArray.toBase64({ alphabet: 'base64url' }), iterations)}`);
-    // @ts-ignore
-    log(`cf. native Buffer.toString             ${benchmark(() => benchmarkBuffer.toString('base64url'), iterations)}`);
-    log(`cf. feross/buffer.toString             ${benchmark(() => benchmarkBufferShim.toString('base64url'), iterations)}`);
-    log();
-
-    log('* Decode base64url\n')
-    log(`This library                           ${benchmark(() => _fromBase64(benchmarkBase64Url, { alphabet: 'base64url', onInvalidInput: 'skip' }), iterations)}`);
-    // @ts-ignore
-    log(`cf. native fromBase64                  ${benchmark(() => Uint8Array.fromBase64(benchmarkBase64Url, { alphabet: 'base64url' }), iterations)}`);
-    log(`cf. native Buffer.from                 ${benchmark(() => Buffer.from(benchmarkBase64Url, 'base64url'), iterations)}`);
-    log(`cf. feross/buffer.from                 ${benchmark(() => BufferShim.from(benchmarkBase64Url, 'base64url'), iterations)}`);
-    log();
-  }
 
   log('* Encode hex\n')
   log(`This library                           ${benchmark(() => _toHexChunked(benchmarkArray), iterations)}`);

@@ -2040,42 +2040,57 @@
   var vzz = 31354;
   var stdWordLookup;
   var urlWordLookup;
+  var anyWordLookup;
   var stdByteLookup;
   var urlByteLookup;
+  var anyByteLookup;
   function _fromBase64(s, { alphabet, onInvalidInput } = {}) {
-    const lax = onInvalidInput === "skip", urlsafe = alphabet === "base64url";
-    if (!urlsafe && !stdWordLookup) {
+    const lax = onInvalidInput === "skip";
+    if (!stdWordLookup && alphabet !== "base64url" && alphabet !== "base64any") {
       stdWordLookup = new Uint16Array(vzz + 1);
       for (let l = 0; l < 64; l++) for (let r = 0; r < 64; r++) {
         const cl = b64ChStd[l], cr = b64ChStd[r], vin = littleEndian ? cr << 8 | cl : cr | cl << 8, vout = l << 6 | r;
         stdWordLookup[vin] = vout;
       }
     }
-    if (urlsafe && !urlWordLookup) {
+    if (!urlWordLookup && alphabet === "base64url") {
       urlWordLookup = new Uint16Array(vzz + 1);
       for (let l = 0; l < 64; l++) for (let r = 0; r < 64; r++) {
         const cl = b64ChUrl[l], cr = b64ChUrl[r], vin = littleEndian ? cr << 8 | cl : cr | cl << 8, vout = l << 6 | r;
         urlWordLookup[vin] = vout;
       }
     }
+    if (!anyWordLookup && alphabet === "base64any") {
+      anyWordLookup = new Uint16Array(vzz + 1);
+      for (let l = 0; l < 64; l++) for (let r = 0; r < 64; r++) {
+        const cl = b64ChStd[l], cr = b64ChStd[r], vin = littleEndian ? cr << 8 | cl : cr | cl << 8, vout = l << 6 | r;
+        anyWordLookup[vin] = vout;
+        if (l > 61 || r > 61) {
+          const cl2 = b64ChUrl[l], cr2 = b64ChUrl[r], vin2 = littleEndian ? cr2 << 8 | cl2 : cr2 | cl2 << 8;
+          anyWordLookup[vin2] = vout;
+        }
+      }
+    }
     if (!stdByteLookup) {
       stdByteLookup = new Uint8Array(256).fill(66);
-      stdByteLookup[9] = stdByteLookup[10] = stdByteLookup[13] = stdByteLookup[32] = 64;
-      stdByteLookup[b64ChPad] = 65;
       urlByteLookup = new Uint8Array(256).fill(66);
-      urlByteLookup[b64ChPad] = 65;
-      urlByteLookup[9] = urlByteLookup[10] = urlByteLookup[13] = urlByteLookup[32] = 64;
-      for (let i2 = 0; i2 < 64; i2++) stdByteLookup[b64ChStd[i2]] = urlByteLookup[b64ChUrl[i2]] = i2;
+      anyByteLookup = new Uint8Array(256).fill(66);
+      stdByteLookup[b64ChPad] = urlByteLookup[b64ChPad] = anyByteLookup[b64ChPad] = 65;
+      stdByteLookup[9] = stdByteLookup[10] = stdByteLookup[13] = stdByteLookup[32] = // tab, \r, \n, space
+      urlByteLookup[9] = urlByteLookup[10] = urlByteLookup[13] = urlByteLookup[32] = anyByteLookup[9] = anyByteLookup[10] = anyByteLookup[13] = anyByteLookup[32] = 64;
+      for (let i2 = 0; i2 < 64; i2++) {
+        const chStdI = b64ChStd[i2], chUrlI = b64ChUrl[i2];
+        stdByteLookup[chStdI] = urlByteLookup[chUrlI] = anyByteLookup[chStdI] = anyByteLookup[chUrlI] = i2;
+      }
     }
-    const strlen = s.length, inIntsLen = Math.ceil(strlen / 4), inIntsLenPlus = inIntsLen + 1, fastIntsLen = inIntsLen - 4, inInts = new Uint32Array(inIntsLenPlus), inBytes = new Uint8Array(inInts.buffer, 0, strlen), maxOutBytesLen = inIntsLen * 3, outBytes = new Uint8Array(maxOutBytesLen), outInts = new Uint32Array(outBytes.buffer, 0, outBytes.length >>> 2), wordLookup = urlsafe ? urlWordLookup : stdWordLookup, byteLookup = urlsafe ? urlByteLookup : stdByteLookup;
-    te.encodeInto(s, inBytes);
+    const inBytes = te.encode(s), inBytesLen = inBytes.length, inIntsLen = inBytesLen >>> 2, inInts = new Uint32Array(inBytes.buffer, inBytes.byteOffset, inIntsLen), last3 = inIntsLen - 3, maxOutBytesLen = inIntsLen * 3 + inBytesLen % 4, outBytes = new Uint8Array(maxOutBytesLen), outInts = new Uint32Array(outBytes.buffer, 0, maxOutBytesLen >>> 2), wl = alphabet === "base64url" ? urlWordLookup : alphabet === "base64any" ? anyWordLookup : stdWordLookup, bl = alphabet === "base64url" ? urlByteLookup : alphabet === "base64any" ? anyByteLookup : stdByteLookup;
     let i = 0, j = 0, inInt, inL, inR, vL1, vR1, vL2, vR2, vL3, vR3, vL4, vR4;
-    if (littleEndian) while (i < fastIntsLen) {
+    if (littleEndian) while (i < last3) {
       inInt = inInts[i++];
       inL = inInt & 65535;
       inR = inInt >>> 16;
-      vL1 = wordLookup[inL];
-      vR1 = wordLookup[inR];
+      vL1 = wl[inL];
+      vR1 = wl[inR];
       if (!((vL1 || inL === 16705) && (vR1 || inR === 16705))) {
         i -= 1;
         break;
@@ -2083,8 +2098,8 @@
       inInt = inInts[i++];
       inL = inInt & 65535;
       inR = inInt >>> 16;
-      vL2 = wordLookup[inL];
-      vR2 = wordLookup[inR];
+      vL2 = wl[inL];
+      vR2 = wl[inR];
       if (!((vL2 || inL === 16705) && (vR2 || inR === 16705))) {
         i -= 2;
         break;
@@ -2092,8 +2107,8 @@
       inInt = inInts[i++];
       inL = inInt & 65535;
       inR = inInt >>> 16;
-      vL3 = wordLookup[inL];
-      vR3 = wordLookup[inR];
+      vL3 = wl[inL];
+      vR3 = wl[inR];
       if (!((vL3 || inL === 16705) && (vR3 || inR === 16705))) {
         i -= 3;
         break;
@@ -2101,8 +2116,8 @@
       inInt = inInts[i++];
       inL = inInt & 65535;
       inR = inInt >>> 16;
-      vL4 = wordLookup[inL];
-      vR4 = wordLookup[inR];
+      vL4 = wl[inL];
+      vR4 = wl[inR];
       if (!((vL4 || inL === 16705) && (vR4 || inR === 16705))) {
         i -= 4;
         break;
@@ -2111,12 +2126,12 @@
       outInts[j++] = (vL2 & 15) << 4 | (vR2 & 65280) >>> 8 | (vR2 & 255) << 8 | (vL3 & 4080) << 12 | (vL3 & 15) << 28 | (vR3 & 65280) << 16;
       outInts[j++] = vR3 & 255 | (vL4 & 4080) << 4 | (vL4 & 15) << 20 | (vR4 & 3840) << 8 | vR4 << 24;
     }
-    else while (i < fastIntsLen) {
+    else while (i < last3) {
       inInt = inInts[i++];
       inL = inInt >>> 16;
       inR = inInt & 65535;
-      vL1 = wordLookup[inL];
-      vR1 = wordLookup[inR];
+      vL1 = wl[inL];
+      vR1 = wl[inR];
       if (!((vL1 || inL === 16705) && (vR1 || inR === 16705))) {
         i -= 1;
         break;
@@ -2124,8 +2139,8 @@
       inInt = inInts[i++];
       inL = inInt >>> 16;
       inR = inInt & 65535;
-      vL2 = wordLookup[inL];
-      vR2 = wordLookup[inR];
+      vL2 = wl[inL];
+      vR2 = wl[inR];
       if (!((vL2 || inL === 16705) && (vR2 || inR === 16705))) {
         i -= 2;
         break;
@@ -2133,8 +2148,8 @@
       inInt = inInts[i++];
       inL = inInt >>> 16;
       inR = inInt & 65535;
-      vL3 = wordLookup[inL];
-      vR3 = wordLookup[inR];
+      vL3 = wl[inL];
+      vR3 = wl[inR];
       if (!((vL3 || inL === 16705) && (vR3 || inR === 16705))) {
         i -= 3;
         break;
@@ -2142,8 +2157,8 @@
       inInt = inInts[i++];
       inL = inInt >>> 16;
       inR = inInt & 65535;
-      vL4 = wordLookup[inL];
-      vR4 = wordLookup[inR];
+      vL4 = wl[inL];
+      vR4 = wl[inR];
       if (!((vL4 || inL === 16705) && (vR4 || inR === 16705))) {
         i -= 4;
         break;
@@ -2154,38 +2169,47 @@
     }
     i <<= 2;
     j <<= 2;
+    if (i === inBytesLen) return outBytes;
     let i0 = i, ok = false;
     e: {
-      if (lax) {
-        f: while (i < strlen) {
-          i0 = i;
-          while ((vL1 = byteLookup[inBytes[i++]]) > 63) if (vL1 === 65) ok = true;
-          while ((vL2 = byteLookup[inBytes[i++]]) > 63) if (vL2 === 65) ok = true;
-          while ((vL3 = byteLookup[inBytes[i++]]) > 63) if (vL3 === 65) ok = true;
-          while ((vL4 = byteLookup[inBytes[i++]]) > 63) if (vL4 === 65) ok = true;
-          outBytes[j++] = vL1 << 2 | vL2 >>> 4;
-          outBytes[j++] = (vL2 << 4 | vL3 >>> 2) & 255;
-          outBytes[j++] = (vL3 << 6 | vL4) & 255;
-          if (ok) break;
-        }
-      } else while (i < strlen) {
+      if (lax) while (i < inBytesLen) {
         i0 = i;
-        while ((vL1 = byteLookup[inBytes[i++]]) > 63) if (vL1 === 66) break e;
-        while ((vL2 = byteLookup[inBytes[i++]]) > 63) if (vL2 === 66) break e;
-        while ((vL3 = byteLookup[inBytes[i++]]) > 63) if (vL3 === 66) break e;
-        while ((vL4 = byteLookup[inBytes[i++]]) > 63) if (vL4 === 66) break e;
+        while ((vL1 = bl[inBytes[i++]]) > 63) if (vL1 === 65) ok = true;
+        while ((vL2 = bl[inBytes[i++]]) > 63) if (vL2 === 65) ok = true;
+        while ((vL3 = bl[inBytes[i++]]) > 63) if (vL3 === 65) ok = true;
+        while ((vL4 = bl[inBytes[i++]]) > 63) if (vL4 === 65) ok = true;
         outBytes[j++] = vL1 << 2 | vL2 >>> 4;
         outBytes[j++] = (vL2 << 4 | vL3 >>> 2) & 255;
         outBytes[j++] = (vL3 << 6 | vL4) & 255;
+        if (ok) break;
+      }
+      else while (i < inBytesLen) {
+        i0 = i;
+        while ((vL1 = bl[inBytes[i++]]) > 63) if (vL1 === 66) break e;
+        else if (vL1 === 65) ok = true;
+        while ((vL2 = bl[inBytes[i++]]) > 63) if (vL2 === 66) break e;
+        else if (vL2 === 65) ok = true;
+        while ((vL3 = bl[inBytes[i++]]) > 63) if (vL3 === 66) break e;
+        else if (vL3 === 65) ok = true;
+        while ((vL4 = bl[inBytes[i++]]) > 63) if (vL4 === 66) break e;
+        else if (vL4 === 65) ok = true;
+        outBytes[j++] = vL1 << 2 | vL2 >>> 4;
+        outBytes[j++] = (vL2 << 4 | vL3 >>> 2) & 255;
+        outBytes[j++] = (vL3 << 6 | vL4) & 255;
+        if (ok) break;
       }
       ok = true;
     }
     if (!ok) throw new Error(`Invalid character in base64 at index ${i - 1}`);
     let validChars = 0;
-    for (i = i0; i < strlen; i++) {
-      const v = byteLookup[inBytes[i]];
+    for (i = i0; i < inBytesLen; i++) {
+      const v = bl[inBytes[i]];
       if (v < 64) validChars++;
       if (v === 65) break;
+    }
+    if (!lax) for (i = i0; i < inBytesLen; i++) {
+      const v = bl[inBytes[i]];
+      if (v > 65) throw new Error(`Invalid character in base64 after padding`);
     }
     const truncateBytes = { 4: 0, 3: 1, 2: 2, 1: 2, 0: 3 }[validChars];
     return outBytes.subarray(0, j - truncateBytes);
@@ -2193,7 +2217,6 @@
 
   // perf.ts
   var import_buffer = __toESM(require_buffer());
-  var includeBase64Url = false;
   function perf(log = console.log.bind(console)) {
     const BufferShim = import_buffer.default.Buffer, length = 33554433, benchmarkArray = new Uint8Array(length);
     for (let i = 0; i < length; i++) benchmarkArray[i] = Math.random() * 256 >>> 0;
@@ -2218,7 +2241,6 @@
     log("* Encode base64\n");
     log(`This library                           ${benchmark(() => _toBase64Chunked(benchmarkArray), iterations)}`);
     log(`cf. native toBase64                    ${benchmark(() => benchmarkArray.toBase64(), iterations)}`);
-    log(`cf. native Buffer.toString             ${benchmark(() => benchmarkBuffer.toString("base64"), iterations)}`);
     log(`cf. feross/buffer.toString             ${benchmark(() => benchmarkBufferShim.toString("base64"), iterations)}`);
     log();
     log("* Decode base64\n");
@@ -2234,20 +2256,6 @@
     log(`cf. native Buffer.from                 ${benchmark(() => Buffer.from(" " + benchmarkBase64Std, "base64"), iterations)}`);
     log(`cf. feross/buffer.from                 ${benchmark(() => BufferShim.from(" " + benchmarkBase64Std, "base64"), iterations)}`);
     log();
-    if (includeBase64Url) {
-      log("* Encode base64url\n");
-      log(`This library                           ${benchmark(() => _toBase64Chunked(benchmarkArray, { alphabet: "base64url", omitPadding: true }), iterations)}`);
-      log(`cf. native toBase64                    ${benchmark(() => benchmarkArray.toBase64({ alphabet: "base64url" }), iterations)}`);
-      log(`cf. native Buffer.toString             ${benchmark(() => benchmarkBuffer.toString("base64url"), iterations)}`);
-      log(`cf. feross/buffer.toString             ${benchmark(() => benchmarkBufferShim.toString("base64url"), iterations)}`);
-      log();
-      log("* Decode base64url\n");
-      log(`This library                           ${benchmark(() => _fromBase64(benchmarkBase64Url, { alphabet: "base64url", onInvalidInput: "skip" }), iterations)}`);
-      log(`cf. native fromBase64                  ${benchmark(() => Uint8Array.fromBase64(benchmarkBase64Url, { alphabet: "base64url" }), iterations)}`);
-      log(`cf. native Buffer.from                 ${benchmark(() => Buffer.from(benchmarkBase64Url, "base64url"), iterations)}`);
-      log(`cf. feross/buffer.from                 ${benchmark(() => BufferShim.from(benchmarkBase64Url, "base64url"), iterations)}`);
-      log();
-    }
     log("* Encode hex\n");
     log(`This library                           ${benchmark(() => _toHexChunked(benchmarkArray), iterations)}`);
     log(`cf. native toHex                       ${benchmark(() => benchmarkArray.toHex(), iterations)}`);
