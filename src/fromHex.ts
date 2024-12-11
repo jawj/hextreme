@@ -6,11 +6,11 @@ import {
 
 export interface FromHexOptions {
   onInvalidInput?: 'throw' | 'truncate';
+  outArray?: Uint8Array;
 }
 
 export interface _FromHexOptions extends FromHexOptions {
-  scratchArr?: Uint16Array;
-  outArr?: Uint8Array;
+  scratchArray?: Uint16Array;
   indexOffset?: number;
 }
 
@@ -20,7 +20,7 @@ const
 
 let hl: Uint8Array;    // hex lookup
 
-export function _fromHex(s: string, { onInvalidInput, scratchArr, outArr, indexOffset }: _FromHexOptions = {}) {
+export function _fromHex(s: string, { onInvalidInput, scratchArray: scratchArr, outArray: outArr, indexOffset }: _FromHexOptions = {}) {
   // note: using a Map or a big switch/case block are both an order of magnitude slower than these TypedArray lookups
 
   if (!hl) {  // one-time prep
@@ -81,7 +81,7 @@ export function _fromHex(s: string, { onInvalidInput, scratchArr, outArr, indexO
   return i < bytelen ? out.subarray(0, i) : out;
 }
 
-export function _fromHexChunked(s: string, { onInvalidInput }: FromHexOptions = {}) {
+export function _fromHexChunked(s: string, { onInvalidInput, outArray }: FromHexOptions = {}) {
   const
     lax = onInvalidInput === 'truncate',
     slen = s.length;
@@ -94,7 +94,9 @@ export function _fromHexChunked(s: string, { onInvalidInput }: FromHexOptions = 
     chunkInts = chunkBytes >>> 1,
     chunksCount = Math.ceil(byteLength / chunkInts),
     scratchArr = new Uint16Array((chunksCount > 1 ? chunkInts : byteLength) + 2),  // + 2 allows for a multi-byte character to be decoded (and thus detected) at the end
-    outArr = new Uint8Array(byteLength);
+    outArr = outArray || new Uint8Array(byteLength);
+
+  if (outArr.length !== byteLength) throw new Error(`Provided output array is of wrong length: expected ${byteLength}, got ${outArr.length}`);
 
   for (let i = 0; i < chunksCount; i++) {
     const
@@ -102,8 +104,8 @@ export function _fromHexChunked(s: string, { onInvalidInput }: FromHexOptions = 
       chunkEndByte = chunkStartByte + chunkInts,
       result = _fromHex(s.slice(chunkStartByte << 1, chunkEndByte << 1), {
         onInvalidInput,
-        scratchArr,
-        outArr: outArr.subarray(chunkStartByte, chunkEndByte),
+        scratchArray: scratchArr,
+        outArray: outArr.subarray(chunkStartByte, chunkEndByte),
         indexOffset: chunkStartByte
       });
 
@@ -117,5 +119,6 @@ export function _fromHexChunked(s: string, { onInvalidInput }: FromHexOptions = 
 
 export function fromHex(s: string, options: FromHexOptions = {}) {
   // @ts-expect-error TS doesn't know about fromHex
-  return (options.onInvalidInput !== 'truncate' && typeof Uint8Array.fromHex === 'function') ? Uint8Array.fromHex(s) : _fromHexChunked(s, options);
+  if (typeof Uint8Array.fromHex === 'function' && options.onInvalidInput !== 'truncate' && !options.outArray) return Uint8Array.fromHex(s);
+  return _fromHexChunked(s, options);
 }

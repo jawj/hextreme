@@ -83,7 +83,7 @@ function toHex(d, options = {}) {
 // src/fromHex.ts
 var vff = 26214;
 var hl;
-function _fromHex(s, { onInvalidInput, scratchArr, outArr, indexOffset } = {}) {
+function _fromHex(s, { onInvalidInput, scratchArray: scratchArr, outArray: outArr, indexOffset } = {}) {
   if (!hl) {
     hl = new Uint8Array(vff + 1);
     for (let l = 0; l < 22; l++) for (let r = 0; r < 22; r++) {
@@ -147,17 +147,19 @@ function _fromHex(s, { onInvalidInput, scratchArr, outArr, indexOffset } = {}) {
   if (!ok && !lax) throw new Error(`Invalid pair in hex input at index ${(indexOffset || 0) + i << 1}`);
   return i < bytelen ? out.subarray(0, i) : out;
 }
-function _fromHexChunked(s, { onInvalidInput } = {}) {
+function _fromHexChunked(s, { onInvalidInput, outArray } = {}) {
   const lax = onInvalidInput === "truncate", slen = s.length;
   if (!lax && slen & 1) throw new Error("Hex input is an odd number of characters");
   const byteLength = slen >>> 1, chunkInts = chunkBytes >>> 1, chunksCount = Math.ceil(byteLength / chunkInts), scratchArr = new Uint16Array(
-  (chunksCount > 1 ? chunkInts : byteLength) + 2), outArr = new Uint8Array(byteLength);
+  (chunksCount > 1 ? chunkInts : byteLength) + 2), outArr = outArray || new Uint8Array(byteLength);
+  if (outArr.length !== byteLength) throw new Error(`Provided output array is of wrong length: expected ${byteLength}, got ${outArr.
+  length}`);
   for (let i = 0; i < chunksCount; i++) {
     const chunkStartByte = i * chunkInts, chunkEndByte = chunkStartByte + chunkInts, result = _fromHex(s.slice(chunkStartByte << 1,
     chunkEndByte << 1), {
       onInvalidInput,
-      scratchArr,
-      outArr: outArr.subarray(chunkStartByte, chunkEndByte),
+      scratchArray: scratchArr,
+      outArray: outArr.subarray(chunkStartByte, chunkEndByte),
       indexOffset: chunkStartByte
     });
     if (lax && result.length < chunkEndByte - chunkStartByte) {
@@ -167,8 +169,9 @@ function _fromHexChunked(s, { onInvalidInput } = {}) {
   return outArr;
 }
 function fromHex(s, options = {}) {
-  return options.onInvalidInput !== "truncate" && typeof Uint8Array.fromHex === "function" ? Uint8Array.fromHex(s) : _fromHexChunked(
-  s, options);
+  if (typeof Uint8Array.fromHex === "function" && options.onInvalidInput !== "truncate" && !options.outArray) return Uint8Array.fromHex(
+  s);
+  return _fromHexChunked(s, options);
 }
 
 // src/toBase64.ts

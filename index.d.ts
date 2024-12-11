@@ -11,14 +11,14 @@ export declare function _toHexChunked(d: Uint8Array, options?: ToHexOptions): st
 export declare function toHex(d: Uint8Array, options?: ToHexOptions): string;
 export interface FromHexOptions {
 	onInvalidInput?: "throw" | "truncate";
+	outArray?: Uint8Array;
 }
 export interface _FromHexOptions extends FromHexOptions {
-	scratchArr?: Uint16Array;
-	outArr?: Uint8Array;
+	scratchArray?: Uint16Array;
 	indexOffset?: number;
 }
-export declare function _fromHex(s: string, { onInvalidInput, scratchArr, outArr, indexOffset }?: _FromHexOptions): Uint8Array<ArrayBuffer>;
-export declare function _fromHexChunked(s: string, { onInvalidInput }?: FromHexOptions): Uint8Array<ArrayBuffer>;
+export declare function _fromHex(s: string, { onInvalidInput, scratchArray: scratchArr, outArray: outArr, indexOffset }?: _FromHexOptions): Uint8Array<ArrayBuffer>;
+export declare function _fromHexChunked(s: string, { onInvalidInput, outArray }?: FromHexOptions): Uint8Array<ArrayBuffer>;
 export declare function fromHex(s: string, options?: FromHexOptions): any;
 export interface Base64Options {
 	alphabet?: "base64" | "base64url";
