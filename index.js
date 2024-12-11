@@ -81,6 +81,7 @@ function _toHex(d8, { alphabet, scratchArr } = {}) {
       ccu[i2] = hexCharsUpper[i2 & 15] | hexCharsUpper[i2 >>> 4] << 8;
     }
   }
+  if (d8.byteOffset % 2 !== 0) d8 = new Uint8Array(d8);
   const len = d8.length, halfLen = len >>> 1, quarterLen = len >>> 2, out16 = scratchArr || new Uint16Array(len), d32 = new Uint32Array(
   d8.buffer, d8.byteOffset, quarterLen), out32 = new Uint32Array(out16.buffer, out16.byteOffset, halfLen), cc = alphabet === "uppe\
 r" ? ccu : ccl;
@@ -225,6 +226,7 @@ function _toBase64(d, { omitPadding, alphabet, scratchArr } = {}) {
       for (let i2 = 62; i2 < 64; i2++) for (let j2 = 0; j2 < 62; j2++) chpairsUrl[i2 << 6 | j2] = b64ChUrl[i2] << 8 | b64ChUrl[j2];
     }
   }
+  if (d.byteOffset % 4 !== 0) d = new Uint8Array(d);
   const urlsafe = alphabet === "base64url", ch = urlsafe ? b64ChUrl : b64ChStd, chpairs = urlsafe ? chpairsUrl : chpairsStd, inlen = d.
   length, last2 = inlen - 2, inints = inlen >>> 2, intlast3 = inints - 3, d32 = new Uint32Array(d.buffer, d.byteOffset, inints), outints = Math.
   ceil(inlen / 3), out = scratchArr || new Uint32Array(outints);

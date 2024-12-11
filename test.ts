@@ -46,6 +46,8 @@ const
   benchmarkHex = benchmarkBuffer.toString('hex'),
   benchmarkBase64Std = benchmarkBuffer.toString('base64');
 
+arrays[49] = arrays[49].subarray(1);  // odd offset
+
 console.log('Generated\n');
 
 

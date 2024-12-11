@@ -32,6 +32,11 @@ export function _toHex(d8: Uint8Array, { alphabet, scratchArr }: _ToHexOptions =
     }
   }
 
+  // if this is a subarray and the byteOffset isn't 2-byte aligned, we have to
+  // create a new array that is
+
+  if (d8.byteOffset % 2 !== 0) d8 = new Uint8Array(d8);
+
   const
     len = d8.length,
     halfLen = len >>> 1,

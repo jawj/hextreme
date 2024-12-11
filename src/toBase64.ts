@@ -41,6 +41,11 @@ export function _toBase64(d: Uint8Array, { omitPadding, alphabet, scratchArr }: 
     }
   }
 
+  // if this is a subarray and the byteOffset isn't 4-byte aligned, we have to
+  // create a new array that is
+
+  if (d.byteOffset % 4 !== 0) d = new Uint8Array(d);
+
   const
     urlsafe = alphabet === 'base64url',
     ch = urlsafe ? b64ChUrl : b64ChStd,
