@@ -37,7 +37,8 @@ console.log('Generating random test data ...');
 const
   lengths = [...new Array(102).fill(0).map((_, i) => i), 1010, 10101, 101010, 1010104, 33554433],
   arrays = lengths.map(length => {
-    const arr = new Uint8Array(length);
+    const offset = length % 12;
+    const arr = new Uint8Array(length + offset).subarray(offset);
     for (let i = 0; i < length; i++) arr[i] = Math.random() * 256 >> 0;
     return arr;
   }),
@@ -45,8 +46,6 @@ const
   benchmarkBuffer = Buffer.from(benchmarkArray),
   benchmarkHex = benchmarkBuffer.toString('hex'),
   benchmarkBase64Std = benchmarkBuffer.toString('base64');
-
-arrays[49] = arrays[49].subarray(1);  // odd offset
 
 console.log('Generated\n');
 

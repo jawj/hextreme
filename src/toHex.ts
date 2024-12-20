@@ -18,7 +18,7 @@ let
   ccl: Uint16Array,  // char codes, lower case
   ccu: Uint16Array;
 
-export function _toHex(d8: Uint8Array, { alphabet, scratchArr }: _ToHexOptions = {}) {
+export function _toHex(in8: Uint8Array, { alphabet, scratchArr }: _ToHexOptions = {}) {
   if (!ccl) {
     ccl = new Uint16Array(256);
     ccu = new Uint16Array(256);
@@ -35,33 +35,33 @@ export function _toHex(d8: Uint8Array, { alphabet, scratchArr }: _ToHexOptions =
   // if this is a subarray and the byteOffset isn't 2-byte aligned, we have to
   // create a new array that is
 
-  if (d8.byteOffset % 2 !== 0) d8 = new Uint8Array(d8);
+  if (in8.byteOffset % 4 !== 0) in8 = new Uint8Array(in8);
 
   const
-    len = d8.length,
+    len = in8.length,
     halfLen = len >>> 1,
     quarterLen = len >>> 2,
     out16 = scratchArr || new Uint16Array(len),
-    d32 = new Uint32Array(d8.buffer, d8.byteOffset, quarterLen),
+    in32 = new Uint32Array(in8.buffer, in8.byteOffset, quarterLen),
     out32 = new Uint32Array(out16.buffer, out16.byteOffset, halfLen),
     cc = alphabet === 'upper' ? ccu : ccl;
 
   // read 4 bytes (1x uint32) and write 8 bytes (2x uint32) at a time
   let i = 0, j = 0, v;
   if (littleEndian) while (i < quarterLen) {
-    v = d32[i++];
+    v = in32[i++];
     out32[j++] = cc[(v >>> 8) & 255] << 16 | cc[v & 255];
     out32[j++] = cc[v >>> 24] << 16 | cc[(v >>> 16) & 255];
   }
   else while (i < quarterLen) {
-    v = d32[i++];
+    v = in32[i++];
     out32[j++] = cc[v >>> 24] << 16 | cc[(v >>> 16) & 255];
     out32[j++] = cc[(v >>> 8) & 255] << 16 | cc[v & 255];
   }
   
   // deal with up to 3 remaining bytes
   i <<= 2;  // uint32 addressing to uint8 addressing
-  while (i < len) out16[i] = cc[d8[i++]];
+  while (i < len) out16[i] = cc[in8[i++]];
 
   const hex = td.decode(out16.subarray(0, len));
   return hex;

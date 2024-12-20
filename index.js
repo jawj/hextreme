@@ -68,7 +68,7 @@ b64ChUrl[63] = 95;
 // src/toHex.ts
 var ccl;
 var ccu;
-function _toHex(d8, { alphabet, scratchArr } = {}) {
+function _toHex(in8, { alphabet, scratchArr } = {}) {
   if (!ccl) {
     ccl = new Uint16Array(256);
     ccu = new Uint16Array(256);
@@ -81,23 +81,23 @@ function _toHex(d8, { alphabet, scratchArr } = {}) {
       ccu[i2] = hexCharsUpper[i2 & 15] | hexCharsUpper[i2 >>> 4] << 8;
     }
   }
-  if (d8.byteOffset % 2 !== 0) d8 = new Uint8Array(d8);
-  const len = d8.length, halfLen = len >>> 1, quarterLen = len >>> 2, out16 = scratchArr || new Uint16Array(len), d32 = new Uint32Array(
-  d8.buffer, d8.byteOffset, quarterLen), out32 = new Uint32Array(out16.buffer, out16.byteOffset, halfLen), cc = alphabet === "uppe\
-r" ? ccu : ccl;
+  if (in8.byteOffset % 4 !== 0) in8 = new Uint8Array(in8);
+  const len = in8.length, halfLen = len >>> 1, quarterLen = len >>> 2, out16 = scratchArr || new Uint16Array(len), in32 = new Uint32Array(
+  in8.buffer, in8.byteOffset, quarterLen), out32 = new Uint32Array(out16.buffer, out16.byteOffset, halfLen), cc = alphabet === "up\
+per" ? ccu : ccl;
   let i = 0, j = 0, v;
   if (littleEndian) while (i < quarterLen) {
-    v = d32[i++];
+    v = in32[i++];
     out32[j++] = cc[v >>> 8 & 255] << 16 | cc[v & 255];
     out32[j++] = cc[v >>> 24] << 16 | cc[v >>> 16 & 255];
   }
   else while (i < quarterLen) {
-    v = d32[i++];
+    v = in32[i++];
     out32[j++] = cc[v >>> 24] << 16 | cc[v >>> 16 & 255];
     out32[j++] = cc[v >>> 8 & 255] << 16 | cc[v & 255];
   }
   i <<= 2;
-  while (i < len) out16[i] = cc[d8[i++]];
+  while (i < len) out16[i] = cc[in8[i++]];
   const hex = td.decode(out16.subarray(0, len));
   return hex;
 }
