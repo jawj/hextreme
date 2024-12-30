@@ -257,6 +257,6 @@ export function _fromBase64(s: string, { alphabet, onInvalidInput }: FromBase64O
 
 export function fromBase64(s: string, options: FromBase64Options = {}) {
   // @ts-expect-error TS doesn't know about fromHex
-  if (typeof Uint8Array.fromBase64 === 'function' && options.onInvalidInput !== 'skip' && options.alphabet !== 'base64any') return Uint8Array.fromBase64(s, options);
+  if (typeof Uint8Array.fromBase64 === 'function' && options.onInvalidInput !== 'skip' && options.alphabet !== 'base64any') return Uint8Array.fromBase64(s, options) as Uint8Array;
   return _fromBase64(s, options);
 }

@@ -1,6 +1,6 @@
 {
   "name": "hextreme",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Encode/decode hex and base64 at speed",
   "exports": {
     "require": "./index.js",

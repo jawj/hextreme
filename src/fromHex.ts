@@ -119,6 +119,6 @@ export function _fromHexChunked(s: string, { onInvalidInput, outArray }: FromHex
 
 export function fromHex(s: string, options: FromHexOptions = {}) {
   // @ts-expect-error TS doesn't know about fromHex
-  if (typeof Uint8Array.fromHex === 'function' && options.onInvalidInput !== 'truncate' && !options.outArray) return Uint8Array.fromHex(s);
+  if (typeof Uint8Array.fromHex === 'function' && options.onInvalidInput !== 'truncate' && !options.outArray) return Uint8Array.fromHex(s) as Uint8Array;
   return _fromHexChunked(s, options);
 }

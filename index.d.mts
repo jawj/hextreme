@@ -19,7 +19,7 @@ export interface _FromHexOptions extends FromHexOptions {
 }
 export declare function _fromHex(s: string, { onInvalidInput, scratchArray: scratchArr, outArray: outArr, indexOffset }?: _FromHexOptions): Uint8Array<ArrayBuffer>;
 export declare function _fromHexChunked(s: string, { onInvalidInput, outArray }?: FromHexOptions): Uint8Array<ArrayBuffer>;
-export declare function fromHex(s: string, options?: FromHexOptions): any;
+export declare function fromHex(s: string, options?: FromHexOptions): Uint8Array<ArrayBuffer>;
 export interface Base64Options {
 	alphabet?: "base64" | "base64url";
 }
@@ -37,6 +37,6 @@ export interface FromBase64Options {
 	onInvalidInput?: "throw" | "skip";
 }
 export declare function _fromBase64(s: string, { alphabet, onInvalidInput }?: FromBase64Options): Uint8Array<ArrayBuffer>;
-export declare function fromBase64(s: string, options?: FromBase64Options): any;
+export declare function fromBase64(s: string, options?: FromBase64Options): Uint8Array<ArrayBuffer>;
 
 export {};
