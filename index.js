@@ -36,8 +36,8 @@ var __copyProps = (to, from, except, desc) => {
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // src/index.ts
-var src_exports = {};
-__export(src_exports, {
+var index_exports = {};
+__export(index_exports, {
   _fromBase64: () => _fromBase64,
   _fromHex: () => _fromHex,
   _fromHexChunked: () => _fromHexChunked,
@@ -50,7 +50,7 @@ __export(src_exports, {
   toBase64: () => toBase64,
   toHex: () => toHex
 });
-module.exports = __toCommonJS(src_exports);
+module.exports = __toCommonJS(index_exports);
 
 // src/common.ts
 var chunkBytes = 1008e3;
