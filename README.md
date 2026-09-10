@@ -170,11 +170,12 @@ fromBase64('hello/:+/worldA==', { onInvalidInput: 'skip' });
 
 ## Development
 
-The source is in `src`. To build: `npm run build`.
+We use `bun`. Clone the repo and `bun install`. The source is in `src`. 
 
-To run tests: `npm run test`. To run a subset of tests on a big-endian platform (which has some different code paths), see [big-endian/README.md](big-endian/README.md).
-
-To run benchmarks: `npm run perfCli` (for Node and Bun) and `npm run perfBrowser`.
+* To build: `bun run build`.
+* To run tests: `bun run test`.
+* To run a subset of tests on a big-endian platform (which has some different code paths), see [big-endian/README.md](big-endian/README.md).
+* To run benchmarks: `npm run perfCli` (for Node and Bun) and `npm run perfBrowser`.
 
 ## Licence
 
