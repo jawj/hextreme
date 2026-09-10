@@ -50,6 +50,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/jawj/hextreme"
+    "url": "git+https://github.com/jawj/hextreme.git"
   }
 }
