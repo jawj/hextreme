@@ -308,9 +308,9 @@ function _fromBase64(s, { alphabet, onInvalidInput } = {}) {
     urlByteLookup = new Uint8Array(256).fill(66);
     anyByteLookup = new Uint8Array(256).fill(66);
     stdByteLookup[b64ChPad] = urlByteLookup[b64ChPad] = anyByteLookup[b64ChPad] = 65;
-    stdByteLookup[9] = stdByteLookup[10] = stdByteLookup[12] = stdByteLookup[13] = stdByteLookup[32] = // tab, \r, \f, \n, space
-    urlByteLookup[9] = urlByteLookup[10] = stdByteLookup[12] = urlByteLookup[13] = urlByteLookup[32] = anyByteLookup[9] = anyByteLookup[10] =
-    stdByteLookup[12] = anyByteLookup[13] = anyByteLookup[32] = 64;
+    stdByteLookup[9] = stdByteLookup[10] = stdByteLookup[12] = stdByteLookup[13] = stdByteLookup[32] = // tab, \n, \f, \r, space
+    urlByteLookup[9] = urlByteLookup[10] = urlByteLookup[12] = urlByteLookup[13] = urlByteLookup[32] = anyByteLookup[9] = anyByteLookup[10] =
+    anyByteLookup[12] = anyByteLookup[13] = anyByteLookup[32] = 64;
     for (let i2 = 0; i2 < 64; i2++) {
       const chStdI = b64ChStd[i2], chUrlI = b64ChUrl[i2];
       stdByteLookup[chStdI] = urlByteLookup[chUrlI] = anyByteLookup[chStdI] = anyByteLookup[chUrlI] = i2;

@@ -259,6 +259,16 @@ _fromBase64('AAA=');
 _fromBase64('AA BB CC ++');
 _fromBase64(' AAaa88ZZ00\n\n\n\n\n\nAAaa//ZZ00\t\tAAaaZZ0099  == ');
 _fromBase64(' AAaa88ZZ00\n\n\f\f\n\nAAaa//ZZ00\t\tAAaaZZ0099  == ');
+
+// Test that all whitespace characters work with all alphabets
+const whitespaceChars = [' ', '\t', '\n', '\r', '\f'];
+for (const ws of whitespaceChars) {
+  const withWs = `QUJD${ws}REVG`;
+  const expected = Buffer.from('ABCDEF');
+  assertArrEq(_fromBase64(withWs, { alphabet: 'base64' }), expected, `whitespace ${JSON.stringify(ws)} with base64`);
+  assertArrEq(_fromBase64(withWs, { alphabet: 'base64url' }), expected, `whitespace ${JSON.stringify(ws)} with base64url`);
+  assertArrEq(_fromBase64(withWs, { alphabet: 'base64any' }), expected, `whitespace ${JSON.stringify(ws)} with base64any`);
+}
 _fromBase64(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099==😀', { onInvalidInput: 'skip' });
 expectBase64Error('\u1234QUJDREVG');  // Latin-1 low byte is '4'; must not become valid in strict mode
 expectBase64Error('QUJD\u013D');      // U+013D → '='; must not decode as padded "QUJD"

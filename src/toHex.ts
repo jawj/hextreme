@@ -32,7 +32,7 @@ export function _toHex(in8: Uint8Array, { alphabet, scratchArr }: _ToHexOptions 
     }
   }
 
-  // if this is a subarray and the byteOffset isn't 2-byte aligned, we have to
+  // if this is a subarray and the byteOffset isn't 4-byte aligned, we have to
   // create a new array that is
 
   if (in8.byteOffset % 4 !== 0) in8 = new Uint8Array(in8);
