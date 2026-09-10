@@ -178,4 +178,4 @@ To run benchmarks: `npm run perfCli` (for Node and Bun) and `npm run perfBrowser
 
 ## Licence
 
-Copyright (C) 2024 George MacKerron and released under the [MIT License](LICENSE).
+Copyright (C) 2024 - 2026 George MacKerron and released under the [MIT License](LICENSE).
