@@ -1,10 +1,14 @@
 import {
+  toHex,
   _toHex,
   _toHexChunked,
+  fromHex,
   _fromHex,
   _fromHexChunked,
+  toBase64,
   _toBase64,
   _toBase64Chunked,
+  fromBase64,
   _fromBase64,
 } from './src/index.ts';
 
@@ -32,6 +36,19 @@ function assertStrEq(str1: string, str2: string) {
   throw new Error(`String mismatch: lengths ${str1.length} and ${str2.length}, first difference at index ${i}, '${ext1}' != '${ext2}'`);
 }
 
+function assertThrows(fn: () => unknown, messageIncludes?: string) {
+  let err: unknown = null;
+  try {
+    fn();
+  } catch (e) {
+    err = e;
+  }
+  if (!err) throw new Error('Expected function to throw');
+  if (messageIncludes && !String(err).includes(messageIncludes)) {
+    throw new Error(`Expected error to include ${JSON.stringify(messageIncludes)}, got ${err}`);
+  }
+}
+
 console.log('Generating random test data ...');
 
 const
@@ -48,6 +65,85 @@ const
   benchmarkBase64Std = benchmarkBuffer.toString('base64');
 
 console.log('Generated\n');
+
+
+console.log('Testing public API functions ...');
+
+const publicApiData = new Uint8Array([0, 1, 2, 15, 16, 127, 128, 254, 255]);
+assertStrEq(toHex(publicApiData), _toHexChunked(publicApiData));
+assertStrEq(toHex(publicApiData, { alphabet: 'upper' }), _toHexChunked(publicApiData, { alphabet: 'upper' }));
+assertArrEq(fromHex('0001020f107f80FEff'), publicApiData);
+assertArrEq(fromHex('0001020f107f80FEff', { onInvalidInput: 'truncate' }), publicApiData);
+assertStrEq(toBase64(publicApiData), _toBase64Chunked(publicApiData));
+assertStrEq(toBase64(publicApiData, { omitPadding: true }), _toBase64Chunked(publicApiData, { omitPadding: true }));
+assertStrEq(toBase64(publicApiData, { alphabet: 'base64url' }), _toBase64Chunked(publicApiData, { alphabet: 'base64url' }));
+assertArrEq(fromBase64(_toBase64Chunked(publicApiData)), publicApiData);
+assertArrEq(fromBase64(_toBase64Chunked(publicApiData), { onInvalidInput: 'skip' }), publicApiData);
+assertArrEq(fromBase64(_toBase64Chunked(publicApiData, { alphabet: 'base64url' }), { alphabet: 'base64url' }), publicApiData);
+assertArrEq(fromBase64('_w==', { alphabet: 'base64any' }), new Uint8Array([255]));
+assertThrows(() => fromHex('0'));
+assertThrows(() => fromBase64('A'));
+
+console.log('Tests passed\n');
+
+
+console.log('Testing hexadecimal alphabets and supplied arrays ...');
+
+const allBytes = new Uint8Array(256);
+for (let i = 0; i < allBytes.length; i++) allBytes[i] = i;
+const allBytesHex = Buffer.from(allBytes).toString('hex');
+assertStrEq(_toHex(allBytes), allBytesHex);
+assertStrEq(_toHex(allBytes, { alphabet: 'upper' }), allBytesHex.toUpperCase());
+assertArrEq(_fromHex('aAbBcCdDeEfF00123456789fFf'), Buffer.from('aabbccddeeff00123456789fff', 'hex'));
+
+const suppliedOut = new Uint8Array(4);
+const suppliedResult = _fromHexChunked('deadBEEF', { outArray: suppliedOut });
+if (suppliedResult !== suppliedOut) throw new Error('fromHex did not return the supplied output array');
+assertArrEq(suppliedOut, new Uint8Array([0xde, 0xad, 0xbe, 0xef]));
+
+const suppliedTruncatedOut = new Uint8Array(4);
+const suppliedTruncatedResult = _fromHexChunked('deadXXff', {
+  onInvalidInput: 'truncate',
+  outArray: suppliedTruncatedOut
+});
+if (suppliedTruncatedResult.buffer !== suppliedTruncatedOut.buffer) {
+  throw new Error('Truncated fromHex result does not share the supplied output array');
+}
+assertArrEq(suppliedTruncatedResult, new Uint8Array([0xde, 0xad]));
+
+assertThrows(() => _fromHexChunked('deadbeef', { outArray: new Uint8Array(3) }), 'expected 4');
+assertThrows(() => _fromHex('deadbeef', { scratchArray: new Uint16Array(5) }), 'expected at least 6');
+assertThrows(() => _fromHex('deadbeef', { outArray: new Uint8Array(3) }), 'expected 4');
+assertArrEq(_fromHex('deadbeef', {
+  scratchArray: new Uint16Array(6),
+  outArray: new Uint8Array(4)
+}), new Uint8Array([0xde, 0xad, 0xbe, 0xef]));
+assertStrEq(_toHex(publicApiData, { scratchArr: new Uint16Array(publicApiData.length) }), '0001020f107f80feff');
+assertStrEq(_toBase64(publicApiData, {
+  scratchArr: new Uint32Array(Math.ceil(publicApiData.length / 3))
+}), Buffer.from(publicApiData).toString('base64'));
+
+console.log('Tests passed\n');
+
+
+console.log('Testing base64 output options and alphabets ...');
+
+for (const data of arrays.slice(0, 8)) {
+  const standard = Buffer.from(data).toString('base64');
+  const url = Buffer.from(data).toString('base64url');
+  assertStrEq(_toBase64Chunked(data, { omitPadding: true }), standard.replace(/=+$/, ''));
+  assertStrEq(_toBase64Chunked(data, { alphabet: 'base64url' }), url + '='.repeat((4 - url.length % 4) % 4));
+}
+
+const mixedAlphabet = '/_+_';
+const mixedAlphabetExpected = _fromBase64('//+/', { alphabet: 'base64' });
+assertArrEq(_fromBase64(mixedAlphabet, { alphabet: 'base64any' }), mixedAlphabetExpected);
+assertThrows(() => _fromBase64('ab-c', { alphabet: 'base64' }));
+assertThrows(() => _fromBase64('ab+c', { alphabet: 'base64url' }));
+assertThrows(() => _fromBase64(mixedAlphabet, { alphabet: 'base64' }));
+assertThrows(() => _fromBase64(mixedAlphabet, { alphabet: 'base64url' }));
+
+console.log('Tests passed\n');
 
 
 console.log('Encoding as base64 ...');
@@ -340,6 +436,29 @@ for (let i = 0; i < arrays.length; i++) {
 console.log('Tests passed\n');
 
 
+console.log('Testing exact chunk boundaries ...');
+
+const chunkBoundaryLengths = [
+  504_000 - 1, 504_000, 504_000 + 1,
+  756_000 - 1, 756_000, 756_000 + 1,
+  1_008_000 - 1, 1_008_000, 1_008_000 + 1,
+];
+for (const length of chunkBoundaryLengths) {
+  const data = new Uint8Array(length);
+  data[0] = 1;
+  data[length >>> 1] = 127;
+  data[length - 1] = 255;
+  const expectedHex = Buffer.from(data).toString('hex');
+  const expectedBase64 = Buffer.from(data).toString('base64');
+  assertStrEq(_toHexChunked(data), expectedHex);
+  assertArrEq(_fromHexChunked(expectedHex), data, `hex chunk boundary ${length}`);
+  assertStrEq(_toBase64Chunked(data), expectedBase64);
+  assertArrEq(_fromBase64(expectedBase64), data, `base64 chunk boundary ${length}`);
+}
+
+console.log('Tests passed\n');
+
+
 console.log('Decoding hex with invalid characters (strict) ...');
 
 function expectHexError(hex: string) {
@@ -367,6 +486,20 @@ expectHexError('£00ff9£');
 expectHexError('00ff😀');
 expectHexError('123456==00');
 expectHexError(benchmarkHex + ' 123456789');
+
+console.log('Tests passed\n');
+
+
+console.log('Checking error indexes ...');
+
+assertThrows(() => _fromHexChunked('00ffgg'), 'index 4');
+assertThrows(() => _fromHexChunked('gg00'), 'index 0');
+const hexChunkBoundary = '00'.repeat(504_000) + 'gg';
+assertThrows(() => _fromHexChunked(hexChunkBoundary), 'index 1008000');
+assertThrows(() => _fromBase64('QUJD.REVG'), 'index 4');
+assertThrows(() => _fromBase64('QUJDREVG😀'), 'index 8');
+assertThrows(() => _fromBase64('QUJD=REVG'), 'index 5');
+assertThrows(() => _fromBase64('QUJDRE==😀'), 'index 8');
 
 console.log('Tests passed\n');
 
