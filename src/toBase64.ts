@@ -171,6 +171,5 @@ export function _toBase64Chunked(d: Uint8Array, options: ToBase64Options = {}) {
 }
 
 export function toBase64(d: Uint8Array, options: ToBase64Options = {}) {
-  // @ts-expect-error TS doesn't know about toBase64
   return typeof d.toBase64 === 'function' ? d.toBase64(options) as string : _toBase64Chunked(d, options);
 }

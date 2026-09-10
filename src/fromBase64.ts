@@ -221,7 +221,7 @@ export function _fromBase64(s: string, { alphabet, onInvalidInput }: FromBase64O
   e: {
     if (lax) while (i < inBytesLen) {
       i0 = i;
-      while ((vL1 = bl[inBytes[i++]]) > 63) if (vL1 === 65) ok = true;  // skip past whitespace and invalid, break on =
+      while ((vL1 = bl[inBytes[i++]]) > 63) if (vL1 === 65) ok = true;  // skip past whitespace and invalid, eventually break outer loop on =
       while ((vL2 = bl[inBytes[i++]]) > 63) if (vL2 === 65) ok = true;
       while ((vL3 = bl[inBytes[i++]]) > 63) if (vL3 === 65) ok = true;
       while ((vL4 = bl[inBytes[i++]]) > 63) if (vL4 === 65) ok = true;
@@ -249,15 +249,22 @@ export function _fromBase64(s: string, { alphabet, onInvalidInput }: FromBase64O
   // if input string included padding and/or whitespace, it will need truncating:
   // we need to count how many valid input characters (0 – 4) there are after i0
 
-  let validChars = 0;
+  let validChars = 0, pads = 0;
   for (i = i0; i < inBytesLen; i++) {
     const v = bl[inBytes[i]];
-    if (v < 64) validChars++;
-    if (v === 65) break;
+    if (v === 64) continue;  // whitespace, always OK
+    if (pads === 0 && v < 64) { validChars++; continue; }  // valid chars before padding, always OK
+    if (v === 65) pads++;  // padding
+    // we need this because, in previous processing, = terminates all loops eventually
+    else if (!lax) throw new Error(`Invalid character in base64 at index ${i}`);
   }
-  if (!lax) for (i = i0; i < inBytesLen; i++) {
-    const v = bl[inBytes[i]];
-    if (v > 65) throw new Error(`Invalid character in base64 after padding`);
+
+  if (!lax) {
+    if (validChars === 1) throw new Error(`Invalid dangling sextet in base64`);
+    if (pads > 0) {
+      const padNeeded = validChars === 2 ? 2 : validChars === 3 ? 1 : -1;
+      if (pads !== padNeeded) throw new Error(`Invalid padding in base64`);
+    }
   }
 
   const truncateBytes = { 4: 0, 3: 1, 2: 2, 1: 3, 0: 3 }[validChars];

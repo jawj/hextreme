@@ -84,9 +84,9 @@ toHex(new Uint8Array([254, 237, 250, 206]), { alphabet: 'upper' });
 
 Decodes a hex string (upper-, lower- or mixed-case) to binary data.
 
-The `onInvalidInput` option defaults to `'throw'`, in which case any non-hex character in the input causes an error to be thrown. This matches the behaviour of `toHex()` on a `Uint8Array` (where supported).
+The `onInvalidInput` option defaults to `'throw'`, in which case any non-hex character in the input causes an error to be thrown. This matches the behaviour of `Uint8Array.fromHex(hex)` (where supported).
 
-`onInvalidInput` may otherwise be set to `'truncate'`, in which case decoding stops at the first non-hex character pair encountered. This matches the behaviour of `toString('hex')` on a Node `Buffer`.
+`onInvalidInput` may otherwise be set to `'truncate'`, in which case decoding stops at the first non-hex character pair encountered. This matches the behaviour of `Buffer.from(hex, 'hex')`.
 
 Examples:
 
@@ -138,9 +138,9 @@ Decodes a base64 string to binary data. Whitespace in the input string (spaces, 
 
 The `alphabet` option defaults to `'base64'`, but may alternatively be set to `'base64url'`, in which case `-` and `_` are expected instead of `+` and `/`, or `'base64any'`, in which case both alternatives are recognised.
 
-The `onInvalidInput` option defaults to `'throw'`, in which case any non-base64, non-whitespace character in the input causes an error to be thrown. This matches the behaviour of `toBase64()` on a `Uint8Array` (where available).
+The `onInvalidInput` option defaults to `'throw'`, in which case any non-base64, non-whitespace character in the input causes an error to be thrown. This matches the behaviour of `Uint8Array.fromBase64(base64)` (where available).
 
-`onInvalidInput` may otherwise be set to `'skip'`, in which case any non-base64 characters are skipped and decoding continues (apart from `=`, which ends decoding). This matches the behaviour of `toString('base64')` on a Node `Buffer`.
+`onInvalidInput` may otherwise be set to `'skip'`, in which case any non-base64 characters are skipped and decoding continues (apart from `=`, which ends decoding). This matches the behaviour of `Buffer.from(base64, 'base64')`.
 
 _Note that decoding becomes roughly 2x slower if whitespace or invalid characters are encountered in the input string._
 

@@ -1,1 +1,2 @@
+1.1 / 10 Sep 2026: Closer match to Bun and Node behaviour (including https://github.com/oven-sh/bun/pull/31423)
 1.0.1 / 10 Dec 2024: Added `base64any` as a possible value for the `alphabet` option to `fromBase64()`.

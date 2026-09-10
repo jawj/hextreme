@@ -135,12 +135,10 @@ assertArrEq(_fromBase64(spaceLast, { onInvalidInput: 'skip' }), Buffer.from(spac
 
 const equalsMiddle = benchmarkBase64Std.slice(0, 400_000 - 1) + '=' + benchmarkBase64Std.slice(400_000 - 1);
 console.log('equals in = the middle');
-assertArrEq(_fromBase64(equalsMiddle), Buffer.from(equalsMiddle, 'base64'));
 assertArrEq(_fromBase64(equalsMiddle, { onInvalidInput: 'skip' }), Buffer.from(equalsMiddle, 'base64'));
 
 const equalsMiddle2 = benchmarkBase64Std.slice(0, 400_000 - 2) + '==' + benchmarkBase64Std.slice(400_000 - 2);
 console.log('equals in == the middle');
-assertArrEq(_fromBase64(equalsMiddle2), Buffer.from(equalsMiddle2, 'base64'));
 assertArrEq(_fromBase64(equalsMiddle2, { onInvalidInput: 'skip' }), Buffer.from(equalsMiddle2, 'base64'));
 
 console.log('Tests passed\n');
@@ -186,6 +184,65 @@ expectBase64Error(benchmarkBase64Std + ':::' + benchmarkBase64Std);
 console.log('Tests passed\n');
 
 
+console.log('Decoding base64 with bad padding or a dangling sextet (strict vs native) ...');
+
+function expectBase64MatchesNative(b64: string) {
+  if (typeof Uint8Array.fromBase64 !== 'function') {
+    throw new Error('Uint8Array.fromBase64 is required to check throw-mode against Node/Bun native decoding');
+  }
+
+  let localErr: unknown = null;
+  let nativeErr: unknown = null;
+  let local: Uint8Array | undefined;
+  let native: Uint8Array | undefined;
+
+  try { 
+    local = _fromBase64(b64); 
+  } catch (e) { localErr = e; }
+  try {
+    native = Uint8Array.fromBase64(b64);
+  } catch (e) { nativeErr = e; }
+
+  if (!localErr !== !nativeErr) {
+    const hex = (u: Uint8Array) => {
+      const h = Buffer.from(u).toString('hex');
+      return h ? `decoded ${h}` : 'decoded (empty)';
+    };
+    const localDesc = localErr ? `threw ${localErr}` : hex(local!);
+    const nativeDesc = nativeErr ? `threw ${nativeErr}` : hex(native!);
+    const preview = b64.length < 80 ? JSON.stringify(b64) : `length ${b64.length} starting ${JSON.stringify(b64.slice(0, 40))}`;
+    throw new Error(`throw-mode vs native mismatch for ${preview}: local ${localDesc} vs native ${nativeDesc}`);
+  }
+  if (!localErr) assertArrEq(local!, native!, b64);
+  else console.log(`As expected -- both threw for ${b64.length < 80 ? JSON.stringify(b64) : `length ${b64.length}`}: ${localErr}`);
+}
+
+// dangling sextet: one leftover alphabet character, not a full byte
+expectBase64MatchesNative('A');
+expectBase64MatchesNative('A=');
+expectBase64MatchesNative('A==');
+expectBase64MatchesNative('K');
+expectBase64MatchesNative('AAAAA');
+expectBase64MatchesNative('abcd+');
+
+// bad padding: wrong number of =, or data after padding
+expectBase64MatchesNative('QQ=');
+expectBase64MatchesNative('AA=');
+expectBase64MatchesNative('Kg=');
+expectBase64MatchesNative('YQ=');
+expectBase64MatchesNative('AAAA=');
+expectBase64MatchesNative('YWFh=');
+expectBase64MatchesNative('YWFh==');
+expectBase64MatchesNative('====');
+expectBase64MatchesNative('YQ==ZZ');
+expectBase64MatchesNative('YQ==YQ==');
+expectBase64MatchesNative('YQ=Z');
+expectBase64MatchesNative(equalsMiddle);
+expectBase64MatchesNative(equalsMiddle2);
+
+console.log('Tests passed\n');
+
+
 console.log('Decoding base64 with invalid characters (lax) ...');
 
 function expectBase64Skip(b64: string) {
@@ -204,6 +261,21 @@ expectBase64Skip('K===');
 expectBase64Skip('Kg');
 expectBase64Skip('Kg=');
 expectBase64Skip('Kg==');
+expectBase64Skip('A');
+expectBase64Skip('A=');
+expectBase64Skip('A==');
+expectBase64Skip('AAAAA');
+expectBase64Skip('abcd+');
+expectBase64Skip('QQ=');
+expectBase64Skip('AA=');
+expectBase64Skip('YQ=');
+expectBase64Skip('AAAA=');
+expectBase64Skip('YWFh=');
+expectBase64Skip('YWFh==');
+expectBase64Skip('====');
+expectBase64Skip('YQ==ZZ');
+expectBase64Skip('YQ==YQ==');
+expectBase64Skip('YQ=Z');
 expectBase64Skip('**********');
 expectBase64Skip('AAaaZZ.aa');
 expectBase64Skip('AAaaZZ00-');

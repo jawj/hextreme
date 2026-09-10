@@ -87,6 +87,5 @@ export function _toHexChunked(d: Uint8Array, options: ToHexOptions = {}) {
 }
 
 export function toHex(d: Uint8Array, options: ToHexOptions = {}) {
-  // @ts-expect-error TS doesn't know about toHex
   return options.alphabet !== 'upper' && typeof d.toHex === 'function' ? d.toHex() as string : _toHexChunked(d, options);
 }
