@@ -4,7 +4,7 @@ import {
   hexCharsUpper as chUpper,
   chunkBytes,
   td,
-} from './common';
+} from './common.ts';
 
 export interface ToHexOptions {
   alphabet?: 'lower' | 'upper';

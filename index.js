@@ -303,6 +303,12 @@ var anyWordLookup;
 var stdByteLookup;
 var urlByteLookup;
 var anyByteLookup;
+function encodeLatin1(s) {
+  const latin1 = te.encode(s);
+  if (latin1.length === s.length) return latin1;
+  for (let i = 0, len = s.length; i < len; i++) latin1[i] = s.charCodeAt(i);
+  return latin1.subarray(0, s.length);
+}
 function _fromBase64(s, { alphabet, onInvalidInput } = {}) {
   const lax = onInvalidInput === "skip";
   if (!stdWordLookup && alphabet !== "base64url" && alphabet !== "base64any") {
@@ -343,8 +349,8 @@ function _fromBase64(s, { alphabet, onInvalidInput } = {}) {
       stdByteLookup[chStdI] = urlByteLookup[chUrlI] = anyByteLookup[chStdI] = anyByteLookup[chUrlI] = i2;
     }
   }
-  const inBytes = te.encode(s), inBytesLen = inBytes.length, inIntsLen = inBytesLen >>> 2, inInts = new Uint32Array(inBytes.buffer,
-  inBytes.byteOffset, inIntsLen), last3 = inIntsLen - 3, maxOutBytesLen = inIntsLen * 3 + inBytesLen % 4, outBytes = new Uint8Array(
+  const inBytes = lax ? encodeLatin1(s) : te.encode(s), inBytesLen = inBytes.length, inIntsLen = inBytesLen >>> 2, inInts = new Uint32Array(
+  inBytes.buffer, inBytes.byteOffset, inIntsLen), last3 = inIntsLen - 3, maxOutBytesLen = inIntsLen * 3 + inBytesLen % 4, outBytes = new Uint8Array(
   maxOutBytesLen), outInts = new Uint32Array(outBytes.buffer, 0, maxOutBytesLen >>> 2), wl = alphabet === "base64url" ? urlWordLookup :
   alphabet === "base64any" ? anyWordLookup : stdWordLookup, bl = alphabet === "base64url" ? urlByteLookup : alphabet === "base64an\
 y" ? anyByteLookup : stdByteLookup;

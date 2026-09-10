@@ -2,7 +2,7 @@ import {
   littleEndian,
   chunkBytes,
   te,
-} from './common';
+} from './common.ts';
 
 export interface FromHexOptions {
   onInvalidInput?: 'throw' | 'truncate';

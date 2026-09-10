@@ -5,7 +5,7 @@ import {
   b64ChPad as chPad,
   te,
   type Base64Options
-} from './common';
+} from './common.ts';
 
 export interface FromBase64Options {
   alphabet?: Base64Options['alphabet'] | 'base64any';
@@ -23,6 +23,15 @@ let
   stdByteLookup: Uint8Array,
   urlByteLookup: Uint8Array,
   anyByteLookup: Uint8Array;
+
+// Buffer.from(s, 'base64') uses the low byte of each UTF-16 code unit. ASCII is
+// identical in UTF-8, so TextEncoder is the fast path.
+function encodeLatin1(s: string) {
+  const latin1 = te.encode(s);
+  if (latin1.length === s.length) return latin1;
+  for (let i = 0, len = s.length; i < len; i++) latin1[i] = s.charCodeAt(i);
+  return latin1.subarray(0, s.length);
+}
 
 // there could in principle be any amount of whitespace between any two input characters, and 
 // that makes it surprisingly tricky to decode base64 in chunks; for now, therefore, we don't try
@@ -99,7 +108,7 @@ export function _fromBase64(s: string, { alphabet, onInvalidInput }: FromBase64O
   }
 
   const
-    inBytes = te.encode(s),
+    inBytes = lax ? encodeLatin1(s) : te.encode(s),
     inBytesLen = inBytes.length,
     inIntsLen = inBytesLen >>> 2,  // divide by 4, round down: this is the number of complete uint32s we have
     inInts = new Uint32Array(inBytes.buffer, inBytes.byteOffset, inIntsLen),

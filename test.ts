@@ -6,7 +6,7 @@ import {
   _toBase64,
   _toBase64Chunked,
   _fromBase64,
-} from './src/index';
+} from './src/index.ts';
 
 function arrEq(arr1: Uint8Array, arr2: Uint8Array) {
   if (arr1.length !== arr2.length) return false;
@@ -165,6 +165,8 @@ _fromBase64('AAA=');
 _fromBase64('AA BB CC ++');
 _fromBase64(' AAaa88ZZ00\n\n\n\n\n\nAAaa//ZZ00\t\tAAaaZZ0099  == ');
 _fromBase64(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099==😀', { onInvalidInput: 'skip' });
+expectBase64Error('\u1234QUJDREVG');  // Latin-1 low byte is '4'; must not become valid in strict mode
+expectBase64Error('QUJD\u013D');      // U+013D → '='; must not decode as padded "QUJD"
 expectBase64Error('**********');
 expectBase64Error('AAaaZZ.aa');
 expectBase64Error('AAaaZZ00-');
@@ -212,6 +214,8 @@ expectBase64Skip(' AAaa88ZZ00 \nAAaa//ZZ00\tAAaaZZ0099==  😀');
 expectBase64Skip(' AAaa88ZZ00\nAAaa//ZZ00 \tAAaaZZ0099==   😀');
 expectBase64Skip(' AAaa88ZZ00\nAAaa//ZZ00 \tAAaaZZ0099==   😀');
 expectBase64Skip(' 😀😀😀😀😀😀😀😀😀😀ZZ');
+expectBase64Skip('\u1234QUJDREVG');
+expectBase64Skip('QUJD\u013D');
 expectBase64Skip(benchmarkBase64Std + ':::' + benchmarkBase64Std);
 
 const

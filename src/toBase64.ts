@@ -6,7 +6,7 @@ import {
   b64ChPad,
   td,
   type Base64Options
-} from './common';
+} from './common.ts';
 
 export interface ToBase64Options extends Base64Options {
   omitPadding?: boolean;
