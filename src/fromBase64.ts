@@ -94,9 +94,9 @@ export function _fromBase64(s: string, { alphabet, onInvalidInput }: FromBase64O
 
     stdByteLookup[chPad] = urlByteLookup[chPad] = anyByteLookup[chPad] = 65;  // 65 means: padding
 
-    stdByteLookup[9] = stdByteLookup[10] = stdByteLookup[13] = stdByteLookup[32] =  // tab, \r, \n, space
-      urlByteLookup[9] = urlByteLookup[10] = urlByteLookup[13] = urlByteLookup[32] =
-      anyByteLookup[9] = anyByteLookup[10] = anyByteLookup[13] = anyByteLookup[32] = 64;  // 64 means: whitespace
+    stdByteLookup[9] = stdByteLookup[10] = stdByteLookup[12] = stdByteLookup[13] = stdByteLookup[32] =  // tab, \r, \f, \n, space
+      urlByteLookup[9] = urlByteLookup[10] = stdByteLookup[12] = urlByteLookup[13] = urlByteLookup[32] =
+      anyByteLookup[9] = anyByteLookup[10] = stdByteLookup[12] = anyByteLookup[13] = anyByteLookup[32] = 64;  // 64 means: whitespace
 
     for (let i = 0; i < 64; i++) {
       const

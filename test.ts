@@ -164,6 +164,7 @@ _fromBase64('');
 _fromBase64('AAA=');
 _fromBase64('AA BB CC ++');
 _fromBase64(' AAaa88ZZ00\n\n\n\n\n\nAAaa//ZZ00\t\tAAaaZZ0099  == ');
+_fromBase64(' AAaa88ZZ00\n\n\f\f\n\nAAaa//ZZ00\t\tAAaaZZ0099  == ');
 _fromBase64(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099==😀', { onInvalidInput: 'skip' });
 expectBase64Error('\u1234QUJDREVG');  // Latin-1 low byte is '4'; must not become valid in strict mode
 expectBase64Error('QUJD\u013D');      // U+013D → '='; must not decode as padded "QUJD"
@@ -176,9 +177,9 @@ expectBase64Error(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099 😀');
 expectBase64Error(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099  😀');
 expectBase64Error(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099   😀');
 expectBase64Error(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099==😀');
-expectBase64Error(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099== 😀');
+expectBase64Error(' AAaa88ZZ00\fAAaa//ZZ00\tAAaaZZ0099== 😀');
 expectBase64Error(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099==  😀');
-expectBase64Error(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099==   😀');
+expectBase64Error(' AAaa88ZZ00\fAAaa//ZZ00\tAAaaZZ0099==   😀');
 expectBase64Error('\n'.repeat(12345678) + '*');
 expectBase64Error(benchmarkBase64Std + ':::' + benchmarkBase64Std);
 
@@ -211,7 +212,7 @@ expectBase64Skip(' AA``aa88ZZ(00)\nAA|aa//ZZ00\t~AAaaZZ0099== "');
 expectBase64Skip(' AAaa88ZZ00\nAAaa/😀/ZZ00\tAAaaZZ0099== ');
 expectBase64Skip(' AAaa88ZZ00\nAAaa//ZZ00\tAAaaZZ0099== 😀');
 expectBase64Skip(' AAaa88ZZ00 \nAAaa//ZZ00\tAAaaZZ0099==  😀');
-expectBase64Skip(' AAaa88ZZ00\nAAaa//ZZ00 \tAAaaZZ0099==   😀');
+expectBase64Skip(' AAaa88ZZ00\fAAaa//ZZ00 \tAAaaZZ0099==   😀');
 expectBase64Skip(' AAaa88ZZ00\nAAaa//ZZ00 \tAAaaZZ0099==   😀');
 expectBase64Skip(' 😀😀😀😀😀😀😀😀😀😀ZZ');
 expectBase64Skip('\u1234QUJDREVG');

@@ -134,7 +134,7 @@ toBase64(bytes, { alphabet: 'base64url', omitPadding: true });
 
 `fromBase64(base64: string, { alphabet?: 'base64' | 'base64url' | 'base64any', onInvalidInput?: 'throw' | 'skip' } = {}): Uint8Array;`
 
-Decodes a base64 string to binary data. Whitespace in the input string (spaces, tabs, `\r` and `\n`) is ignored.
+Decodes a base64 string to binary data. Whitespace in the input string (spaces, tabs, `\r`, `\f` and `\n`) is ignored.
 
 The `alphabet` option defaults to `'base64'`, but may alternatively be set to `'base64url'`, in which case `-` and `_` are expected instead of `+` and `/`, or `'base64any'`, in which case both alternatives are recognised.
 
