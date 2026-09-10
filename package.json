@@ -16,12 +16,12 @@
     "_bundleCJS": "esbuild src/index.ts --outdir=. --bundle --line-limit=130 --platform=neutral --target=es6 --format=cjs",
     "_bundleESM": "esbuild src/index.ts --outdir=. --bundle --line-limit=130 --platform=neutral --target=es6 --format=esm --out-extension:.js=.mjs",
     "_makeTypes": "dts-bundle-generator -o index.d.ts src/index.ts && cp index.d.ts index.d.mts",
-    "build": "tsc --noEmit && pnpm run _makeTypes && pnpm run _bundleESM && pnpm run _bundleCJS",
+    "build": "tsc --noEmit && bun run _makeTypes && bun run _bundleESM && bun run _bundleCJS",
     "_perfNode": "esbuild perfCli.ts --bundle --platform=node --target=es2015 --format=esm | node",
     "_perfBun": "bun run perfCli.ts",
-    "perfCli": "pnpm run build && echo '\n== Node ==\n' && pnpm run _perfNode && echo '\n== Bun ==\n' && pnpm run _perfBun",
+    "perfCli": "bun run build && echo '\n== Node ==\n' && bun run _perfNode && echo '\n== Bun ==\n' && bun run _perfBun",
     "perfBrowser": "esbuild perf.ts --bundle --platform=browser --target=es2015 --format=iife --outfile=browser-perf/perf.js && open browser-perf/index.html",
-    "test": "pnpm run build && bun run test.ts"
+    "test": "bun run build && bun run test.ts"
   },
   "keywords": [
     "hex",
@@ -44,6 +44,9 @@
     "dts-bundle-generator": "^9.5.1",
     "esbuild": "^0.28.2",
     "typescript": "^6.0.3"
+  },
+  "overrides": {
+    "typescript": "$typescript"
   },
   "repository": {
     "type": "git",
