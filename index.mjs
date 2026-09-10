@@ -70,10 +70,10 @@ per" ? ccu : ccl;
 }
 function _toHexChunked(d, options = {}) {
   let hex = "", len = d.length, chunkWords = chunkBytes >>> 1, chunks = Math.ceil(len / chunkWords), scratchArr = new Uint16Array(
-  chunks > 1 ? chunkWords : len);
+  chunks > 1 ? chunkWords : len), toHexArgs = __spreadProps(__spreadValues({}, options), { scratchArr });
   for (let i = 0; i < chunks; i++) {
     const start = i * chunkWords, end = start + chunkWords;
-    hex += _toHex(d.subarray(start, end), __spreadProps(__spreadValues({}, options), { scratchArr }));
+    hex += _toHex(d.subarray(start, end), toHexArgs);
   }
   return hex;
 }

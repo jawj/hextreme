@@ -73,14 +73,15 @@ export function _toHexChunked(d: Uint8Array, options: ToHexOptions = {}) {
     len = d.length,
     chunkWords = chunkBytes >>> 1,
     chunks = Math.ceil(len / chunkWords),
-    scratchArr = new Uint16Array(chunks > 1 ? chunkWords : len);
+    scratchArr = new Uint16Array(chunks > 1 ? chunkWords : len),
+    toHexArgs = { ...options, scratchArr };
 
   for (let i = 0; i < chunks; i++) {
     const
       start = i * chunkWords,
       end = start + chunkWords;  // subarray has no problem going past the end of the array
 
-    hex += _toHex(d.subarray(start, end), { ...options, scratchArr });
+    hex += _toHex(d.subarray(start, end), toHexArgs);
   }
 
   return hex;
