@@ -10,6 +10,7 @@ import {
 export interface FromBase64Options {
   alphabet?: Base64Options['alphabet'] | 'base64any';
   onInvalidInput?: 'throw' | 'skip';
+  skipNative?: boolean;
 }
 
 const
@@ -272,6 +273,8 @@ export function _fromBase64(s: string, { alphabet, onInvalidInput }: FromBase64O
 }
 
 export function fromBase64(s: string, options: FromBase64Options = {}) {
-  if (typeof Uint8Array.fromBase64 === 'function' && options.onInvalidInput !== 'skip' && options.alphabet !== 'base64any') return Uint8Array.fromBase64(s, options as Base64Options) as Uint8Array;
-  return _fromBase64(s, options);
+  const { onInvalidInput, alphabet, skipNative } = options;
+  return typeof Uint8Array.fromBase64 === 'function' && onInvalidInput !== 'skip' && alphabet !== 'base64any' && !skipNative
+    ? Uint8Array.fromBase64(s, options as Base64Options) as Uint8Array
+    : _fromBase64(s, options);
 }

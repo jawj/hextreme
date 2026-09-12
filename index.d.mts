@@ -2,6 +2,7 @@
 
 export interface ToHexOptions {
 	alphabet?: "lower" | "upper";
+	skipNative?: boolean;
 }
 export interface _ToHexOptions extends ToHexOptions {
 	scratchArr?: Uint16Array;
@@ -12,6 +13,7 @@ export declare function toHex(d: Uint8Array, options?: ToHexOptions): string;
 export interface FromHexOptions {
 	onInvalidInput?: "throw" | "truncate";
 	outArray?: Uint8Array;
+	skipNative?: boolean;
 }
 export interface _FromHexOptions extends FromHexOptions {
 	scratchArray?: Uint16Array;
@@ -25,6 +27,7 @@ export interface Base64Options {
 }
 export interface ToBase64Options extends Base64Options {
 	omitPadding?: boolean;
+	skipNative?: boolean;
 }
 export interface _ToBase64Options extends ToBase64Options {
 	scratchArr?: Uint32Array;
@@ -35,6 +38,7 @@ export declare function toBase64(d: Uint8Array, options?: ToBase64Options): stri
 export interface FromBase64Options {
 	alphabet?: Base64Options["alphabet"] | "base64any";
 	onInvalidInput?: "throw" | "skip";
+	skipNative?: boolean;
 }
 export declare function _fromBase64(s: string, { alphabet, onInvalidInput }?: FromBase64Options): Uint8Array<ArrayBuffer>;
 export declare function fromBase64(s: string, options?: FromBase64Options): Uint8Array<ArrayBufferLike>;

@@ -78,7 +78,8 @@ function _toHexChunked(d, options = {}) {
   return hex;
 }
 function toHex(d, options = {}) {
-  return options.alphabet !== "upper" && typeof d.toHex === "function" ? d.toHex() : _toHexChunked(d, options);
+  const { alphabet, skipNative } = options;
+  return alphabet !== "upper" && typeof d.toHex === "function" && !skipNative ? d.toHex() : _toHexChunked(d, options);
 }
 
 // src/fromHex.ts
@@ -170,9 +171,9 @@ function _fromHexChunked(s, { onInvalidInput, outArray } = {}) {
   return outArr;
 }
 function fromHex(s, options = {}) {
-  if (typeof Uint8Array.fromHex === "function" && options.onInvalidInput !== "truncate" && !options.outArray) return Uint8Array.fromHex(
-  s);
-  return _fromHexChunked(s, options);
+  const { onInvalidInput, outArray, skipNative } = options;
+  return typeof Uint8Array.fromHex === "function" && onInvalidInput !== "truncate" && !outArray && !skipNative ? Uint8Array.fromHex(
+  s) : _fromHexChunked(s, options);
 }
 
 // src/toBase64.ts
@@ -259,7 +260,7 @@ function _toBase64Chunked(d, options = {}) {
   return b64;
 }
 function toBase64(d, options = {}) {
-  return typeof d.toBase64 === "function" ? d.toBase64(options) : _toBase64Chunked(d, options);
+  return typeof d.toBase64 === "function" && !options.skipNative ? d.toBase64(options) : _toBase64Chunked(d, options);
 }
 
 // src/fromBase64.ts
@@ -461,9 +462,9 @@ y" ? anyByteLookup : stdByteLookup;
   return outBytes.subarray(0, j - truncateBytes);
 }
 function fromBase64(s, options = {}) {
-  if (typeof Uint8Array.fromBase64 === "function" && options.onInvalidInput !== "skip" && options.alphabet !== "base64any") return Uint8Array.
-  fromBase64(s, options);
-  return _fromBase64(s, options);
+  const { onInvalidInput, alphabet, skipNative } = options;
+  return typeof Uint8Array.fromBase64 === "function" && onInvalidInput !== "skip" && alphabet !== "base64any" && !skipNative ? Uint8Array.
+  fromBase64(s, options) : _fromBase64(s, options);
 }
 export {
   _fromBase64,

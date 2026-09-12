@@ -10,6 +10,7 @@ import {
 
 export interface ToBase64Options extends Base64Options {
   omitPadding?: boolean;
+  skipNative?: boolean;
 }
 
 export interface _ToBase64Options extends ToBase64Options {
@@ -171,5 +172,7 @@ export function _toBase64Chunked(d: Uint8Array, options: ToBase64Options = {}) {
 }
 
 export function toBase64(d: Uint8Array, options: ToBase64Options = {}) {
-  return typeof d.toBase64 === 'function' ? d.toBase64(options) as string : _toBase64Chunked(d, options);
+  return typeof d.toBase64 === 'function' && !options.skipNative
+    ? d.toBase64(options) as string
+    : _toBase64Chunked(d, options);
 }

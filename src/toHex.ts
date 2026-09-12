@@ -8,6 +8,7 @@ import {
 
 export interface ToHexOptions {
   alphabet?: 'lower' | 'upper';
+  skipNative?: boolean;
 }
 
 export interface _ToHexOptions extends ToHexOptions {
@@ -58,7 +59,7 @@ export function _toHex(in8: Uint8Array, { alphabet, scratchArr }: _ToHexOptions 
     out32[j++] = cc[v >>> 24] << 16 | cc[(v >>> 16) & 255];
     out32[j++] = cc[(v >>> 8) & 255] << 16 | cc[v & 255];
   }
-  
+
   // deal with up to 3 remaining bytes
   i <<= 2;  // uint32 addressing to uint8 addressing
   while (i < len) out16[i] = cc[in8[i++]];
@@ -88,5 +89,8 @@ export function _toHexChunked(d: Uint8Array, options: ToHexOptions = {}) {
 }
 
 export function toHex(d: Uint8Array, options: ToHexOptions = {}) {
-  return options.alphabet !== 'upper' && typeof d.toHex === 'function' ? d.toHex() as string : _toHexChunked(d, options);
+  const { alphabet, skipNative } = options;
+  return alphabet !== 'upper' && typeof d.toHex === 'function' && !skipNative
+    ? d.toHex() as string
+    : _toHexChunked(d, options);
 }

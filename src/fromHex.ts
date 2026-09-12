@@ -7,6 +7,7 @@ import {
 export interface FromHexOptions {
   onInvalidInput?: 'throw' | 'truncate';
   outArray?: Uint8Array;
+  skipNative?: boolean;
 }
 
 export interface _FromHexOptions extends FromHexOptions {
@@ -118,6 +119,8 @@ export function _fromHexChunked(s: string, { onInvalidInput, outArray }: FromHex
 }
 
 export function fromHex(s: string, options: FromHexOptions = {}) {
-  if (typeof Uint8Array.fromHex === 'function' && options.onInvalidInput !== 'truncate' && !options.outArray) return Uint8Array.fromHex(s) as Uint8Array;
-  return _fromHexChunked(s, options);
+  const { onInvalidInput, outArray, skipNative } = options;
+  return typeof Uint8Array.fromHex === 'function' && onInvalidInput !== 'truncate' && !outArray && !skipNative
+    ? Uint8Array.fromHex(s) as Uint8Array
+    : _fromHexChunked(s, options);
 }
